@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rob's Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+     GLOBAL RESET + NAV BAR
+     ═══════════════════════════════════════════════════════════════ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #08080c;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  .toolkit-nav {
+    position: sticky; top: 0; z-index: 9000;
+    display: flex; align-items: center;
+    background: #0c0c14;
+    border-bottom: 1px solid #1e1e30;
+    padding: 0 12px;
+    height: 48px;
+    gap: 0;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .toolkit-nav .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; font-size: 14px;
+    color: #00e5a0;
+    letter-spacing: -0.5px;
+    margin-right: 24px;
+    white-space: nowrap;
+    text-shadow: 0 0 12px #00e5a033;
+  }
+
+  .toolkit-nav .tab-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 500;
+    color: #666680;
+    background: none; border: none;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: color 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    letter-spacing: 0.3px;
+  }
+  .toolkit-nav .tab-btn:hover { color: #aaaacc; }
+  .toolkit-nav .tab-btn.active {
+    color: #00e5a0;
+    border-bottom-color: #00e5a0;
+    text-shadow: 0 0 8px #00e5a044;
+  }
+
+  .tool-page { display: none !important; min-height: calc(100vh - 48px); overflow: hidden; }
+  .tool-page.active { display: block !important; overflow: visible; }
+  #page-fastreader.active { display: flex !important; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOOL 1: PDF COMBINER (client-side with pdf-lib)
+     ═══════════════════════════════════════════════════════════════ */
+  #page-pdf {
+    --bg:#0a0f0a;--surface:#111a11;--surface2:#182818;
+    --border:#1e3a1e;--border-hi:#2d6b2d;
+    --green-1:#22c55e;--green-2:#16a34a;--green-3:#4ade80;--green-dim:#134e26;
+    --text:#e2f5e2;--text-dim:#6b8f6b;--danger:#ef4444;
+    --radius:10px;
+    background: var(--bg); color: var(--text);
+  }
+  #page-pdf .pdf-app { max-width:960px; margin:0 auto; padding:40px 24px 60px; position:relative; z-index:1; }
+  #page-pdf .pdf-app::before { content:''; position:absolute; top:-40%; left:-20%; width:70%; height:70%; background:radial-gradient(circle,rgba(34,197,94,.06) 0%,transparent 70%); pointer-events:none; z-index:0; }
+  #page-pdf header { text-align:center; margin-bottom:36px; }
+  #page-pdf header h1 { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.75rem; letter-spacing:-.5px; background:linear-gradient(135deg,#4ade80,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  #page-pdf header p { color:var(--text-dim); font-size:.85rem; margin-top:6px; font-family:'JetBrains Mono',monospace; }
+  #page-pdf .dropzone { border:2px dashed var(--border-hi); border-radius:var(--radius); padding:32px; text-align:center; cursor:pointer; transition:background .2s,border-color .2s; background:var(--surface); margin-bottom:28px; position:relative; }
+  #page-pdf .dropzone:hover, #page-pdf .dropzone.drag-over { background:var(--surface2); border-color:var(--green-1); box-shadow:0 0 30px rgba(34,197,94,.08); }
+  #page-pdf .dropzone .icon { font-size:2rem; margin-bottom:8px; }
+  #page-pdf .dropzone .label { font-size:.95rem; color:var(--text-dim); }
+  #page-pdf .dropzone .label strong { color:var(--green-3); }
+  #page-pdf .dropzone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  #page-pdf .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:14px; min-height:80px; margin-bottom:28px; }
+  #page-pdf .card { aspect-ratio:1; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 6px; cursor:grab; position:relative; transition:transform .15s,border-color .15s,box-shadow .15s; user-select:none; }
+  #page-pdf .card:hover { border-color:var(--green-1); box-shadow:0 0 16px rgba(34,197,94,.10); transform:translateY(-2px); }
+  #page-pdf .card.dragging { opacity:.35; transform:scale(.92); }
+  #page-pdf .card .order { position:absolute; top:6px; left:8px; font-family:'JetBrains Mono',monospace; font-size:.65rem; font-weight:700; color:var(--green-1); opacity:.8; }
+  #page-pdf .card .remove { position:absolute; top:4px; right:6px; background:none; border:none; color:var(--text-dim); font-size:.85rem; cursor:pointer; line-height:1; transition:color .15s; }
+  #page-pdf .card .remove:hover { color:var(--danger); }
+  #page-pdf .card .pdf-icon { font-size:1.6rem; margin-bottom:4px; }
+  #page-pdf .card .filename { font-size:.6rem; font-family:'JetBrains Mono',monospace; color:var(--text-dim); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; padding:0 2px; }
+  #page-pdf .card .pages { font-size:.55rem; color:var(--green-dim); font-family:'JetBrains Mono',monospace; margin-top:2px; }
+  #page-pdf .card.drag-target { border-color:var(--green-3); background:var(--surface2); }
+  #page-pdf .card .trim-btn { position:absolute; bottom:4px; right:5px; background:var(--green-dim); border:none; color:var(--green-3); font-family:'JetBrains Mono',monospace; font-size:.5rem; font-weight:600; padding:2px 5px; border-radius:4px; cursor:pointer; transition:background .15s,color .15s; line-height:1.2; }
+  #page-pdf .card .trim-btn:hover { background:var(--green-2); color:#000; }
+  #page-pdf .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); text-align:center; margin-bottom:18px; }
+  #page-pdf .status strong { color:var(--green-3); }
+  #page-pdf .actions { text-align:center; display:flex; gap:12px; justify-content:center; }
+  #page-pdf .btn { font-family:'JetBrains Mono',monospace; font-weight:600; font-size:.85rem; padding:12px 32px; border:none; border-radius:var(--radius); cursor:pointer; transition:all .2s; }
+  #page-pdf .btn-primary { background:linear-gradient(135deg,var(--green-2),var(--green-1)); color:#000; box-shadow:0 4px 20px rgba(34,197,94,.25); }
+  #page-pdf .btn-primary:hover { box-shadow:0 4px 28px rgba(34,197,94,.40); transform:translateY(-1px); }
+  #page-pdf .btn-primary:disabled { opacity:.35; cursor:default; transform:none; box-shadow:none; }
+  #page-pdf .btn-secondary { background:var(--surface2); color:var(--text-dim); border:1.5px solid var(--border); }
+  #page-pdf .btn-secondary:hover { border-color:var(--border-hi); color:var(--text); }
+  #page-pdf .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1.5px solid var(--green-1); padding:12px 24px; border-radius:var(--radius); font-family:'JetBrains Mono',monospace; font-size:.8rem; color:var(--green-3); pointer-events:none; opacity:0; transition:all .35s; box-shadow:0 8px 30px rgba(0,0,0,.5); z-index:999; }
+  #page-pdf .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #page-pdf .spinner { display:inline-block; width:16px; height:16px; border:2px solid #000; border-top-color:transparent; border-radius:50%; animation:pdfspin .6s linear infinite; vertical-align:middle; margin-right:6px; }
+  @keyframes pdfspin { to { transform:rotate(360deg); } }
+  #page-pdf .trim-overlay { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+  #page-pdf .trim-overlay.open { opacity:1; pointer-events:auto; }
+  #page-pdf .trim-panel { background:var(--surface); border:1.5px solid var(--border-hi); border-radius:14px; padding:36px 40px; width:380px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  #page-pdf .trim-panel h2 { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.1rem; background:linear-gradient(135deg,#4ade80,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+  #page-pdf .trim-panel .trim-file-info { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); margin-bottom:24px; word-break:break-all; }
+  #page-pdf .trim-panel .trim-file-info strong { color:var(--green-3); }
+  #page-pdf .trim-field { margin-bottom:18px; }
+  #page-pdf .trim-field label { display:block; font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); margin-bottom:6px; }
+  #page-pdf .trim-field input[type=number] { width:100%; padding:10px 14px; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:.9rem; outline:none; transition:border-color .2s; }
+  #page-pdf .trim-field input[type=number]:focus { border-color:var(--green-1); }
+  #page-pdf .trim-field .hint { font-size:.6rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace; margin-top:4px; }
+  #page-pdf .trim-actions { display:flex; gap:10px; margin-top:24px; }
+  #page-pdf .trim-actions .btn { flex:1; padding:10px 0; font-size:.8rem; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOOL 2: SCREENSHOT PARKING
+     ═══════════════════════════════════════════════════════════════ */
+  #page-parking { background:#0a0f0a; color:#4ade80; font-family:'JetBrains Mono',monospace; position:relative; }
+  #page-parking .scanlines { position:absolute; inset:0; pointer-events:none; z-index:1; background:repeating-linear-gradient(0deg,rgba(34,197,94,.03) 0px,rgba(34,197,94,.03) 1px,transparent 1px,transparent 3px); }
+  #page-parking .park-app { position:relative; z-index:2; }
+  #page-parking .park-header { padding:20px 28px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(34,197,94,.13); }
+  #page-parking .park-header h1 { font-size:22px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:#4ade80; text-shadow:0 0 10px rgba(34,197,94,.53),0 0 30px rgba(34,197,94,.2); }
+  #page-parking .park-header .sub { font-size:11px; color:rgba(74,222,128,.4); letter-spacing:2px; margin-top:4px; }
+  #page-parking .park-header .counter { font-size:12px; color:rgba(74,222,128,.53); text-align:right; letter-spacing:1px; }
+  #page-parking .bar-bg { margin-top:4px; height:4px; width:120px; background:rgba(34,197,94,.08); border-radius:2px; overflow:hidden; }
+  #page-parking .bar-fill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); border-radius:2px; transition:width .3s; box-shadow:0 0 8px rgba(34,197,94,.4); }
+  #page-parking .park-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:16px 20px 24px; }
+  #page-parking .slot { aspect-ratio:16/10; background:#0f1a0f; border:1px dashed rgba(34,197,94,.1); border-radius:4px; position:relative; cursor:crosshair; overflow:hidden; transition:all .15s; }
+  #page-parking .slot.has-img { border:1px solid rgba(34,197,94,.15); cursor:pointer; }
+  #page-parking .slot.has-img:hover { border-color:#22c55e; box-shadow:0 0 12px rgba(34,197,94,.12); }
+  #page-parking .slot.drag-target { border:2px solid #22c55e; background:rgba(34,197,94,.09); }
+  #page-parking .slot.dragging { opacity:.3; }
+  #page-parking .slot.paste-target { border:2px solid rgba(34,197,94,.53); background:rgba(34,197,94,.07); }
+  #page-parking .slot img { width:100%; height:100%; object-fit:cover; display:block; }
+  #page-parking .slot .idx { position:absolute; top:3px; left:5px; font-size:9px; color:rgba(74,222,128,.19); letter-spacing:1px; z-index:2; }
+  #page-parking .slot.has-img .idx { color:rgba(74,222,128,.8); text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  #page-parking .slot .clear-btn { position:absolute; top:2px; right:4px; z-index:3; background:rgba(0,0,0,.6); border:1px solid rgba(34,197,94,.27); color:#4ade80; font-size:11px; cursor:pointer; border-radius:2px; padding:0 4px; line-height:16px; opacity:0; transition:opacity .15s; }
+  #page-parking .slot:hover .clear-btn { opacity:.6; }
+  #page-parking .slot .clear-btn:hover { opacity:1!important; }
+  #page-parking .slot .empty-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(34,197,94,.1); font-size:18px; }
+  #page-parking .slot.paste-target .empty-label { color:rgba(34,197,94,.33); }
+  #page-parking .lightbox { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.92); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; pointer-events:none; transition:opacity .2s; }
+  #page-parking .lightbox.open { opacity:1; pointer-events:auto; }
+  #page-parking .lb-bar { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:16px 24px; background:linear-gradient(180deg,rgba(0,0,0,.7),transparent); }
+  #page-parking .lb-label { color:rgba(74,222,128,.53); font-size:11px; letter-spacing:2px; }
+  #page-parking .lb-actions { display:flex; gap:12px; }
+  #page-parking .lb-btn { font-family:'JetBrains Mono',monospace; font-size:12px; cursor:pointer; border-radius:4px; padding:6px 16px; letter-spacing:2px; text-transform:uppercase; font-weight:700; transition:all .15s; }
+  #page-parking .lb-btn-del { background:rgba(255,50,50,.15); border:1px solid rgba(255,68,68,.67); color:#ff4444; }
+  #page-parking .lb-btn-del:hover { background:rgba(255,50,50,.3); box-shadow:0 0 15px rgba(255,50,50,.3); }
+  #page-parking .lb-btn-close { background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.27); color:#4ade80; }
+  #page-parking .lb-btn-close:hover { background:rgba(34,197,94,.2); }
+  #page-parking .lightbox img { max-width:92vw; max-height:85vh; border-radius:4px; border:1px solid rgba(34,197,94,.2); box-shadow:0 0 60px rgba(34,197,94,.15); cursor:default; }
+  #page-parking .park-toast { position:fixed; bottom:24px; left:50%; z-index:9200; transform:translateX(-50%) translateY(60px); background:#0a0f0a; border:1px solid rgba(34,197,94,.27); color:#4ade80; padding:8px 20px; border-radius:4px; font-size:12px; letter-spacing:2px; text-transform:uppercase; box-shadow:0 0 20px rgba(34,197,94,.15); opacity:0; transition:all .3s; pointer-events:none; }
+  #page-parking .park-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOOL 3: FASTREADER
+     ═══════════════════════════════════════════════════════════════ */
+  #page-fastreader {
+    background: #008080;
+    background-image: radial-gradient(circle at 20% 30%, #007070 0%, transparent 50%), radial-gradient(circle at 80% 70%, #006868 0%, transparent 50%);
+    display: flex; justify-content: center; align-items: flex-start; padding: 30px 20px;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 12px; color: #000;
+  }
+  #page-fastreader .window { width:680px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-fastreader .window-inner { border-top:1px solid #dfdfdf; border-left:1px solid #dfdfdf; border-right:1px solid #808080; border-bottom:1px solid #808080; }
+  #page-fastreader .fr-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-fastreader .fr-title-bar .title-bar-text { display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; }
+  #page-fastreader .title-icon { width:16px; height:16px; background:#33ff33; border-radius:2px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:#000080; font-weight:900; }
+  #page-fastreader .title-buttons { display:flex; gap:2px; }
+  #page-fastreader .title-btn { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; cursor:pointer; font-family:'IBM Plex Mono',monospace; color:#000; }
+  #page-fastreader .fr-menu-bar { background:#c0c0c0; padding:2px 0; border-bottom:1px solid #808080; display:flex; }
+  #page-fastreader .menu-item { padding:2px 8px; cursor:pointer; font-size:12px; font-family:'IBM Plex Mono',monospace; position:relative; }
+  #page-fastreader .menu-item:hover { background:#000080; color:#fff; }
+  #page-fastreader .menu-dropdown { display:none; position:absolute; top:100%; left:0; background:#c0c0c0; border:2px outset #c0c0c0; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:1000; min-width:180px; padding:2px 0; }
+  #page-fastreader .menu-item:hover .menu-dropdown { display:block; }
+  #page-fastreader .menu-dropdown-item { padding:3px 20px; cursor:pointer; white-space:nowrap; font-size:12px; color:#000; }
+  #page-fastreader .menu-dropdown-item:hover { background:#000080; color:#fff; }
+  #page-fastreader .menu-dropdown-sep { height:1px; background:#808080; margin:3px 4px; border-bottom:1px solid #fff; }
+  #page-fastreader .content { padding:8px; display:flex; flex-direction:column; gap:6px; }
+  #page-fastreader .display-panel { background:#0a0a2e; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; height:110px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  #page-fastreader .display-panel::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px); pointer-events:none; }
+  #page-fastreader .display-panel::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.4) 100%); pointer-events:none; }
+  #page-fastreader .display-word { font-family:'VT323',monospace; font-size:56px; color:#33ff33; text-shadow:0 0 8px rgba(51,255,51,.5),0 0 20px rgba(51,255,51,.2); z-index:1; transition:opacity .05s; letter-spacing:2px; }
+  #page-fastreader .display-word.gold { color:#c8a800; text-shadow:0 0 8px rgba(200,168,0,.5),0 0 20px rgba(200,168,0,.2); }
+  #page-fastreader .main-row { display:flex; gap:8px; align-items:stretch; }
+  #page-fastreader .text-panel { flex:1; display:flex; flex-direction:column; gap:4px; }
+  #page-fastreader .text-panel label { font-size:11px; font-weight:700; color:#000; }
+  #page-fastreader .text-area { width:100%; height:160px; resize:none; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:4px; background:#fff; color:#000; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; outline:none; line-height:1.5; }
+  #page-fastreader .right-panel { width:280px; display:flex; flex-direction:column; gap:6px; }
+  #page-fastreader .slider-row { display:flex; align-items:center; gap:6px; }
+  #page-fastreader .seek-bar { flex:1; height:18px; -webkit-appearance:none; appearance:none; background:#c0c0c0; border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; outline:none; cursor:pointer; }
+  #page-fastreader .seek-bar::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:18px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; cursor:grab; }
+  #page-fastreader .fr-nav-btns { display:flex; gap:2px; }
+  #page-fastreader .fr-nav-btn { width:24px; height:22px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:#000; }
+  #page-fastreader .fr-nav-btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-fastreader .stat-field { background:#fff; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; padding:3px 6px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#000; height:24px; display:flex; align-items:center; }
+  #page-fastreader .control-row { display:flex; gap:6px; justify-content:center; }
+  #page-fastreader .win-btn { min-width:72px; height:26px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; color:#000; display:flex; align-items:center; justify-content:center; outline:none; }
+  #page-fastreader .win-btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-fastreader .speed-panel { background:#008080; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; padding:8px; display:flex; align-items:flex-end; gap:4px; position:relative; flex:1; }
+  #page-fastreader .speed-bars { display:flex; align-items:flex-end; gap:3px; flex:1; height:60px; }
+  #page-fastreader .speed-bar { flex:1; background:#00aa00; cursor:pointer; border-top:1px solid #00ff00; border-left:1px solid #00dd00; border-right:1px solid #006600; border-bottom:1px solid #004400; transition:background .15s; min-width:8px; }
+  #page-fastreader .speed-bar.active { background:#00ff44; box-shadow:0 0 4px rgba(0,255,68,.4); }
+  #page-fastreader .speed-bar.inactive { background:#004400; border-color:#003300; }
+  #page-fastreader .speed-label { color:#fff; font-size:18px; font-family:'VT323',monospace; text-align:center; min-width:24px; text-shadow:0 0 4px rgba(255,255,255,.3); }
+  #page-fastreader .speed-btn-row { display:flex; gap:4px; margin-top:4px; }
+  #page-fastreader .speed-btn { flex:1; height:22px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; color:#000; display:flex; align-items:center; justify-content:center; }
+  #page-fastreader .speed-btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-fastreader .fr-progress-row { display:flex; align-items:center; gap:8px; }
+  #page-fastreader .progress-outer { flex:1; height:18px; background:#fff; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; position:relative; overflow:hidden; }
+  #page-fastreader .progress-inner { height:100%; background:linear-gradient(180deg,#00aa00 0%,#008800 50%,#006600 100%); width:0%; transition:width .15s; position:relative; }
+  #page-fastreader .progress-inner::after { content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,.25),transparent); }
+  #page-fastreader .percent-label { font-family:'IBM Plex Mono',monospace; font-size:12px; min-width:60px; text-align:right; color:#000; }
+  #page-fastreader .fr-status-bar { background:#c0c0c0; border-top:1px solid #808080; padding:2px 6px; font-size:11px; display:flex; justify-content:space-between; }
+  #page-fastreader .status-cell { border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; padding:1px 6px; }
+  #page-fastreader .chunk-row { display:flex; align-items:center; gap:6px; font-size:11px; }
+  #page-fastreader .chunk-row label { font-weight:700; }
+  #page-fastreader .chunk-select { font-family:'IBM Plex Mono',monospace; font-size:11px; background:#fff; border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; padding:1px 2px; }
+  #page-fastreader .fr-dialog-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:9999; justify-content:center; align-items:center; }
+  #page-fastreader .fr-dialog-overlay.show { display:flex; }
+  #page-fastreader .dialog { width:360px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:2px 2px 0 #000; }
+  #page-fastreader .dialog-body { padding:16px; text-align:center; font-size:12px; line-height:1.7; }
+  #page-fastreader .dialog-body .app-title { font-family:'VT323',monospace; font-size:28px; color:#000080; margin-bottom:6px; }
+  #page-fastreader .dialog-footer { display:flex; justify-content:center; padding:0 16px 12px; }
+  #page-fastreader #frFileInput { display:none; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOOL 4: TTS READER
+     ═══════════════════════════════════════════════════════════════ */
+  #page-tts {
+    --bg-primary: #0a0a0f; --bg-secondary: #12121a; --bg-tertiary: #1a1a26;
+    --bg-card: #16161f; --border: #2a2a3a; --border-hover: #3a3a5a;
+    --text-primary: #e8e8f0; --text-secondary: #8888a8; --text-muted: #55556a;
+    --accent: #00e5a0; --accent-dim: #00e5a020; --accent-mid: #00e5a050; --accent-glow: #00e5a030;
+    --danger: #ff4466; --danger-dim: #ff446620;
+    --warning: #ffaa00; --warning-dim: #ffaa0020;
+    background: var(--bg-primary); color: var(--text-primary);
+    font-family: 'IBM Plex Sans', sans-serif; position:relative; overflow:hidden;
+  }
+  #page-tts::before { content:''; position:absolute; inset:0; background-image:linear-gradient(#2a2a3a 1px,transparent 1px),linear-gradient(90deg,#2a2a3a 1px,transparent 1px); background-size:60px 60px; opacity:.08; pointer-events:none; z-index:0; }
+  #page-tts .tts-app { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:40px 24px; }
+  #page-tts .header { margin-bottom:36px; display:flex; align-items:baseline; gap:12px; }
+  #page-tts .header h1 { font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; letter-spacing:-1px; background:linear-gradient(135deg,var(--accent),#00b8ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  #page-tts .header .tag { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:3px 8px; border-radius:4px; letter-spacing:1px; text-transform:uppercase; }
+  #page-tts .editor-wrapper { position:relative; margin-bottom:24px; }
+  #page-tts .editor-wrapper label { display:block; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+  #page-tts #ttsTextInput { width:100%; height:260px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:'IBM Plex Sans',sans-serif; font-size:15px; line-height:1.7; padding:20px; resize:vertical; transition:border-color .2s; outline:none; }
+  #page-tts #ttsTextInput:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+  #page-tts #ttsTextInput::placeholder { color:var(--text-muted); }
+  #page-tts .char-count { position:absolute; bottom:12px; right:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); }
+  #page-tts .controls-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:24px; }
+  #page-tts .controls-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  #page-tts .control-group { display:flex; flex-direction:column; gap:8px; }
+  #page-tts .control-group.full-width { grid-column:1/-1; }
+  #page-tts .control-label { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+  #page-tts .control-value { color:var(--accent); font-weight:600; font-size:13px; }
+  #page-tts .control-value.fast { color:var(--warning); }
+  #page-tts .control-value.insane { color:var(--danger); }
+  #page-tts input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:6px; background:var(--bg-tertiary); border-radius:3px; outline:none; cursor:pointer; }
+  #page-tts input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent); cursor:grab; box-shadow:0 0 10px var(--accent-glow); transition:transform .15s; }
+  #page-tts input[type="range"]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+  #page-tts .speed-presets { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  #page-tts .speed-preset { font-family:'JetBrains Mono',monospace; font-size:12px; padding:5px 12px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text-secondary); cursor:pointer; transition:all .15s; }
+  #page-tts .speed-preset:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  #page-tts .speed-preset.active { border-color:var(--accent); color:var(--bg-primary); background:var(--accent); font-weight:600; }
+  #page-tts .speed-preset.danger-zone { border-color:var(--danger-dim); }
+  #page-tts .speed-preset.danger-zone:hover { border-color:var(--danger); color:var(--danger); background:var(--danger-dim); }
+  #page-tts .speed-preset.danger-zone.active { border-color:var(--danger); background:var(--danger); color:var(--bg-primary); }
+  #page-tts select { font-family:'IBM Plex Sans',sans-serif; font-size:14px; padding:10px 14px; background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; outline:none; cursor:pointer; }
+  #page-tts select:focus { border-color:var(--accent); }
+  #page-tts .transport { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:24px; }
+  #page-tts .transport-btn { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; padding:12px 28px; border:1px solid var(--border); border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:8px; letter-spacing:.5px; }
+  #page-tts .transport-btn:hover { border-color:var(--border-hover); background:var(--bg-tertiary); transform:translateY(-1px); }
+  #page-tts .transport-btn.play { background:var(--accent); color:var(--bg-primary); border-color:var(--accent); padding:14px 36px; font-size:14px; }
+  #page-tts .transport-btn.play:hover { background:#00ffb4; box-shadow:0 4px 20px var(--accent-glow); }
+  #page-tts .transport-btn.play.speaking { background:var(--danger); border-color:var(--danger); }
+  #page-tts .transport-btn.play.paused { background:var(--warning); border-color:var(--warning); }
+  #page-tts .transport-btn:disabled { opacity:.3; cursor:not-allowed; }
+  #page-tts .progress-section { margin-bottom:24px; }
+  #page-tts .progress-bar-container { width:100%; height:4px; background:var(--bg-tertiary); border-radius:2px; overflow:hidden; margin-bottom:8px; }
+  #page-tts .tts-progress-bar { height:100%; background:linear-gradient(90deg,var(--accent),#00b8ff); border-radius:2px; width:0%; transition:width .3s; }
+  #page-tts .progress-info { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); }
+  #page-tts .tts-status-bar { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-muted); }
+  #page-tts .status-dot { width:8px; height:8px; border-radius:50%; background:var(--text-muted); flex-shrink:0; }
+  #page-tts .status-dot.ready { background:var(--accent); }
+  #page-tts .status-dot.speaking { background:var(--accent); animation:ttspulse 1s ease-in-out infinite; }
+  #page-tts .status-dot.paused { background:var(--warning); }
+  #page-tts .status-dot.error { background:var(--danger); }
+  @keyframes ttspulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 #00e5a050} 50%{opacity:.6;box-shadow:0 0 0 6px #00e5a020} }
+  #page-tts .waveform { display:flex; align-items:center; justify-content:center; gap:3px; height:40px; margin-bottom:24px; }
+  #page-tts .wave-bar { width:4px; background:var(--accent); border-radius:2px; height:8px; opacity:.3; transition:height .1s,opacity .1s; }
+  #page-tts .waveform.active .wave-bar { animation:ttswave .8s ease-in-out infinite; opacity:.8; }
+  @keyframes ttswave { 0%,100%{height:8px;opacity:.3} 50%{height:32px;opacity:1} }
+  #page-tts .drop-zone { border:2px dashed var(--border); border-radius:8px; padding:16px; text-align:center; margin-bottom:16px; cursor:pointer; transition:all .2s; font-size:13px; color:var(--text-muted); }
+  #page-tts .drop-zone:hover, #page-tts .drop-zone.dragover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  #page-tts .drop-zone input { display:none; }
+  #page-tts .shortcuts { margin-top:24px; display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  #page-tts .shortcut { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+  #page-tts .key { display:inline-block; padding:2px 7px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; font-size:10px; color:var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ NAV BAR ═══════════════════════════════════ -->
+<nav class="toolkit-nav">
+  <span class="brand">toolkit://</span>
+  <button class="tab-btn active" data-page="pdf">&#128196; PDF Combiner</button>
+  <button class="tab-btn" data-page="parking">&#128247; Screenshot Parking</button>
+  <button class="tab-btn" data-page="fastreader">&#9889; FastReader</button>
+  <button class="tab-btn" data-page="tts">&#128264; TTS Reader</button>
+</nav>
+
+<!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
+<div id="page-pdf" class="tool-page active">
+  <div class="pdf-app">
+    <header>
+      <h1>&gt;_ pdf_combiner</h1>
+      <p>drag &middot; drop &middot; reorder &middot; merge — all client-side</p>
+    </header>
+    <div class="dropzone" id="pdfDropzone">
+      <div class="icon">&#128196;</div>
+      <div class="label">Drop PDFs here or <strong>click to browse</strong></div>
+      <input type="file" id="pdfFileInput" accept=".pdf" multiple />
+    </div>
+    <div class="status" id="pdfStatus"><strong>0</strong> / 15 files loaded</div>
+    <div class="grid" id="pdfGrid"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" id="pdfClearBtn" style="display:none">Clear All</button>
+      <button class="btn btn-primary" id="pdfCombineBtn" disabled>Combine PDFs</button>
+    </div>
+  </div>
+  <div class="trim-overlay" id="pdfTrimOverlay">
+    <div class="trim-panel">
+      <h2>&#9986; Trim Pages</h2>
+      <div class="trim-file-info" id="pdfTrimFileInfo"></div>
+      <div class="trim-field">
+        <label>Remove from <strong style="color:#4ade80">beginning</strong></label>
+        <input type="number" id="pdfTrimTop" min="0" value="0" />
+        <div class="hint">Number of pages to remove from the start</div>
+      </div>
+      <div class="trim-field">
+        <label>Remove from <strong style="color:#4ade80">end</strong></label>
+        <input type="number" id="pdfTrimBottom" min="0" value="0" />
+        <div class="hint">Number of pages to remove from the end</div>
+      </div>
+      <div class="trim-actions">
+        <button class="btn btn-secondary" id="pdfTrimCancel">Cancel</button>
+        <button class="btn btn-primary" id="pdfTrimApply">Apply Trim</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="pdfToast"></div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 2: SCREENSHOT PARKING ═══════════════════════════════════ -->
+<div id="page-parking" class="tool-page">
+  <div class="scanlines"></div>
+  <div class="park-app">
+    <div class="park-header">
+      <div>
+        <h1>&#9654; Screenshot Parking</h1>
+        <p class="sub">CTRL+V TO PARK &bull; DRAG TO REORDER &bull; CLICK TO VIEW</p>
+      </div>
+      <div>
+        <div class="counter" id="parkCounter">0/56 PARKED</div>
+        <div class="bar-bg"><div class="bar-fill" id="parkBarFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="park-grid" id="parkGrid"></div>
+  </div>
+  <div class="lightbox" id="parkLightbox">
+    <div class="lb-bar">
+      <span class="lb-label" id="parkLbLabel">SLOT 01</span>
+      <div class="lb-actions">
+        <button class="lb-btn lb-btn-del" id="parkLbDel">&#10005; Delete</button>
+        <button class="lb-btn lb-btn-close" id="parkLbClose">Close</button>
+      </div>
+    </div>
+    <img id="parkLbImg" src="" />
+  </div>
+  <div class="park-toast" id="parkToast"></div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 3: FASTREADER ═══════════════════════════════════ -->
+<div id="page-fastreader" class="tool-page">
+  <div class="window">
+    <div class="window-inner">
+      <div class="fr-title-bar">
+        <div class="title-bar-text"><span class="title-icon">F</span> FastReader</div>
+        <div class="title-buttons">
+          <div class="title-btn">_</div><div class="title-btn">□</div><div class="title-btn">×</div>
+        </div>
+      </div>
+      <div class="fr-menu-bar">
+        <div class="menu-item"><span style="text-decoration:underline">F</span>ile
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" id="frOpenFile">Open File...</div>
+            <div class="menu-dropdown-item" id="frPasteClip">Paste from Clipboard</div>
+            <div class="menu-dropdown-sep"></div>
+            <div class="menu-dropdown-item" id="frLoadSample">Load Sample Text</div>
+          </div>
+        </div>
+        <div class="menu-item"><span style="text-decoration:underline">E</span>dit
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" id="frClearText">Clear Text</div>
+            <div class="menu-dropdown-item" id="frSelectAll">Select All</div>
+          </div>
+        </div>
+        <div class="menu-item"><span style="text-decoration:underline">H</span>elp
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" id="frShowAbout">About FastReader...</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="display-panel"><div class="display-word" id="frDisplayWord">FastReader</div></div>
+        <div class="main-row">
+          <div class="text-panel">
+            <label>Text Source:</label>
+            <textarea class="text-area" id="frTextArea" placeholder="Paste or type your text here, or use File → Open to load a .txt file..."></textarea>
+            <div class="chunk-row">
+              <label>Words per flash:</label>
+              <select class="chunk-select" id="frChunkSize">
+                <option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+              </select>
+            </div>
+          </div>
+          <div class="right-panel">
+            <div class="slider-row">
+              <input type="range" class="seek-bar" id="frSeekBar" min="0" max="100" value="0">
+              <div class="fr-nav-btns">
+                <div class="fr-nav-btn" id="frSeekBack">◄◄</div>
+                <div class="fr-nav-btn" id="frSeekFwd">►►</div>
+              </div>
+            </div>
+            <div class="stat-field" id="frWpmDisplay">0.00 WPM</div>
+            <div class="stat-field" id="frMultiplierDisplay">1.00 × reading speed</div>
+            <div class="control-row">
+              <button class="win-btn" id="frGoBtn">Go</button>
+              <button class="win-btn" id="frPauseBtn">Pause</button>
+              <button class="win-btn" id="frStopBtn">Stop</button>
+            </div>
+            <div class="speed-panel">
+              <div class="speed-bars" id="frSpeedBars"></div>
+              <div class="speed-label" id="frSpeedLabel">3</div>
+            </div>
+            <div class="speed-btn-row">
+              <button class="speed-btn" id="frSlower">Slower</button>
+              <button class="speed-btn" id="frFaster">Faster</button>
+            </div>
+          </div>
+        </div>
+        <div class="fr-progress-row">
+          <div class="progress-outer"><div class="progress-inner" id="frProgressBar"></div></div>
+          <div class="percent-label" id="frPercentLabel">0 percent</div>
+        </div>
+      </div>
+      <div class="fr-status-bar">
+        <span class="status-cell" id="frStatusText">Ready</span>
+        <span class="status-cell" id="frWordCount">Words: 0</span>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="frFileInput" accept=".txt,.md,.html,.csv,.log" style="display:none">
+  <div class="fr-dialog-overlay" id="frAboutDialog">
+    <div class="dialog">
+      <div class="fr-title-bar">
+        <div class="title-bar-text">About FastReader</div>
+        <div class="title-buttons"><div class="title-btn" id="frHideAbout">×</div></div>
+      </div>
+      <div class="dialog-body">
+        <div class="app-title">FastReader</div>
+        <div style="color:#808080;margin-bottom:10px">Version 2.0 — Offline Edition</div>
+        <p>A streamlined RSVP text reading utility.</p>
+      </div>
+      <div class="dialog-footer">
+        <button class="win-btn" id="frAboutOk" style="min-width:90px">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 4: TTS READER ═══════════════════════════════════ -->
+<div id="page-tts" class="tool-page">
+  <div class="tts-app">
+    <div class="header">
+      <h1>TURBO_TTS</h1>
+      <span class="tag">v1.0</span>
+    </div>
+    <div class="drop-zone" id="ttsDropZone">
+      Drop a .txt file here or click to load
+      <input type="file" id="ttsFileInput" accept=".txt,.md,.text">
+    </div>
+    <div class="editor-wrapper">
+      <label>Text Input</label>
+      <textarea id="ttsTextInput" placeholder="Paste or type your text here..."></textarea>
+      <div class="char-count" id="ttsCharCount">0 chars</div>
+    </div>
+    <div class="controls-panel">
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">Voice</div>
+          <select id="ttsVoiceSelect"></select>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Pitch <span class="control-value" id="ttsPitchValue">1.0</span></div>
+          <input type="range" id="ttsPitchSlider" min="0.1" max="2" step="0.1" value="1">
+        </div>
+        <div class="control-group full-width">
+          <div class="control-label">Speed <span class="control-value" id="ttsSpeedValue">1.0x</span></div>
+          <input type="range" id="ttsSpeedSlider" min="0.25" max="10" step="0.25" value="1">
+          <div class="speed-presets">
+            <button class="speed-preset active" data-speed="1">1x</button>
+            <button class="speed-preset" data-speed="1.5">1.5x</button>
+            <button class="speed-preset" data-speed="2">2x</button>
+            <button class="speed-preset" data-speed="2.5">2.5x</button>
+            <button class="speed-preset" data-speed="3">3x</button>
+            <button class="speed-preset" data-speed="4">4x</button>
+            <button class="speed-preset danger-zone" data-speed="5">5x</button>
+            <button class="speed-preset danger-zone" data-speed="6">6x</button>
+            <button class="speed-preset danger-zone" data-speed="8">8x</button>
+            <button class="speed-preset danger-zone" data-speed="10">10x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="waveform" id="ttsWaveform"></div>
+    <div class="transport">
+      <button class="transport-btn" id="ttsBtnPrev">⏮ Prev</button>
+      <button class="transport-btn play" id="ttsBtnPlay">▶ Play</button>
+      <button class="transport-btn" id="ttsBtnNext">Next ⏭</button>
+    </div>
+    <div class="progress-section">
+      <div class="progress-bar-container"><div class="tts-progress-bar" id="ttsProgressBar"></div></div>
+      <div class="progress-info">
+        <span id="ttsChunkInfo">Chunk 0 / 0</span>
+        <span id="ttsWordCount">0 words</span>
+      </div>
+    </div>
+    <div class="tts-status-bar">
+      <div class="status-dot" id="ttsStatusDot"></div>
+      <span id="ttsStatusText">Ready — paste text or drop a file to begin</span>
+    </div>
+    <div class="shortcuts">
+      <div class="shortcut"><span class="key">Space</span> Play / Pause</div>
+      <div class="shortcut"><span class="key">←</span> Prev chunk</div>
+      <div class="shortcut"><span class="key">→</span> Next chunk</div>
+      <div class="shortcut"><span class="key">+</span> Speed up</div>
+      <div class="shortcut"><span class="key">-</span> Slow down</div>
+      <div class="shortcut"><span class="key">Esc</span> Stop</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const tabBtns = document.querySelectorAll('.tab-btn');
+const pages = document.querySelectorAll('.tool-page');
+let activePage = 'pdf';
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.page;
+    if (target === activePage) return;
+    activePage = target;
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.page === target));
+    pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
+    // Fix body bg for different tools
+    const bgs = { pdf:'#0a0f0a', parking:'#0a0f0a', fastreader:'#008080', tts:'#0a0a0f' };
+    document.body.style.background = bgs[target] || '#08080c';
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 1: PDF COMBINER (client-side with pdf-lib)
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const MAX=15; let files=[]; // {name, bytes:Uint8Array, pages:int, trimTop:0, trimBottom:0}
+  const grid=document.getElementById('pdfGrid'), status=document.getElementById('pdfStatus'),
+    combineBtn=document.getElementById('pdfCombineBtn'), clearBtn=document.getElementById('pdfClearBtn'),
+    dropzone=document.getElementById('pdfDropzone'), fileInput=document.getElementById('pdfFileInput'),
+    toast=document.getElementById('pdfToast');
+
+  function showToast(m,ms=2500){toast.textContent=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),ms)}
+
+  async function addFiles(fl){
+    const rem=MAX-files.length;if(rem<=0){showToast('Maximum 15 files reached');return}
+    const ups=Array.from(fl).filter(f=>f.type==='application/pdf').slice(0,rem);
+    if(!ups.length){showToast('Only PDF files accepted');return}
+    for(const f of ups){
+      try{
+        const buf=await f.arrayBuffer(); const bytes=new Uint8Array(buf);
+        const doc=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true});
+        files.push({name:f.name,bytes,pages:doc.getPageCount(),trimTop:0,trimBottom:0});
+      }catch(e){showToast('Invalid PDF: '+f.name)}
+    }
+    render();
+  }
+
+  function render(){
+    grid.innerHTML='';
+    files.forEach((f,i)=>{
+      const c=document.createElement('div');c.className='card';c.draggable=true;c.dataset.index=i;
+      const effectivePages=f.pages-f.trimTop-f.trimBottom;
+      c.innerHTML=`<span class="order">#${i+1}</span><button class="remove" data-idx="${i}">&times;</button>
+        <div class="pdf-icon">&#128206;</div><div class="filename" title="${f.name}">${f.name}</div>
+        <div class="pages">${effectivePages} pg</div><button class="trim-btn" data-idx="${i}">trim</button>`;
+      grid.appendChild(c);
+    });
+    status.innerHTML=`<strong>${files.length}</strong> / ${MAX} files loaded`;
+    combineBtn.disabled=files.length<1;clearBtn.style.display=files.length?'':'none';
+    // attach events
+    document.querySelectorAll('#page-pdf .card').forEach(attachDrag);
+    document.querySelectorAll('#page-pdf .card .remove').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();files.splice(+b.dataset.idx,1);render()}));
+    document.querySelectorAll('#page-pdf .card .trim-btn').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();openTrim(+b.dataset.idx)}));
+  }
+
+  let dragIdx=null;
+  function attachDrag(c){
+    c.addEventListener('dragstart',e=>{dragIdx=+c.dataset.index;c.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+    c.addEventListener('dragend',()=>{c.classList.remove('dragging');document.querySelectorAll('#page-pdf .card').forEach(x=>x.classList.remove('drag-target'));dragIdx=null});
+    c.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';c.classList.add('drag-target')});
+    c.addEventListener('dragleave',()=>c.classList.remove('drag-target'));
+    c.addEventListener('drop',e=>{e.preventDefault();const di=+c.dataset.index;if(dragIdx!==null&&dragIdx!==di){const[m]=files.splice(dragIdx,1);files.splice(di,0,m);render()}});
+  }
+
+  ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add('drag-over')}));
+  ['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,()=>dropzone.classList.remove('drag-over')));
+  dropzone.addEventListener('drop',e=>{e.preventDefault();addFiles(e.dataTransfer.files)});
+  fileInput.addEventListener('change',()=>{addFiles(fileInput.files);fileInput.value=''});
+  clearBtn.addEventListener('click',()=>{files=[];render()});
+
+  // Trim
+  const trimOverlay=document.getElementById('pdfTrimOverlay'),trimInfo=document.getElementById('pdfTrimFileInfo'),
+    trimTop=document.getElementById('pdfTrimTop'),trimBottom=document.getElementById('pdfTrimBottom'),
+    trimCancel=document.getElementById('pdfTrimCancel'),trimApply=document.getElementById('pdfTrimApply');
+  let trimIdx=null;
+  function openTrim(i){trimIdx=i;const f=files[i];trimInfo.innerHTML=`<strong>${f.name}</strong> &mdash; ${f.pages} pages`;
+    trimTop.value=f.trimTop;trimBottom.value=f.trimBottom;trimTop.max=f.pages-1;trimBottom.max=f.pages-1;trimOverlay.classList.add('open');trimTop.focus()}
+  trimCancel.addEventListener('click',()=>{trimOverlay.classList.remove('open');trimIdx=null});
+  trimOverlay.addEventListener('click',e=>{if(e.target===trimOverlay)trimCancel.click()});
+  trimApply.addEventListener('click',()=>{if(trimIdx===null)return;const f=files[trimIdx],t=parseInt(trimTop.value)||0,b=parseInt(trimBottom.value)||0;
+    if(t+b>=f.pages){showToast('Cannot remove all pages!');return}
+    f.trimTop=t;f.trimBottom=b;trimOverlay.classList.remove('open');render();showToast(`Trimmed to ${f.pages-t-b} pages`)});
+
+  // Combine
+  combineBtn.addEventListener('click',async()=>{
+    combineBtn.disabled=true;combineBtn.innerHTML='<span class="spinner"></span>Merging…';
+    try{
+      const merged=await PDFLib.PDFDocument.create();
+      for(const f of files){
+        const src=await PDFLib.PDFDocument.load(f.bytes,{ignoreEncryption:true});
+        const total=src.getPageCount();
+        const start=f.trimTop;const end=total-f.trimBottom;
+        const indices=[];for(let i=start;i<end;i++)indices.push(i);
+        const copied=await merged.copyPages(src,indices);
+        copied.forEach(p=>merged.addPage(p));
+      }
+      const pdfBytes=await merged.save();
+      const blob=new Blob([pdfBytes],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='combined.pdf';a.click();
+      URL.revokeObjectURL(url);showToast('PDF downloaded!');
+    }catch(e){showToast('Error: '+e.message)}
+    finally{combineBtn.disabled=false;combineBtn.textContent='Combine PDFs'}
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 2: SCREENSHOT PARKING
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const COLS=4,ROWS=14,TOTAL=COLS*ROWS;
+  let slots=Array(TOTAL).fill(null),dragFrom=null,pasteTarget=null,viewIdx=null;
+  const parkGrid=document.getElementById('parkGrid'),counter=document.getElementById('parkCounter'),
+    barFill=document.getElementById('parkBarFill'),lightbox=document.getElementById('parkLightbox'),
+    lbImg=document.getElementById('parkLbImg'),lbLabel=document.getElementById('parkLbLabel'),
+    lbDel=document.getElementById('parkLbDel'),lbClose=document.getElementById('parkLbClose'),
+    parkToast=document.getElementById('parkToast');
+
+  function showPToast(m){parkToast.textContent='\u25B8 '+m;parkToast.classList.add('show');setTimeout(()=>parkToast.classList.remove('show'),2000)}
+
+  function render(){
+    const filled=slots.filter(Boolean).length;
+    counter.textContent=`${filled}/${TOTAL} PARKED`;
+    counter.style.color=filled>0?'#4ade80':'rgba(74,222,128,.27)';
+    barFill.style.width=`${(filled/TOTAL)*100}%`;
+    parkGrid.innerHTML='';
+    slots.forEach((img,idx)=>{
+      const d=document.createElement('div');
+      d.className='slot'+(img?' has-img':'')+(pasteTarget===idx?' paste-target':'');
+      d.draggable=!!img;d.dataset.idx=idx;
+      let h=`<span class="idx">${String(idx+1).padStart(2,'0')}</span>`;
+      if(img) h+=`<img src="${img}"/><button class="clear-btn" data-idx="${idx}">&times;</button>`;
+      else h+=`<div class="empty-label">${pasteTarget===idx?'\u25B8 PASTE HERE':'+'}</div>`;
+      d.innerHTML=h;parkGrid.appendChild(d)});
+    attachSlotEvents();
+  }
+
+  function attachSlotEvents(){
+    document.querySelectorAll('#page-parking .slot').forEach(slot=>{
+      const idx=+slot.dataset.idx;
+      slot.addEventListener('click',e=>{if(e.target.classList.contains('clear-btn'))return;
+        if(slots[idx])openLightbox(idx);else{pasteTarget=pasteTarget===idx?null:idx;render()}});
+      const cb=slot.querySelector('.clear-btn');
+      if(cb)cb.addEventListener('click',e=>{e.stopPropagation();slots[+cb.dataset.idx]=null;render();showPToast('Slot cleared')});
+      slot.addEventListener('dragstart',e=>{if(!slots[idx]){e.preventDefault();return}dragFrom=idx;slot.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+      slot.addEventListener('dragend',()=>{slot.classList.remove('dragging');dragFrom=null;document.querySelectorAll('#page-parking .slot').forEach(s=>s.classList.remove('drag-target'))});
+      slot.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';slot.classList.add('drag-target')});
+      slot.addEventListener('dragleave',()=>slot.classList.remove('drag-target'));
+      slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('drag-target');
+        if(dragFrom===null||dragFrom===idx){dragFrom=null;return}
+        [slots[dragFrom],slots[idx]]=[slots[idx],slots[dragFrom]];dragFrom=null;render();showPToast('Swapped!')});
+    });
+  }
+
+  window.addEventListener('paste',e=>{
+    if(activePage!=='parking')return;
+    const items=e.clipboardData?.items;if(!items)return;
+    for(const item of items){if(item.type.startsWith('image/')){e.preventDefault();
+      const blob=item.getAsFile(),reader=new FileReader();
+      reader.onload=ev=>{const du=ev.target.result;
+        if(pasteTarget!==null&&slots[pasteTarget]===null){slots[pasteTarget]=du;pasteTarget=null}
+        else{const ei=slots.indexOf(null);if(ei!==-1)slots[ei]=du;else{showPToast('All slots full!');return}}
+        render();showPToast('Screenshot parked!')};
+      reader.readAsDataURL(blob);break}}});
+
+  function openLightbox(i){viewIdx=i;lbImg.src=slots[i];lbLabel.textContent='SLOT '+String(i+1).padStart(2,'0');lightbox.classList.add('open')}
+  function closeLightbox(){lightbox.classList.remove('open');viewIdx=null}
+  lightbox.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox()});
+  lbClose.addEventListener('click',e=>{e.stopPropagation();closeLightbox()});
+  lbDel.addEventListener('click',e=>{e.stopPropagation();if(viewIdx!==null){slots[viewIdx]=null;closeLightbox();render();showPToast('Screenshot deleted')}});
+  lbImg.addEventListener('click',e=>e.stopPropagation());
+  render();
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 3: FASTREADER
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  let words=[],currentIndex=0,isPlaying=false,isPaused=false,intervalId=null,speedLevel=3;
+  const speedMap={1:600,2:450,3:300,4:220,5:170,6:130,7:100,8:75,9:55,10:40};
+  const barsContainer=document.getElementById('frSpeedBars');
+  for(let i=1;i<=10;i++){const bar=document.createElement('div');bar.className='speed-bar';bar.style.height=(i*10)+'%';bar.dataset.level=i;bar.onclick=()=>setSpeed(i);barsContainer.appendChild(bar)}
+  updateSpeedBars();
+
+  function setSpeed(level){speedLevel=Math.max(1,Math.min(10,level));updateSpeedBars();if(isPlaying&&!isPaused){clearInterval(intervalId);intervalId=setInterval(tick,speedMap[speedLevel])}}
+  function updateSpeedBars(){
+    barsContainer.querySelectorAll('.speed-bar').forEach(b=>{const l=+b.dataset.level;b.classList.toggle('active',l===speedLevel);b.classList.toggle('inactive',l>speedLevel)});
+    document.getElementById('frSpeedLabel').textContent=speedLevel;
+    const baseWPM=200,currentWPM=60000/speedMap[speedLevel];
+    document.getElementById('frMultiplierDisplay').textContent=(currentWPM/baseWPM).toFixed(2)+' \u00d7 reading speed';
+    updateWPM();
+  }
+  function updateWPM(){const cs=parseInt(document.getElementById('frChunkSize').value)||1;document.getElementById('frWpmDisplay').textContent=((60000/speedMap[speedLevel])*cs).toFixed(2)+' WPM'}
+  function parseWords(){const text=document.getElementById('frTextArea').value.trim();words=text.split(/\s+/).filter(w=>w.length>0);document.getElementById('frWordCount').textContent='Words: '+words.length;document.getElementById('frSeekBar').max=Math.max(0,words.length-1);return words.length>0}
+
+  function go(){
+    if(isPaused){isPaused=false;isPlaying=true;intervalId=setInterval(tick,speedMap[speedLevel]);setStatus('Playing...');return}
+    if(!parseWords()){setStatus('No text loaded!');return}
+    currentIndex=0;isPlaying=true;isPaused=false;intervalId=setInterval(tick,speedMap[speedLevel]);setStatus('Playing...');
+  }
+  function pause(){if(!isPlaying)return;clearInterval(intervalId);isPaused=true;isPlaying=false;setStatus('Paused')}
+  function stop(){clearInterval(intervalId);isPlaying=false;isPaused=false;currentIndex=0;updateDisplay('FastReader');updateProgress(0);updateWPM();document.getElementById('frSeekBar').value=0;setStatus('Stopped')}
+  function tick(){
+    const cs=parseInt(document.getElementById('frChunkSize').value)||1;
+    if(currentIndex>=words.length){clearInterval(intervalId);isPlaying=false;updateDisplay('\u2713 Done');document.getElementById('frDisplayWord').classList.add('gold');setStatus('Finished — '+words.length+' words read');return}
+    document.getElementById('frDisplayWord').classList.remove('gold');
+    updateDisplay(words.slice(currentIndex,currentIndex+cs).join(' '));currentIndex+=cs;updateWPM();
+    const pct=Math.min(100,(currentIndex/words.length)*100);updateProgress(pct);document.getElementById('frSeekBar').value=currentIndex;
+  }
+  function updateDisplay(text){document.getElementById('frDisplayWord').textContent=text}
+  function updateProgress(pct){document.getElementById('frProgressBar').style.width=pct+'%';document.getElementById('frPercentLabel').textContent=Math.round(pct)+' percent'}
+  function setStatus(msg){document.getElementById('frStatusText').textContent=msg}
+
+  document.getElementById('frSeekBar').addEventListener('input',function(){currentIndex=+this.value;if(words.length>0&&currentIndex<words.length){updateDisplay(words[currentIndex]);updateProgress((currentIndex/words.length)*100)}});
+  document.getElementById('frSeekBack').addEventListener('click',()=>{if(!words.length)return;currentIndex=Math.max(0,currentIndex-10);document.getElementById('frSeekBar').value=currentIndex;if(currentIndex<words.length)updateDisplay(words[currentIndex]);updateProgress((currentIndex/words.length)*100)});
+  document.getElementById('frSeekFwd').addEventListener('click',()=>{if(!words.length)return;currentIndex=Math.min(words.length-1,currentIndex+10);document.getElementById('frSeekBar').value=currentIndex;updateDisplay(words[currentIndex]);updateProgress((currentIndex/words.length)*100)});
+
+  document.getElementById('frGoBtn').addEventListener('click',go);
+  document.getElementById('frPauseBtn').addEventListener('click',pause);
+  document.getElementById('frStopBtn').addEventListener('click',stop);
+  document.getElementById('frSlower').addEventListener('click',()=>setSpeed(speedLevel-1));
+  document.getElementById('frFaster').addEventListener('click',()=>setSpeed(speedLevel+1));
+
+  document.getElementById('frFileInput').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{document.getElementById('frTextArea').value=ev.target.result;parseWords();setStatus('Loaded: '+file.name)};reader.readAsText(file);e.target.value=''});
+  document.getElementById('frOpenFile').addEventListener('click',()=>document.getElementById('frFileInput').click());
+  document.getElementById('frPasteClip').addEventListener('click',async()=>{try{const t=await navigator.clipboard.readText();document.getElementById('frTextArea').value=t;parseWords();setStatus('Pasted from clipboard')}catch{setStatus('Clipboard access denied')}});
+  document.getElementById('frClearText').addEventListener('click',()=>{stop();document.getElementById('frTextArea').value='';words=[];document.getElementById('frWordCount').textContent='Words: 0';setStatus('Cleared')});
+  document.getElementById('frSelectAll').addEventListener('click',()=>document.getElementById('frTextArea').select());
+  document.getElementById('frLoadSample').addEventListener('click',()=>{
+    document.getElementById('frTextArea').value=`In the beginning, there was nothing but silence and the vast emptiness of uncharted digital space. Then, one by one, the words began to appear — streaming across phosphor screens in monochrome green, each character a tiny beacon of meaning in the darkness.\n\nThe early computing pioneers understood something profound: that the human mind is capable of processing information at extraordinary speeds, far beyond what traditional reading allows. They built machines that could present text in rapid serial visual presentation, one word at a time.\n\nToday, you hold on your screen a descendant of those pioneering tools. FastReader carries forward the same fundamental insight: that by controlling the rate and manner of text presentation, we can unlock reading speeds that would seem superhuman to the uninitiated.\n\nBegin slowly. Let your eyes settle on the center of the display. Breathe. Then click Go, and watch as the words flow past like a river of thought. Welcome to FastReader.`;
+    parseWords();setStatus('Sample text loaded')});
+  document.getElementById('frShowAbout').addEventListener('click',()=>document.getElementById('frAboutDialog').classList.add('show'));
+  document.getElementById('frHideAbout').addEventListener('click',()=>document.getElementById('frAboutDialog').classList.remove('show'));
+  document.getElementById('frAboutOk').addEventListener('click',()=>document.getElementById('frAboutDialog').classList.remove('show'));
+
+  document.getElementById('frTextArea').addEventListener('input',parseWords);
+  document.getElementById('frChunkSize').addEventListener('change',updateWPM);
+
+  document.addEventListener('keydown',function(e){
+    if(activePage!=='fastreader')return;
+    if(e.target.tagName==='TEXTAREA')return;
+    if(e.code==='Space'){e.preventDefault();isPlaying?pause():go()}
+    if(e.code==='Escape')stop();
+    if(e.code==='ArrowUp')setSpeed(speedLevel+1);
+    if(e.code==='ArrowDown')setSpeed(speedLevel-1);
+    if(e.code==='ArrowLeft')document.getElementById('frSeekBack').click();
+    if(e.code==='ArrowRight')document.getElementById('frSeekFwd').click();
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 4: TTS READER
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  let synth=window.speechSynthesis,voices=[],chunks=[],currentChunk=0,isSpeaking=false,isPaused=false,currentUtterance=null;
+  const textInput=document.getElementById('ttsTextInput'),voiceSelect=document.getElementById('ttsVoiceSelect'),
+    speedSlider=document.getElementById('ttsSpeedSlider'),pitchSlider=document.getElementById('ttsPitchSlider'),
+    speedValue=document.getElementById('ttsSpeedValue'),pitchValue=document.getElementById('ttsPitchValue'),
+    btnPlay=document.getElementById('ttsBtnPlay'),btnPrev=document.getElementById('ttsBtnPrev'),btnNext=document.getElementById('ttsBtnNext'),
+    progressBar=document.getElementById('ttsProgressBar'),chunkInfo=document.getElementById('ttsChunkInfo'),
+    wordCount=document.getElementById('ttsWordCount'),charCount=document.getElementById('ttsCharCount'),
+    statusDot=document.getElementById('ttsStatusDot'),statusText=document.getElementById('ttsStatusText'),
+    waveform=document.getElementById('ttsWaveform'),dropZone=document.getElementById('ttsDropZone'),
+    fileInput=document.getElementById('ttsFileInput');
+
+  for(let i=0;i<40;i++){const bar=document.createElement('div');bar.className='wave-bar';bar.style.animationDelay=`${(i*.05)%.8}s`;waveform.appendChild(bar)}
+
+  function loadVoices(){voices=synth.getVoices();voiceSelect.innerHTML='';
+    const sorted=[...voices].sort((a,b)=>(a.lang.startsWith('en')?0:1)-(b.lang.startsWith('en')?0:1));
+    sorted.forEach(v=>{const opt=document.createElement('option');opt.value=voices.indexOf(v);opt.textContent=`${v.name} (${v.lang})${v.default?' ★':''}`;voiceSelect.appendChild(opt)})}
+  synth.onvoiceschanged=loadVoices;loadVoices();
+
+  function chunkText(text){if(!text.trim())return[];const sentences=text.match(/[^.!?\n]+[.!?\n]*/g)||[text];const result=[];let buffer='';
+    for(const s of sentences){if((buffer+s).length>300&&buffer.length>0){result.push(buffer.trim());buffer=s}else buffer+=s}
+    if(buffer.trim())result.push(buffer.trim());return result}
+
+  function updateSpeedDisplay(){const speed=parseFloat(speedSlider.value);speedValue.textContent=speed+'x';
+    speedValue.className='control-value'+(speed>4?' insane':speed>2?' fast':'');
+    document.querySelectorAll('#page-tts .speed-preset').forEach(btn=>btn.classList.toggle('active',parseFloat(btn.dataset.speed)===speed))}
+
+  speedSlider.addEventListener('input',()=>{updateSpeedDisplay();if(isSpeaking&&!isPaused)speakChunk(currentChunk)});
+  pitchSlider.addEventListener('input',()=>{pitchValue.textContent=parseFloat(pitchSlider.value).toFixed(1)});
+  document.querySelectorAll('#page-tts .speed-preset').forEach(btn=>btn.addEventListener('click',()=>{speedSlider.value=btn.dataset.speed;updateSpeedDisplay();if(isSpeaking&&!isPaused)speakChunk(currentChunk)}));
+  textInput.addEventListener('input',()=>{charCount.textContent=textInput.value.length+' chars';const wc=textInput.value.trim()?textInput.value.trim().split(/\s+/).length:0;wordCount.textContent=wc+' words'});
+
+  dropZone.addEventListener('click',()=>fileInput.click());
+  dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
+  dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0])});
+  fileInput.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0])});
+
+  function readFile(file){const reader=new FileReader();reader.onload=e=>{textInput.value=e.target.result;textInput.dispatchEvent(new Event('input'));setStatus('ready','Loaded: '+file.name)};reader.readAsText(file)}
+
+  function speakChunk(index){synth.cancel();if(index>=chunks.length){stopSpeaking();setStatus('ready','Finished reading');return}
+    currentChunk=index;const utterance=new SpeechSynthesisUtterance(chunks[index]);currentUtterance=utterance;
+    const si=voiceSelect.value;if(voices[si])utterance.voice=voices[si];
+    utterance.rate=parseFloat(speedSlider.value);utterance.pitch=parseFloat(pitchSlider.value);
+    utterance.onstart=()=>{isSpeaking=true;isPaused=false;updateUI()};
+    utterance.onend=()=>{if(isSpeaking&&!isPaused){currentChunk++;if(currentChunk<chunks.length)speakChunk(currentChunk);else{stopSpeaking();setStatus('ready','Finished reading')}}};
+    utterance.onerror=e=>{if(e.error!=='canceled')setStatus('error','Speech error: '+e.error)};
+    updateProgress();synth.speak(utterance)}
+
+  function stopSpeaking(){synth.cancel();isSpeaking=false;isPaused=false;currentUtterance=null;updateUI()}
+
+  btnPlay.addEventListener('click',()=>{
+    if(!isSpeaking){const text=textInput.value.trim();if(!text){setStatus('error','No text to read');return}chunks=chunkText(text);if(currentChunk>=chunks.length)currentChunk=0;setStatus('speaking','Reading...');speakChunk(currentChunk)}
+    else if(isPaused){synth.resume();isPaused=false;setStatus('speaking','Reading...');updateUI()}
+    else{synth.pause();isPaused=true;setStatus('paused','Paused');updateUI()}});
+  btnPrev.addEventListener('click',()=>{if(!chunks.length)return;currentChunk=Math.max(0,currentChunk-1);if(isSpeaking)speakChunk(currentChunk);else updateProgress()});
+  btnNext.addEventListener('click',()=>{if(!chunks.length)return;currentChunk=Math.min(chunks.length-1,currentChunk+1);if(isSpeaking)speakChunk(currentChunk);else updateProgress()});
+
+  function updateUI(){
+    if(isSpeaking&&!isPaused){btnPlay.textContent='⏸ Pause';btnPlay.classList.add('speaking');btnPlay.classList.remove('paused');waveform.classList.add('active')}
+    else if(isPaused){btnPlay.textContent='▶ Resume';btnPlay.classList.remove('speaking');btnPlay.classList.add('paused');waveform.classList.remove('active')}
+    else{btnPlay.textContent='▶ Play';btnPlay.classList.remove('speaking','paused');waveform.classList.remove('active')}
+    updateProgress()}
+
+  function updateProgress(){const total=chunks.length||1;const pct=chunks.length?((currentChunk+1)/total)*100:0;progressBar.style.width=pct+'%';chunkInfo.textContent=`Chunk ${chunks.length?currentChunk+1:0} / ${chunks.length}`}
+  function setStatus(state,msg){statusDot.className='status-dot '+state;statusText.textContent=msg}
+
+  document.addEventListener('keydown',e=>{
+    if(activePage!=='tts')return;if(document.activeElement===textInput)return;
+    switch(e.code){
+      case'Space':e.preventDefault();btnPlay.click();break;
+      case'ArrowLeft':e.preventDefault();btnPrev.click();break;
+      case'ArrowRight':e.preventDefault();btnNext.click();break;
+      case'Escape':e.preventDefault();stopSpeaking();setStatus('ready','Stopped');break;
+      case'Equal':case'NumpadAdd':e.preventDefault();speedSlider.value=Math.min(10,parseFloat(speedSlider.value)+.25);updateSpeedDisplay();if(isSpeaking&&!isPaused)speakChunk(currentChunk);break;
+      case'Minus':case'NumpadSubtract':e.preventDefault();speedSlider.value=Math.max(.25,parseFloat(speedSlider.value)-.25);updateSpeedDisplay();if(isSpeaking&&!isPaused)speakChunk(currentChunk);break;
+    }});
+
+  setInterval(()=>{if(isSpeaking&&!isPaused&&synth.speaking){synth.pause();synth.resume()}},10000);
+  setStatus('ready','Ready — paste text or drop a file to begin');
+})();
+</script>
+</body>
+</html>
