@@ -6,6 +6,7 @@
 <title>Rob's Toolkit</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   /* ═══════════════════════════════════════════════════════════════
      GLOBAL RESET + NAV BAR
@@ -66,107 +67,187 @@
   #page-fastreader.active { display: flex !important; }
 
   /* ═══════════════════════════════════════════════════════════════
-     TOOL 1: PDF COMBINER (client-side with pdf-lib)
+     TOOL 1: PDF COMBINER (client-side with pdf-lib)  — Win95/GRC style
      ═══════════════════════════════════════════════════════════════ */
   #page-pdf {
-    --bg:#0a0f0a;--surface:#111a11;--surface2:#182818;
-    --border:#1e3a1e;--border-hi:#2d6b2d;
-    --green-1:#22c55e;--green-2:#16a34a;--green-3:#4ade80;--green-dim:#134e26;
-    --text:#e2f5e2;--text-dim:#6b8f6b;--danger:#ef4444;
-    --radius:10px;
-    background: var(--bg); color: var(--text);
+    background: #008080;
+    background-image: radial-gradient(circle at 20% 30%, #007070 0%, transparent 50%), radial-gradient(circle at 80% 70%, #006868 0%, transparent 50%);
+    display:flex; justify-content:center; align-items:flex-start; padding:30px 20px;
+    font-family:'IBM Plex Mono','Courier New',monospace; font-size:12px; color:#000;
   }
-  #page-pdf .pdf-app { max-width:960px; margin:0 auto; padding:40px 24px 60px; position:relative; z-index:1; }
-  #page-pdf .pdf-app::before { content:''; position:absolute; top:-40%; left:-20%; width:70%; height:70%; background:radial-gradient(circle,rgba(34,197,94,.06) 0%,transparent 70%); pointer-events:none; z-index:0; }
-  #page-pdf header { text-align:center; margin-bottom:36px; }
-  #page-pdf header h1 { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.75rem; letter-spacing:-.5px; background:linear-gradient(135deg,#4ade80,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  #page-pdf header p { color:var(--text-dim); font-size:.85rem; margin-top:6px; font-family:'JetBrains Mono',monospace; }
-  #page-pdf .dropzone { border:2px dashed var(--border-hi); border-radius:var(--radius); padding:32px; text-align:center; cursor:pointer; transition:background .2s,border-color .2s; background:var(--surface); margin-bottom:28px; position:relative; }
-  #page-pdf .dropzone:hover, #page-pdf .dropzone.drag-over { background:var(--surface2); border-color:var(--green-1); box-shadow:0 0 30px rgba(34,197,94,.08); }
-  #page-pdf .dropzone .icon { font-size:2rem; margin-bottom:8px; }
-  #page-pdf .dropzone .label { font-size:.95rem; color:var(--text-dim); }
-  #page-pdf .dropzone .label strong { color:var(--green-3); }
+  #page-pdf .pdf-app { width:720px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-pdf .pdf-app::before { display:none; }
+  #page-pdf .pdf-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-pdf .pdf-title-bar .title-bar-text { display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; }
+  #page-pdf .pdf-title-icon { width:16px; height:16px; background:#ff4444; border-radius:2px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:#fff; font-weight:900; }
+  #page-pdf .pdf-title-buttons { display:flex; gap:2px; }
+  #page-pdf .pdf-title-buttons div { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; font-family:'IBM Plex Mono',monospace; color:#000; }
+  #page-pdf .pdf-content { padding:10px; border-top:1px solid #dfdfdf; border-left:1px solid #dfdfdf; border-right:1px solid #808080; border-bottom:1px solid #808080; }
+  #page-pdf header { text-align:center; margin-bottom:12px; }
+  #page-pdf header h1 { font-family:'VT323',monospace; font-weight:400; font-size:1.5rem; letter-spacing:1px; color:#000080; background:none; -webkit-background-clip:unset; -webkit-text-fill-color:unset; }
+  #page-pdf header p { color:#808080; font-size:11px; margin-top:2px; font-family:'IBM Plex Mono',monospace; }
+  #page-pdf .dropzone { border:2px dashed #808080; border-radius:0; padding:20px; text-align:center; cursor:pointer; transition:background .2s; background:#fff; margin-bottom:12px; position:relative; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-pdf .dropzone:hover, #page-pdf .dropzone.drag-over { background:#e0ffe0; border-color:#008800; }
+  #page-pdf .dropzone .icon { font-size:1.6rem; margin-bottom:4px; }
+  #page-pdf .dropzone .label { font-size:12px; color:#404040; }
+  #page-pdf .dropzone .label strong { color:#000080; }
   #page-pdf .dropzone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-  #page-pdf .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:14px; min-height:80px; margin-bottom:28px; }
-  #page-pdf .card { aspect-ratio:1; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 6px; cursor:grab; position:relative; transition:transform .15s,border-color .15s,box-shadow .15s; user-select:none; }
-  #page-pdf .card:hover { border-color:var(--green-1); box-shadow:0 0 16px rgba(34,197,94,.10); transform:translateY(-2px); }
-  #page-pdf .card.dragging { opacity:.35; transform:scale(.92); }
-  #page-pdf .card .order { position:absolute; top:6px; left:8px; font-family:'JetBrains Mono',monospace; font-size:.65rem; font-weight:700; color:var(--green-1); opacity:.8; }
-  #page-pdf .card .remove { position:absolute; top:4px; right:6px; background:none; border:none; color:var(--text-dim); font-size:.85rem; cursor:pointer; line-height:1; transition:color .15s; }
-  #page-pdf .card .remove:hover { color:var(--danger); }
-  #page-pdf .card .pdf-icon { font-size:1.6rem; margin-bottom:4px; }
-  #page-pdf .card .filename { font-size:.6rem; font-family:'JetBrains Mono',monospace; color:var(--text-dim); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; padding:0 2px; }
-  #page-pdf .card .pages { font-size:.55rem; color:var(--green-dim); font-family:'JetBrains Mono',monospace; margin-top:2px; }
-  #page-pdf .card.drag-target { border-color:var(--green-3); background:var(--surface2); }
-  #page-pdf .card .trim-btn { position:absolute; bottom:4px; right:5px; background:var(--green-dim); border:none; color:var(--green-3); font-family:'JetBrains Mono',monospace; font-size:.5rem; font-weight:600; padding:2px 5px; border-radius:4px; cursor:pointer; transition:background .15s,color .15s; line-height:1.2; }
-  #page-pdf .card .trim-btn:hover { background:var(--green-2); color:#000; }
-  #page-pdf .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); text-align:center; margin-bottom:18px; }
-  #page-pdf .status strong { color:var(--green-3); }
-  #page-pdf .actions { text-align:center; display:flex; gap:12px; justify-content:center; }
-  #page-pdf .btn { font-family:'JetBrains Mono',monospace; font-weight:600; font-size:.85rem; padding:12px 32px; border:none; border-radius:var(--radius); cursor:pointer; transition:all .2s; }
-  #page-pdf .btn-primary { background:linear-gradient(135deg,var(--green-2),var(--green-1)); color:#000; box-shadow:0 4px 20px rgba(34,197,94,.25); }
-  #page-pdf .btn-primary:hover { box-shadow:0 4px 28px rgba(34,197,94,.40); transform:translateY(-1px); }
-  #page-pdf .btn-primary:disabled { opacity:.35; cursor:default; transform:none; box-shadow:none; }
-  #page-pdf .btn-secondary { background:var(--surface2); color:var(--text-dim); border:1.5px solid var(--border); }
-  #page-pdf .btn-secondary:hover { border-color:var(--border-hi); color:var(--text); }
-  #page-pdf .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1.5px solid var(--green-1); padding:12px 24px; border-radius:var(--radius); font-family:'JetBrains Mono',monospace; font-size:.8rem; color:var(--green-3); pointer-events:none; opacity:0; transition:all .35s; box-shadow:0 8px 30px rgba(0,0,0,.5); z-index:999; }
+  #page-pdf .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:8px; min-height:60px; margin-bottom:12px; }
+  #page-pdf .card { aspect-ratio:1; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 4px; cursor:grab; position:relative; transition:none; user-select:none; border-radius:0; }
+  #page-pdf .card:hover { background:#d4d4d4; transform:none; box-shadow:none; border-color:#fff #404040 #404040 #fff; }
+  #page-pdf .card.dragging { opacity:.35; transform:scale(.95); }
+  #page-pdf .card .order { position:absolute; top:4px; left:6px; font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700; color:#000080; opacity:1; }
+  #page-pdf .card .remove { position:absolute; top:2px; right:4px; background:none; border:none; color:#808080; font-size:12px; cursor:pointer; line-height:1; }
+  #page-pdf .card .remove:hover { color:#ff0000; }
+  #page-pdf .card .pdf-icon { font-size:1.4rem; margin-bottom:2px; }
+  #page-pdf .card .filename { font-size:9px; font-family:'IBM Plex Mono',monospace; color:#404040; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; padding:0 2px; }
+  #page-pdf .card .pages { font-size:9px; color:#000080; font-family:'IBM Plex Mono',monospace; margin-top:1px; }
+  #page-pdf .card.drag-target { background:#e0ffe0; border-top:2px solid #008800; border-left:2px solid #008800; border-right:2px solid #004400; border-bottom:2px solid #004400; }
+  #page-pdf .card .trim-btn { position:absolute; bottom:3px; right:4px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; color:#000; font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:400; padding:1px 4px; border-radius:0; cursor:pointer; line-height:1.2; }
+  #page-pdf .card .trim-btn:hover { background:#d4d4d4; }
+  #page-pdf .card .trim-btn:active { border-top:1px solid #404040; border-left:1px solid #404040; border-right:1px solid #fff; border-bottom:1px solid #fff; }
+  #page-pdf .status { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#404040; text-align:center; margin-bottom:10px; }
+  #page-pdf .status strong { color:#000080; }
+  #page-pdf .actions { text-align:center; display:flex; gap:8px; justify-content:center; }
+  #page-pdf .btn { font-family:'IBM Plex Mono',monospace; font-weight:400; font-size:12px; padding:6px 24px; border-radius:0; cursor:pointer; transition:none; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; color:#000; }
+  #page-pdf .btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-pdf .btn-primary { background:#c0c0c0; color:#000; box-shadow:none; }
+  #page-pdf .btn-primary:hover { background:#d4d4d4; box-shadow:none; transform:none; }
+  #page-pdf .btn-primary:disabled { opacity:.45; cursor:default; }
+  #page-pdf .btn-secondary { background:#c0c0c0; color:#404040; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; }
+  #page-pdf .btn-secondary:hover { background:#d4d4d4; color:#000; }
+  #page-pdf .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#ffffcc; border:2px solid #000; padding:8px 16px; border-radius:0; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#000; pointer-events:none; opacity:0; transition:all .35s; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:999; }
   #page-pdf .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  #page-pdf .spinner { display:inline-block; width:16px; height:16px; border:2px solid #000; border-top-color:transparent; border-radius:50%; animation:pdfspin .6s linear infinite; vertical-align:middle; margin-right:6px; }
+  #page-pdf .spinner { display:inline-block; width:14px; height:14px; border:2px solid #000; border-top-color:transparent; border-radius:50%; animation:pdfspin .6s linear infinite; vertical-align:middle; margin-right:6px; }
   @keyframes pdfspin { to { transform:rotate(360deg); } }
-  #page-pdf .trim-overlay { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+  #page-pdf .trim-overlay { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
   #page-pdf .trim-overlay.open { opacity:1; pointer-events:auto; }
-  #page-pdf .trim-panel { background:var(--surface); border:1.5px solid var(--border-hi); border-radius:14px; padding:36px 40px; width:380px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,.6); }
-  #page-pdf .trim-panel h2 { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.1rem; background:linear-gradient(135deg,#4ade80,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
-  #page-pdf .trim-panel .trim-file-info { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); margin-bottom:24px; word-break:break-all; }
-  #page-pdf .trim-panel .trim-file-info strong { color:var(--green-3); }
-  #page-pdf .trim-field { margin-bottom:18px; }
-  #page-pdf .trim-field label { display:block; font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--text-dim); margin-bottom:6px; }
-  #page-pdf .trim-field input[type=number] { width:100%; padding:10px 14px; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:.9rem; outline:none; transition:border-color .2s; }
-  #page-pdf .trim-field input[type=number]:focus { border-color:var(--green-1); }
-  #page-pdf .trim-field .hint { font-size:.6rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace; margin-top:4px; }
-  #page-pdf .trim-actions { display:flex; gap:10px; margin-top:24px; }
-  #page-pdf .trim-actions .btn { flex:1; padding:10px 0; font-size:.8rem; }
+  #page-pdf .trim-panel { background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:2px 2px 0 #000; padding:0; width:340px; max-width:92vw; border-radius:0; }
+  #page-pdf .trim-panel h2 { font-family:'VT323',monospace; font-weight:400; font-size:1.2rem; color:#000080; background:none; -webkit-background-clip:unset; -webkit-text-fill-color:unset; margin:0; padding:10px 12px 4px; }
+  #page-pdf .trim-panel .trim-file-info { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#404040; margin-bottom:16px; word-break:break-all; padding:10px 12px 0; }
+  #page-pdf .trim-panel .trim-file-info strong { color:#000080; }
+  #page-pdf .trim-field { margin-bottom:12px; padding:0 12px; }
+  #page-pdf .trim-field label { display:block; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#000; margin-bottom:4px; }
+  #page-pdf .trim-field label strong { color:#000080; }
+  #page-pdf .trim-field input[type=number] { width:100%; padding:4px 6px; background:#fff; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; border-radius:0; color:#000; font-family:'IBM Plex Mono',monospace; font-size:12px; outline:none; }
+  #page-pdf .trim-field input[type=number]:focus { outline:1px dotted #000; }
+  #page-pdf .trim-field .hint { font-size:10px; color:#808080; font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+  #page-pdf .trim-actions { display:flex; gap:8px; padding:0 12px 12px; }
+  #page-pdf .trim-actions .btn { flex:1; padding:6px 0; font-size:12px; }
 
   /* ═══════════════════════════════════════════════════════════════
-     TOOL 2: SCREENSHOT PARKING
+     TOOL 2: SCREENSHOT PARKING  — Win95/GRC style
      ═══════════════════════════════════════════════════════════════ */
-  #page-parking { background:#0a0f0a; color:#4ade80; font-family:'JetBrains Mono',monospace; position:relative; }
-  #page-parking .scanlines { position:absolute; inset:0; pointer-events:none; z-index:1; background:repeating-linear-gradient(0deg,rgba(34,197,94,.03) 0px,rgba(34,197,94,.03) 1px,transparent 1px,transparent 3px); }
-  #page-parking .park-app { position:relative; z-index:2; }
-  #page-parking .park-header { padding:20px 28px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(34,197,94,.13); }
-  #page-parking .park-header h1 { font-size:22px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:#4ade80; text-shadow:0 0 10px rgba(34,197,94,.53),0 0 30px rgba(34,197,94,.2); }
-  #page-parking .park-header .sub { font-size:11px; color:rgba(74,222,128,.4); letter-spacing:2px; margin-top:4px; }
-  #page-parking .park-header .counter { font-size:12px; color:rgba(74,222,128,.53); text-align:right; letter-spacing:1px; }
-  #page-parking .bar-bg { margin-top:4px; height:4px; width:120px; background:rgba(34,197,94,.08); border-radius:2px; overflow:hidden; }
-  #page-parking .bar-fill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); border-radius:2px; transition:width .3s; box-shadow:0 0 8px rgba(34,197,94,.4); }
-  #page-parking .park-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:16px 20px 24px; }
-  #page-parking .slot { aspect-ratio:16/10; background:#0f1a0f; border:1px dashed rgba(34,197,94,.1); border-radius:4px; position:relative; cursor:crosshair; overflow:hidden; transition:all .15s; }
-  #page-parking .slot.has-img { border:1px solid rgba(34,197,94,.15); cursor:pointer; }
-  #page-parking .slot.has-img:hover { border-color:#22c55e; box-shadow:0 0 12px rgba(34,197,94,.12); }
-  #page-parking .slot.drag-target { border:2px solid #22c55e; background:rgba(34,197,94,.09); }
+  #page-parking {
+    background: #008080;
+    background-image: radial-gradient(circle at 70% 40%, #007070 0%, transparent 50%), radial-gradient(circle at 30% 80%, #006868 0%, transparent 50%);
+    display:flex; justify-content:center; align-items:flex-start; padding:30px 20px;
+    font-family:'IBM Plex Mono','Courier New',monospace; font-size:12px; color:#000;
+  }
+  #page-parking .scanlines { display:none; }
+  #page-parking .park-app { width:780px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-parking .park-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-parking .park-title-bar .title-bar-text { display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; }
+  #page-parking .park-title-icon { width:16px; height:16px; background:#33ff33; border-radius:2px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:#000080; font-weight:900; }
+  #page-parking .park-title-buttons { display:flex; gap:2px; }
+  #page-parking .park-title-buttons div { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; font-family:'IBM Plex Mono',monospace; color:#000; }
+  #page-parking .park-content { border-top:1px solid #dfdfdf; border-left:1px solid #dfdfdf; border-right:1px solid #808080; border-bottom:1px solid #808080; }
+  #page-parking .park-header { padding:8px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #808080; background:#c0c0c0; }
+  #page-parking .park-header h1 { font-family:'VT323',monospace; font-size:22px; font-weight:400; letter-spacing:1px; text-transform:uppercase; color:#000080; text-shadow:none; }
+  #page-parking .park-header .sub { font-size:10px; color:#808080; letter-spacing:1px; margin-top:2px; font-family:'IBM Plex Mono',monospace; }
+  #page-parking .park-header .counter { font-size:11px; color:#000080; text-align:right; letter-spacing:0; font-family:'IBM Plex Mono',monospace; }
+  #page-parking .bar-bg { margin-top:3px; height:16px; width:120px; background:#fff; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; overflow:hidden; border-radius:0; }
+  #page-parking .bar-fill { height:100%; background:linear-gradient(180deg,#00aa00 0%,#008800 50%,#006600 100%); border-radius:0; transition:width .3s; box-shadow:none; position:relative; }
+  #page-parking .bar-fill::after { content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,.25),transparent); }
+  #page-parking .park-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:8px; background:#008080; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; margin:8px; }
+  #page-parking .slot { aspect-ratio:16/10; background:#0a0a2e; border-top:1px solid #404040; border-left:1px solid #404040; border-right:1px solid #808080; border-bottom:1px solid #808080; position:relative; cursor:crosshair; overflow:hidden; transition:none; border-radius:0; }
+  #page-parking .slot::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px); pointer-events:none; z-index:1; }
+  #page-parking .slot.has-img { cursor:pointer; }
+  #page-parking .slot.has-img:hover { box-shadow:inset 0 0 0 2px #33ff33; }
+  #page-parking .slot.drag-target { box-shadow:inset 0 0 0 2px #ffff00; background:#0a0a4e; }
   #page-parking .slot.dragging { opacity:.3; }
-  #page-parking .slot.paste-target { border:2px solid rgba(34,197,94,.53); background:rgba(34,197,94,.07); }
-  #page-parking .slot img { width:100%; height:100%; object-fit:cover; display:block; }
-  #page-parking .slot .idx { position:absolute; top:3px; left:5px; font-size:9px; color:rgba(74,222,128,.19); letter-spacing:1px; z-index:2; }
-  #page-parking .slot.has-img .idx { color:rgba(74,222,128,.8); text-shadow:0 1px 3px rgba(0,0,0,.8); }
-  #page-parking .slot .clear-btn { position:absolute; top:2px; right:4px; z-index:3; background:rgba(0,0,0,.6); border:1px solid rgba(34,197,94,.27); color:#4ade80; font-size:11px; cursor:pointer; border-radius:2px; padding:0 4px; line-height:16px; opacity:0; transition:opacity .15s; }
-  #page-parking .slot:hover .clear-btn { opacity:.6; }
-  #page-parking .slot .clear-btn:hover { opacity:1!important; }
-  #page-parking .slot .empty-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(34,197,94,.1); font-size:18px; }
-  #page-parking .slot.paste-target .empty-label { color:rgba(34,197,94,.33); }
-  #page-parking .lightbox { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.92); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; pointer-events:none; transition:opacity .2s; }
+  #page-parking .slot.paste-target { box-shadow:inset 0 0 0 2px #33ff33; background:#0a1a2e; }
+  #page-parking .slot img { width:100%; height:100%; object-fit:cover; display:block; position:relative; z-index:0; }
+  #page-parking .slot .idx { position:absolute; top:2px; left:4px; font-size:9px; font-family:'VT323',monospace; color:rgba(51,255,51,.3); letter-spacing:1px; z-index:2; text-shadow:0 0 4px rgba(51,255,51,.2); }
+  #page-parking .slot.has-img .idx { color:rgba(51,255,51,.8); text-shadow:0 0 6px rgba(51,255,51,.5); }
+  #page-parking .slot .clear-btn { position:absolute; top:1px; right:3px; z-index:3; background:rgba(0,0,0,.7); border:1px solid #808080; color:#ff4444; font-size:10px; cursor:pointer; border-radius:0; padding:0 3px; line-height:14px; opacity:0; font-family:'IBM Plex Mono',monospace; }
+  #page-parking .slot:hover .clear-btn { opacity:.7; }
+  #page-parking .slot .clear-btn:hover { opacity:1!important; background:#400000; }
+  #page-parking .slot .empty-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(51,255,51,.15); font-size:16px; font-family:'VT323',monospace; z-index:2; }
+  #page-parking .slot.paste-target .empty-label { color:rgba(51,255,51,.5); text-shadow:0 0 8px rgba(51,255,51,.3); }
+  #page-parking .lightbox { position:fixed; inset:0; z-index:9100; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; pointer-events:none; transition:opacity .2s; backdrop-filter:none; }
   #page-parking .lightbox.open { opacity:1; pointer-events:auto; }
-  #page-parking .lb-bar { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:16px 24px; background:linear-gradient(180deg,rgba(0,0,0,.7),transparent); }
-  #page-parking .lb-label { color:rgba(74,222,128,.53); font-size:11px; letter-spacing:2px; }
-  #page-parking .lb-actions { display:flex; gap:12px; }
-  #page-parking .lb-btn { font-family:'JetBrains Mono',monospace; font-size:12px; cursor:pointer; border-radius:4px; padding:6px 16px; letter-spacing:2px; text-transform:uppercase; font-weight:700; transition:all .15s; }
-  #page-parking .lb-btn-del { background:rgba(255,50,50,.15); border:1px solid rgba(255,68,68,.67); color:#ff4444; }
-  #page-parking .lb-btn-del:hover { background:rgba(255,50,50,.3); box-shadow:0 0 15px rgba(255,50,50,.3); }
-  #page-parking .lb-btn-close { background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.27); color:#4ade80; }
-  #page-parking .lb-btn-close:hover { background:rgba(34,197,94,.2); }
-  #page-parking .lightbox img { max-width:92vw; max-height:85vh; border-radius:4px; border:1px solid rgba(34,197,94,.2); box-shadow:0 0 60px rgba(34,197,94,.15); cursor:default; }
-  #page-parking .park-toast { position:fixed; bottom:24px; left:50%; z-index:9200; transform:translateX(-50%) translateY(60px); background:#0a0f0a; border:1px solid rgba(34,197,94,.27); color:#4ade80; padding:8px 20px; border-radius:4px; font-size:12px; letter-spacing:2px; text-transform:uppercase; box-shadow:0 0 20px rgba(34,197,94,.15); opacity:0; transition:all .3s; pointer-events:none; }
+  #page-parking .lb-bar { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:8px 16px; background:linear-gradient(180deg,rgba(0,0,0,.8),transparent); }
+  #page-parking .lb-label { color:#33ff33; font-size:13px; letter-spacing:1px; font-family:'VT323',monospace; text-shadow:0 0 6px rgba(51,255,51,.4); }
+  #page-parking .lb-actions { display:flex; gap:6px; }
+  #page-parking .lb-btn { font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; padding:4px 14px; letter-spacing:0; text-transform:none; font-weight:400; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; color:#000; border-radius:0; }
+  #page-parking .lb-btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-parking .lb-btn-del { color:#cc0000; }
+  #page-parking .lb-btn-del:hover { background:#ffcccc; box-shadow:none; }
+  #page-parking .lb-btn-close:hover { background:#d4d4d4; }
+  #page-parking .lightbox img { max-width:92vw; max-height:85vh; border:2px solid #808080; box-shadow:4px 4px 0 rgba(0,0,0,.5); cursor:default; border-radius:0; }
+  #page-parking .park-toast { position:fixed; bottom:24px; left:50%; z-index:9200; transform:translateX(-50%) translateY(60px); background:#ffffcc; border:2px solid #000; color:#000; padding:6px 16px; border-radius:0; font-size:11px; letter-spacing:0; text-transform:none; box-shadow:2px 2px 0 rgba(0,0,0,.3); font-family:'IBM Plex Mono',monospace; opacity:0; transition:all .3s; pointer-events:none; }
   #page-parking .park-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #page-parking .park-status-bar { background:#c0c0c0; border-top:1px solid #808080; padding:2px 6px; font-size:11px; display:flex; justify-content:space-between; }
+  #page-parking .park-status-cell { border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; padding:1px 6px; font-family:'IBM Plex Mono',monospace; color:#404040; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOOL 2.5: COLOR DELETER  — Win95/GRC style
+     ═══════════════════════════════════════════════════════════════ */
+  #page-colordel {
+    background: #008080;
+    background-image: radial-gradient(circle at 40% 20%, #007070 0%, transparent 50%), radial-gradient(circle at 75% 80%, #006868 0%, transparent 50%);
+    display:flex; justify-content:center; align-items:flex-start; padding:30px 20px;
+    font-family:'IBM Plex Mono','Courier New',monospace; font-size:12px; color:#000;
+  }
+  #page-colordel .cd-app { width:860px; max-width:96vw; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-colordel .cd-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-colordel .cd-title-bar .title-bar-text { display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; }
+  #page-colordel .cd-title-icon { width:16px; height:16px; background:linear-gradient(135deg,#ff0000 0%,#ffff00 25%,#00ff00 50%,#00ffff 75%,#ff00ff 100%); border-radius:2px; display:inline-flex; }
+  #page-colordel .cd-title-buttons { display:flex; gap:2px; }
+  #page-colordel .cd-title-buttons div { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; font-family:'IBM Plex Mono',monospace; color:#000; }
+  #page-colordel .cd-content { border-top:1px solid #dfdfdf; border-left:1px solid #dfdfdf; border-right:1px solid #808080; border-bottom:1px solid #808080; padding:8px; }
+  #page-colordel .cd-main { display:flex; gap:8px; }
+  #page-colordel .cd-viewport { flex:1; min-width:0; background:#0a0a2e; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; min-height:420px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:8px; }
+  #page-colordel .cd-viewport::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px); pointer-events:none; z-index:3; }
+  #page-colordel .cd-dropzone-label { color:rgba(51,255,51,.5); font-family:'VT323',monospace; font-size:22px; text-align:center; line-height:1.6; text-shadow:0 0 8px rgba(51,255,51,.3); z-index:2; pointer-events:none; }
+  #page-colordel .cd-viewport.drag-over { box-shadow:inset 0 0 0 3px #33ff33; }
+  #page-colordel #cdCanvas { max-width:100%; max-height:560px; display:none; position:relative; z-index:2;
+    background-image:linear-gradient(45deg,#666 25%,transparent 25%),linear-gradient(-45deg,#666 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#666 75%),linear-gradient(-45deg,transparent 75%,#666 75%);
+    background-size:16px 16px; background-position:0 0,0 8px,8px -8px,-8px 0; background-color:#999; }
+  #page-colordel #cdCanvas.tool-eyedropper { cursor:crosshair; }
+  #page-colordel #cdCanvas.tool-crop { cursor:crosshair; }
+  #page-colordel #cdFileInput { display:none; }
+  #page-colordel .cd-sidebar { width:230px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  #page-colordel .cd-group { background:#c0c0c0; border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; padding:8px; }
+  #page-colordel .cd-group-title { font-size:10px; font-weight:700; color:#000080; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+  #page-colordel .cd-btn { width:100%; min-height:24px; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; color:#000; display:flex; align-items:center; justify-content:center; gap:4px; outline:none; margin-bottom:4px; padding:3px 6px; }
+  #page-colordel .cd-btn:last-child { margin-bottom:0; }
+  #page-colordel .cd-btn:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
+  #page-colordel .cd-btn.tool-active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; background:#d4d4d4; font-weight:700; }
+  #page-colordel .cd-btn:disabled { color:#808080; text-shadow:1px 1px 0 #fff; cursor:default; }
+  #page-colordel .cd-btn.danger { color:#cc0000; font-weight:700; }
+  #page-colordel .cd-wheel-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  #page-colordel #cdWheel { border-radius:50%; cursor:crosshair; border:2px solid #808080; }
+  #page-colordel .cd-slider-row { display:flex; align-items:center; gap:6px; width:100%; }
+  #page-colordel .cd-slider-row label { font-size:10px; min-width:52px; }
+  #page-colordel .cd-slider-row input[type=range] { flex:1; height:18px; -webkit-appearance:none; appearance:none; background:#c0c0c0; border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; outline:none; cursor:pointer; }
+  #page-colordel .cd-slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:18px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; cursor:grab; }
+  #page-colordel .cd-slider-val { font-size:10px; min-width:28px; text-align:right; font-family:'IBM Plex Mono',monospace; }
+  #page-colordel .cd-swatch-row { display:flex; align-items:center; gap:8px; }
+  #page-colordel .cd-swatch { width:42px; height:42px; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; background:#ff0000; flex-shrink:0; }
+  #page-colordel .cd-swatch-info { font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:1.5; }
+  #page-colordel .cd-swatch-info .hex { font-weight:700; color:#000080; }
+  #page-colordel .cd-status-bar { background:#c0c0c0; border-top:1px solid #808080; padding:2px 6px; font-size:11px; display:flex; justify-content:space-between; margin-top:8px; }
+  #page-colordel .cd-status-cell { border-top:1px solid #808080; border-left:1px solid #808080; border-right:1px solid #fff; border-bottom:1px solid #fff; padding:1px 6px; font-family:'IBM Plex Mono',monospace; color:#404040; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #page-colordel .cd-toast { position:fixed; bottom:24px; left:50%; z-index:9200; transform:translateX(-50%) translateY(60px); background:#ffffcc; border:2px solid #000; color:#000; padding:6px 16px; font-size:11px; box-shadow:2px 2px 0 rgba(0,0,0,.3); font-family:'IBM Plex Mono',monospace; opacity:0; transition:all .3s; pointer-events:none; }
+  #page-colordel .cd-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #page-colordel .cd-loupe { position:fixed; z-index:9300; pointer-events:none; display:none; flex-direction:column; align-items:center; }
+  #page-colordel .cd-loupe.show { display:flex; }
+  #page-colordel .cd-loupe-ring { width:132px; height:132px; border-radius:50%; overflow:hidden; border:3px solid #c0c0c0; box-shadow:0 0 0 1px #404040, inset 0 0 0 1px #fff, 3px 3px 8px rgba(0,0,0,.5); background:#000; }
+  #page-colordel .cd-loupe-ring canvas { display:block; }
+  #page-colordel .cd-loupe-hex { margin-top:4px; background:#ffffcc; border:1px solid #000; font-family:'IBM Plex Mono',monospace; font-size:10px; padding:1px 6px; box-shadow:1px 1px 0 rgba(0,0,0,.4); }
+  @media (max-width:760px){ #page-colordel .cd-main { flex-direction:column; } #page-colordel .cd-sidebar { width:100%; } }
 
   /* ═══════════════════════════════════════════════════════════════
      TOOL 3: FASTREADER
@@ -322,6 +403,7 @@
   <span class="brand">toolkit://</span>
   <button class="tab-btn active" data-page="pdf">&#128196; PDF Combiner</button>
   <button class="tab-btn" data-page="parking">&#128247; Screenshot Parking</button>
+  <button class="tab-btn" data-page="colordel">&#127912; Color Deleter</button>
   <button class="tab-btn" data-page="fastreader">&#9889; FastReader</button>
   <button class="tab-btn" data-page="tts">&#128264; TTS Reader</button>
 </nav>
@@ -329,8 +411,13 @@
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
 <div id="page-pdf" class="tool-page active">
   <div class="pdf-app">
+    <div class="pdf-title-bar">
+      <div class="title-bar-text"><span class="pdf-title-icon">P</span> PDF Combiner</div>
+      <div class="pdf-title-buttons"><div>_</div><div>□</div><div>×</div></div>
+    </div>
+    <div class="pdf-content">
     <header>
-      <h1>&gt;_ pdf_combiner</h1>
+      <h1>&#9986; PDF Combiner</h1>
       <p>drag &middot; drop &middot; reorder &middot; merge — all client-side</p>
     </header>
     <div class="dropzone" id="pdfDropzone">
@@ -344,18 +431,20 @@
       <button class="btn btn-secondary" id="pdfClearBtn" style="display:none">Clear All</button>
       <button class="btn btn-primary" id="pdfCombineBtn" disabled>Combine PDFs</button>
     </div>
-  </div>
+    </div><!-- .pdf-content -->
+  </div><!-- .pdf-app -->
   <div class="trim-overlay" id="pdfTrimOverlay">
     <div class="trim-panel">
-      <h2>&#9986; Trim Pages</h2>
+      <div class="pdf-title-bar" style="margin-bottom:0"><div class="title-bar-text">&#9986; Trim Pages</div><div class="pdf-title-buttons"><div id="pdfTrimX" style="cursor:pointer">×</div></div></div>
+      <h2 style="display:none">&#9986; Trim Pages</h2>
       <div class="trim-file-info" id="pdfTrimFileInfo"></div>
       <div class="trim-field">
-        <label>Remove from <strong style="color:#4ade80">beginning</strong></label>
+        <label>Remove from <strong style="color:#000080">beginning</strong></label>
         <input type="number" id="pdfTrimTop" min="0" value="0" />
         <div class="hint">Number of pages to remove from the start</div>
       </div>
       <div class="trim-field">
-        <label>Remove from <strong style="color:#4ade80">end</strong></label>
+        <label>Remove from <strong style="color:#000080">end</strong></label>
         <input type="number" id="pdfTrimBottom" min="0" value="0" />
         <div class="hint">Number of pages to remove from the end</div>
       </div>
@@ -372,9 +461,14 @@
 <div id="page-parking" class="tool-page">
   <div class="scanlines"></div>
   <div class="park-app">
+    <div class="park-title-bar">
+      <div class="title-bar-text"><span class="park-title-icon">&#128247;</span> Screenshot Parking</div>
+      <div class="park-title-buttons"><div>_</div><div>□</div><div>×</div></div>
+    </div>
+    <div class="park-content">
     <div class="park-header">
       <div>
-        <h1>&#9654; Screenshot Parking</h1>
+        <h1>Screenshot Parking</h1>
         <p class="sub">CTRL+V TO PARK &bull; DRAG TO REORDER &bull; CLICK TO VIEW</p>
       </div>
       <div>
@@ -383,7 +477,12 @@
       </div>
     </div>
     <div class="park-grid" id="parkGrid"></div>
-  </div>
+    <div class="park-status-bar">
+      <span class="park-status-cell" id="parkStatusCell">Ready — Ctrl+V to paste screenshot</span>
+      <span class="park-status-cell">Slots: 56</span>
+    </div>
+    </div><!-- .park-content -->
+  </div><!-- .park-app -->
   <div class="lightbox" id="parkLightbox">
     <div class="lb-bar">
       <span class="lb-label" id="parkLbLabel">SLOT 01</span>
@@ -395,6 +494,78 @@
     <img id="parkLbImg" src="" />
   </div>
   <div class="park-toast" id="parkToast"></div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 2.5: COLOR DELETER ═══════════════════════════════════ -->
+<div id="page-colordel" class="tool-page">
+  <div class="cd-app">
+    <div class="cd-title-bar">
+      <div class="title-bar-text"><span class="cd-title-icon"></span> Color Deleter</div>
+      <div class="cd-title-buttons"><div>_</div><div>□</div><div>×</div></div>
+    </div>
+    <div class="cd-content">
+      <div class="cd-main">
+        <div class="cd-viewport" id="cdViewport">
+          <div class="cd-dropzone-label" id="cdDropLabel">DROP IMAGE OR PDF HERE<br>or click to browse<br><span style="font-size:14px;opacity:.7">PDF auto-converts to PNG (page 1)</span></div>
+          <canvas id="cdCanvas" class="tool-eyedropper"></canvas>
+          <input type="file" id="cdFileInput" accept="image/*,.pdf">
+        </div>
+        <div class="cd-sidebar">
+          <div class="cd-group">
+            <div class="cd-group-title">File</div>
+            <button class="cd-btn" id="cdLoadBtn">&#128193; Load Image / PDF</button>
+            <button class="cd-btn" id="cdDownloadBtn" disabled>&#128190; Download PNG</button>
+          </div>
+          <div class="cd-group">
+            <div class="cd-group-title">Tools</div>
+            <button class="cd-btn tool-active" id="cdEyedropBtn">&#128167; Eyedropper</button>
+            <button class="cd-btn" id="cdCropBtn">&#9986; Crop</button>
+            <button class="cd-btn" id="cdApplyCropBtn" style="display:none">&#10003; Apply Crop</button>
+            <button class="cd-btn" id="cdUndoBtn" disabled>&#8630; Undo</button>
+          </div>
+          <div class="cd-group">
+            <div class="cd-group-title">Selected Color</div>
+            <div class="cd-swatch-row">
+              <div class="cd-swatch" id="cdSwatch"></div>
+              <div class="cd-swatch-info">
+                <div class="hex" id="cdHex">#FF0000</div>
+                <div id="cdRgb">RGB 255, 0, 0</div>
+              </div>
+            </div>
+          </div>
+          <div class="cd-group">
+            <div class="cd-group-title">Color Wheel</div>
+            <div class="cd-wheel-wrap">
+              <canvas id="cdWheel" width="170" height="170"></canvas>
+              <div class="cd-slider-row">
+                <label>Lightness</label>
+                <input type="range" id="cdLightness" min="0" max="100" value="50">
+                <span class="cd-slider-val" id="cdLightnessVal">50</span>
+              </div>
+            </div>
+          </div>
+          <div class="cd-group">
+            <div class="cd-group-title">Delete Color</div>
+            <div class="cd-slider-row" style="margin-bottom:6px">
+              <label>Tolerance</label>
+              <input type="range" id="cdTolerance" min="0" max="200" value="40">
+              <span class="cd-slider-val" id="cdToleranceVal">40</span>
+            </div>
+            <button class="cd-btn danger" id="cdDeleteBtn" disabled>&#10005; Delete Color Pixels</button>
+          </div>
+        </div>
+      </div>
+      <div class="cd-status-bar">
+        <span class="cd-status-cell" id="cdStatus" style="flex:1;margin-right:6px">Ready — load an image or PDF to begin</span>
+        <span class="cd-status-cell" id="cdDims">No image</span>
+      </div>
+    </div>
+  </div>
+  <div class="cd-toast" id="cdToast"></div>
+  <div class="cd-loupe" id="cdLoupe">
+    <div class="cd-loupe-ring"><canvas id="cdLoupeCanvas" width="132" height="132"></canvas></div>
+    <div class="cd-loupe-hex" id="cdLoupeHex">#000000</div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════ PAGE 3: FASTREADER ═══════════════════════════════════ -->
@@ -584,7 +755,7 @@ tabBtns.forEach(btn => {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.page === target));
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { pdf:'#0a0f0a', parking:'#0a0f0a', fastreader:'#008080', tts:'#0a0a0f' };
+    const bgs = { pdf:'#008080', parking:'#008080', colordel:'#008080', fastreader:'#008080', tts:'#0a0a0f' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -658,6 +829,7 @@ tabBtns.forEach(btn => {
   function openTrim(i){trimIdx=i;const f=files[i];trimInfo.innerHTML=`<strong>${f.name}</strong> &mdash; ${f.pages} pages`;
     trimTop.value=f.trimTop;trimBottom.value=f.trimBottom;trimTop.max=f.pages-1;trimBottom.max=f.pages-1;trimOverlay.classList.add('open');trimTop.focus()}
   trimCancel.addEventListener('click',()=>{trimOverlay.classList.remove('open');trimIdx=null});
+  document.getElementById('pdfTrimX').addEventListener('click',()=>{trimOverlay.classList.remove('open');trimIdx=null});
   trimOverlay.addEventListener('click',e=>{if(e.target===trimOverlay)trimCancel.click()});
   trimApply.addEventListener('click',()=>{if(trimIdx===null)return;const f=files[trimIdx],t=parseInt(trimTop.value)||0,b=parseInt(trimBottom.value)||0;
     if(t+b>=f.pages){showToast('Cannot remove all pages!');return}
@@ -698,12 +870,12 @@ tabBtns.forEach(btn => {
     lbDel=document.getElementById('parkLbDel'),lbClose=document.getElementById('parkLbClose'),
     parkToast=document.getElementById('parkToast');
 
-  function showPToast(m){parkToast.textContent='\u25B8 '+m;parkToast.classList.add('show');setTimeout(()=>parkToast.classList.remove('show'),2000)}
+  function showPToast(m){parkToast.textContent=m;parkToast.classList.add('show');setTimeout(()=>parkToast.classList.remove('show'),2000)}
 
   function render(){
     const filled=slots.filter(Boolean).length;
     counter.textContent=`${filled}/${TOTAL} PARKED`;
-    counter.style.color=filled>0?'#4ade80':'rgba(74,222,128,.27)';
+    counter.style.color=filled>0?'#000080':'#808080';
     barFill.style.width=`${(filled/TOTAL)*100}%`;
     parkGrid.innerHTML='';
     slots.forEach((img,idx)=>{
@@ -752,6 +924,329 @@ tabBtns.forEach(btn => {
   lbDel.addEventListener('click',e=>{e.stopPropagation();if(viewIdx!==null){slots[viewIdx]=null;closeLightbox();render();showPToast('Screenshot deleted')}});
   lbImg.addEventListener('click',e=>e.stopPropagation());
   render();
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 2.5: COLOR DELETER
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const off=document.createElement('canvas'),offCtx=off.getContext('2d',{willReadFrequently:true});
+  let hasImage=false,history=[],tool='eyedropper',selColor={r:255,g:0,b:0},cropRect=null,dragStart=null;
+  const MAX_HISTORY=10;
+
+  const canvas=document.getElementById('cdCanvas'),ctx=canvas.getContext('2d'),
+    viewport=document.getElementById('cdViewport'),dropLabel=document.getElementById('cdDropLabel'),
+    fileInput=document.getElementById('cdFileInput'),loadBtn=document.getElementById('cdLoadBtn'),
+    downloadBtn=document.getElementById('cdDownloadBtn'),eyedropBtn=document.getElementById('cdEyedropBtn'),
+    cropBtn=document.getElementById('cdCropBtn'),applyCropBtn=document.getElementById('cdApplyCropBtn'),
+    undoBtn=document.getElementById('cdUndoBtn'),deleteBtn=document.getElementById('cdDeleteBtn'),
+    swatch=document.getElementById('cdSwatch'),hexLabel=document.getElementById('cdHex'),rgbLabel=document.getElementById('cdRgb'),
+    wheel=document.getElementById('cdWheel'),wheelCtx=wheel.getContext('2d',{willReadFrequently:true}),
+    lightness=document.getElementById('cdLightness'),lightnessVal=document.getElementById('cdLightnessVal'),
+    tolerance=document.getElementById('cdTolerance'),toleranceVal=document.getElementById('cdToleranceVal'),
+    statusCell=document.getElementById('cdStatus'),dimsCell=document.getElementById('cdDims'),
+    toast=document.getElementById('cdToast');
+
+  function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2200)}
+  function setStatus(m){statusCell.textContent=m}
+
+  // ---------- COLOR WHEEL ----------
+  function hslToRgb(h,s,l){
+    const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;let r,g,b;
+    if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+    else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+    return{r:Math.round((r+m)*255),g:Math.round((g+m)*255),b:Math.round((b+m)*255)}}
+
+  function drawWheel(){
+    const w=wheel.width,h=wheel.height,cx=w/2,cy=h/2,radius=w/2-2;
+    const id=wheelCtx.createImageData(w,h),d=id.data,L=lightness.value/100;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const dx=x-cx,dy=y-cy,r=Math.sqrt(dx*dx+dy*dy),i=(y*w+x)*4;
+      if(r<=radius){
+        let ang=Math.atan2(dy,dx)*180/Math.PI;if(ang<0)ang+=360;
+        const c=hslToRgb(ang,r/radius,L);
+        d[i]=c.r;d[i+1]=c.g;d[i+2]=c.b;d[i+3]=255;
+      }else d[i+3]=0;
+    }
+    wheelCtx.putImageData(id,0,0);
+  }
+  drawWheel();
+
+  function pickFromWheel(e){
+    const rect=wheel.getBoundingClientRect();
+    const x=Math.round((e.clientX-rect.left)*(wheel.width/rect.width));
+    const y=Math.round((e.clientY-rect.top)*(wheel.height/rect.height));
+    const cx=wheel.width/2,cy=wheel.height/2,radius=wheel.width/2-2;
+    const dx=x-cx,dy=y-cy;if(Math.sqrt(dx*dx+dy*dy)>radius)return;
+    const p=wheelCtx.getImageData(x,y,1,1).data;
+    setSelColor(p[0],p[1],p[2]);
+  }
+  let wheelDragging=false;
+  wheel.addEventListener('mousedown',e=>{wheelDragging=true;pickFromWheel(e)});
+  window.addEventListener('mousemove',e=>{if(wheelDragging)pickFromWheel(e)});
+  window.addEventListener('mouseup',()=>wheelDragging=false);
+  lightness.addEventListener('input',()=>{lightnessVal.textContent=lightness.value;drawWheel()});
+  tolerance.addEventListener('input',()=>toleranceVal.textContent=tolerance.value);
+
+  function setSelColor(r,g,b){
+    selColor={r,g,b};
+    const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+    swatch.style.background=hex;hexLabel.textContent=hex;rgbLabel.textContent=`RGB ${r}, ${g}, ${b}`;
+  }
+
+  // ---------- FILE LOADING ----------
+  loadBtn.addEventListener('click',()=>fileInput.click());
+  viewport.addEventListener('click',e=>{if(!hasImage&&e.target!==canvas)fileInput.click()});
+  ['dragenter','dragover'].forEach(ev=>viewport.addEventListener(ev,e=>{e.preventDefault();viewport.classList.add('drag-over')}));
+  ['dragleave','drop'].forEach(ev=>viewport.addEventListener(ev,e=>{e.preventDefault();viewport.classList.remove('drag-over')}));
+  viewport.addEventListener('drop',e=>{if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])loadFile(fileInput.files[0]);fileInput.value=''});
+
+  async function loadFile(file){
+    if(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf')){
+      if(!window.pdfjsLib){showToast('PDF library not loaded');return}
+      setStatus('Converting PDF page 1 to PNG...');
+      try{
+        const buf=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        const page=await pdf.getPage(1);
+        const vp=page.getViewport({scale:2});
+        off.width=vp.width;off.height=vp.height;
+        await page.render({canvasContext:offCtx,viewport:vp}).promise;
+        imageLoaded(file.name+' (page 1 → PNG)');
+      }catch(err){showToast('PDF error: '+err.message);setStatus('PDF conversion failed')}
+    }else if(file.type.startsWith('image/')){
+      const url=URL.createObjectURL(file);
+      const img=new Image();
+      img.onload=()=>{off.width=img.naturalWidth;off.height=img.naturalHeight;offCtx.drawImage(img,0,0);URL.revokeObjectURL(url);imageLoaded(file.name)};
+      img.onerror=()=>{showToast('Could not load image');URL.revokeObjectURL(url)};
+      img.src=url;
+    }else showToast('Only images or PDFs accepted');
+  }
+
+  function imageLoaded(name){
+    hasImage=true;history=[];cropRect=null;
+    dropLabel.style.display='none';canvas.style.display='block';
+    downloadBtn.disabled=false;deleteBtn.disabled=false;undoBtn.disabled=true;
+    applyCropBtn.style.display='none';
+    render();
+    dimsCell.textContent=off.width+'\u00d7'+off.height+' px';
+    setStatus('Loaded: '+name);showToast('Image loaded');
+  }
+
+  // ---------- RENDER ----------
+  function render(){
+    canvas.width=off.width;canvas.height=off.height;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(off,0,0);
+    if(cropRect){
+      const lw=Math.max(2,canvas.width/300);
+      ctx.save();
+      ctx.strokeStyle='#33ff33';ctx.lineWidth=lw;ctx.setLineDash([lw*3,lw*2]);
+      ctx.strokeRect(cropRect.x,cropRect.y,cropRect.w,cropRect.h);
+      ctx.fillStyle='rgba(0,0,0,.45)';
+      ctx.fillRect(0,0,canvas.width,cropRect.y);
+      ctx.fillRect(0,cropRect.y+cropRect.h,canvas.width,canvas.height-cropRect.y-cropRect.h);
+      ctx.fillRect(0,cropRect.y,cropRect.x,cropRect.h);
+      ctx.fillRect(cropRect.x+cropRect.w,cropRect.y,canvas.width-cropRect.x-cropRect.w,cropRect.h);
+      ctx.restore();
+    }
+  }
+
+  function canvasCoords(e){
+    const rect=canvas.getBoundingClientRect();
+    return{
+      x:Math.max(0,Math.min(off.width-1,Math.round((e.clientX-rect.left)*(canvas.width/rect.width)))),
+      y:Math.max(0,Math.min(off.height-1,Math.round((e.clientY-rect.top)*(canvas.height/rect.height))))
+    };
+  }
+
+  // ---------- TOOLS ----------
+  function setTool(t){
+    tool=t;
+    eyedropBtn.classList.toggle('tool-active',t==='eyedropper');
+    cropBtn.classList.toggle('tool-active',t==='crop');
+    canvas.className=t==='crop'?'tool-crop':'tool-eyedropper';
+    if(t!=='crop'){cropRect=null;applyCropBtn.style.display='none';if(hasImage)render()}
+    setStatus(t==='crop'?'Crop: drag a rectangle on the image':'Eyedropper: hover \u2022 arrows nudge 1px \u2022 click or Enter picks');
+  }
+  eyedropBtn.addEventListener('click',()=>setTool('eyedropper'));
+  cropBtn.addEventListener('click',()=>setTool('crop'));
+
+  canvas.addEventListener('mousedown',e=>{
+    if(!hasImage)return;
+    if(tool==='crop'){dragStart=canvasCoords(e);cropRect=null;applyCropBtn.style.display='none'}
+  });
+  canvas.addEventListener('mousemove',e=>{
+    if(!hasImage||tool!=='crop'||!dragStart)return;
+    const p=canvasCoords(e);
+    cropRect={x:Math.min(dragStart.x,p.x),y:Math.min(dragStart.y,p.y),w:Math.abs(p.x-dragStart.x),h:Math.abs(p.y-dragStart.y)};
+    render();
+  });
+  window.addEventListener('mouseup',e=>{
+    if(tool==='crop'&&dragStart){
+      dragStart=null;
+      if(cropRect&&cropRect.w>4&&cropRect.h>4){applyCropBtn.style.display='';setStatus(`Crop selected: ${cropRect.w}\u00d7${cropRect.h} px — click Apply Crop`)}
+      else{cropRect=null;if(hasImage)render()}
+    }
+  });
+  function pickAt(px,py){
+    const d=offCtx.getImageData(px,py,1,1).data;
+    if(d[3]===0){showToast('Transparent pixel — pick elsewhere');return}
+    setSelColor(d[0],d[1],d[2]);
+    setStatus(`Picked ${hexLabel.textContent} at ${px},${py}`);
+  }
+
+  canvas.addEventListener('click',e=>{
+    if(!hasImage||tool!=='eyedropper')return;
+    const p=canvasCoords(e);
+    loupePos={x:p.x,y:p.y};
+    pickAt(p.x,p.y);
+  });
+
+  // ---------- MAGNIFIER LOUPE (eyedropper) ----------
+  const loupe=document.getElementById('cdLoupe'),
+    loupeCanvas=document.getElementById('cdLoupeCanvas'),
+    loupeCtx=loupeCanvas.getContext('2d'),
+    loupeHex=document.getElementById('cdLoupeHex');
+  const LOUPE_PIXELS=11, LOUPE_SIZE=132, LOUPE_SCALE=LOUPE_SIZE/LOUPE_PIXELS; // 11x11 pixels at 12px each
+  loupeCtx.imageSmoothingEnabled=false;
+  let loupePos=null; // current target pixel {x,y} in image coords
+
+  function drawLoupe(px,py){
+    const half=Math.floor(LOUPE_PIXELS/2);
+    // dark backdrop for out-of-image areas
+    loupeCtx.fillStyle='#222';
+    loupeCtx.fillRect(0,0,LOUPE_SIZE,LOUPE_SIZE);
+    // checkerboard so transparent pixels are visible
+    loupeCtx.fillStyle='#555';
+    for(let gy=0;gy<LOUPE_PIXELS;gy++)for(let gx=0;gx<LOUPE_PIXELS;gx++)
+      if((gx+gy)%2===0)loupeCtx.fillRect(gx*LOUPE_SCALE,gy*LOUPE_SCALE,LOUPE_SCALE,LOUPE_SCALE);
+    // magnified pixels
+    loupeCtx.imageSmoothingEnabled=false;
+    loupeCtx.drawImage(off,px-half,py-half,LOUPE_PIXELS,LOUPE_PIXELS,0,0,LOUPE_SIZE,LOUPE_SIZE);
+    // pixel grid
+    loupeCtx.strokeStyle='rgba(0,0,0,.25)';loupeCtx.lineWidth=1;
+    for(let i=1;i<LOUPE_PIXELS;i++){
+      loupeCtx.beginPath();loupeCtx.moveTo(i*LOUPE_SCALE+.5,0);loupeCtx.lineTo(i*LOUPE_SCALE+.5,LOUPE_SIZE);loupeCtx.stroke();
+      loupeCtx.beginPath();loupeCtx.moveTo(0,i*LOUPE_SCALE+.5);loupeCtx.lineTo(LOUPE_SIZE,i*LOUPE_SCALE+.5);loupeCtx.stroke();
+    }
+    // center pixel highlight
+    const c=half*LOUPE_SCALE;
+    loupeCtx.strokeStyle='#ff0000';loupeCtx.lineWidth=2;
+    loupeCtx.strokeRect(c+1,c+1,LOUPE_SCALE-2,LOUPE_SCALE-2);
+    loupeCtx.strokeStyle='#fff';loupeCtx.lineWidth=1;
+    loupeCtx.strokeRect(c-0.5,c-0.5,LOUPE_SCALE+1,LOUPE_SCALE+1);
+    // hex readout of center pixel
+    const d=offCtx.getImageData(px,py,1,1).data;
+    loupeHex.textContent=d[3]===0?'transparent':'#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+
+  function positionLoupe(e){
+    const margin=18,lw=140,lh=160;
+    let x=e.clientX+margin,y=e.clientY+margin;
+    if(x+lw>window.innerWidth)x=e.clientX-lw-margin;
+    if(y+lh>window.innerHeight)y=e.clientY-lh-margin;
+    loupe.style.left=x+'px';loupe.style.top=y+'px';
+  }
+
+  canvas.addEventListener('mousemove',e=>{
+    if(!hasImage||tool!=='eyedropper'){loupe.classList.remove('show');return}
+    const p=canvasCoords(e);
+    loupePos={x:p.x,y:p.y};
+    drawLoupe(p.x,p.y);
+    positionLoupe(e);
+    loupe.classList.add('show');
+  });
+  canvas.addEventListener('mouseleave',()=>loupe.classList.remove('show'));
+  cropBtn.addEventListener('click',()=>loupe.classList.remove('show'));
+
+  // ---------- KEYBOARD PIXEL NUDGE ----------
+  function pixelScreenPos(px,py){
+    const rect=canvas.getBoundingClientRect();
+    return{clientX:rect.left+((px+0.5)/canvas.width)*rect.width,
+           clientY:rect.top+((py+0.5)/canvas.height)*rect.height};
+  }
+  document.addEventListener('keydown',e=>{
+    if(activePage!=='colordel')return;
+    if(!hasImage||tool!=='eyedropper'||loupePos===null)return;
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+    let moved=false;
+    if(e.code==='ArrowLeft'){loupePos.x=Math.max(0,loupePos.x-1);moved=true}
+    else if(e.code==='ArrowRight'){loupePos.x=Math.min(off.width-1,loupePos.x+1);moved=true}
+    else if(e.code==='ArrowUp'){loupePos.y=Math.max(0,loupePos.y-1);moved=true}
+    else if(e.code==='ArrowDown'){loupePos.y=Math.min(off.height-1,loupePos.y+1);moved=true}
+    else if(e.code==='Enter'||e.code==='Space'){
+      if(!loupe.classList.contains('show'))return;
+      e.preventDefault();pickAt(loupePos.x,loupePos.y);return;
+    }
+    else return;
+    e.preventDefault();
+    drawLoupe(loupePos.x,loupePos.y);
+    positionLoupe(pixelScreenPos(loupePos.x,loupePos.y));
+    loupe.classList.add('show');
+    setStatus(`Target: ${loupePos.x},${loupePos.y} — arrows nudge \u2022 Enter picks`);
+  });
+
+  // ---------- HISTORY ----------
+  function pushHistory(){
+    history.push({data:offCtx.getImageData(0,0,off.width,off.height),w:off.width,h:off.height});
+    if(history.length>MAX_HISTORY)history.shift();
+    undoBtn.disabled=false;
+  }
+  undoBtn.addEventListener('click',()=>{
+    if(!history.length)return;
+    const s=history.pop();
+    off.width=s.w;off.height=s.h;offCtx.putImageData(s.data,0,0);
+    cropRect=null;applyCropBtn.style.display='none';
+    render();dimsCell.textContent=off.width+'\u00d7'+off.height+' px';
+    undoBtn.disabled=!history.length;
+    setStatus('Undone');showToast('Undo');
+  });
+
+  // ---------- CROP APPLY ----------
+  applyCropBtn.addEventListener('click',()=>{
+    if(!cropRect)return;
+    pushHistory();
+    const id=offCtx.getImageData(cropRect.x,cropRect.y,cropRect.w,cropRect.h);
+    off.width=cropRect.w;off.height=cropRect.h;
+    offCtx.putImageData(id,0,0);
+    cropRect=null;applyCropBtn.style.display='none';
+    render();dimsCell.textContent=off.width+'\u00d7'+off.height+' px';
+    setStatus('Cropped');showToast('Cropped!');setTool('eyedropper');
+  });
+
+  // ---------- DELETE COLOR ----------
+  deleteBtn.addEventListener('click',()=>{
+    if(!hasImage)return;
+    pushHistory();
+    const tol=+tolerance.value,tolSq=tol*tol;
+    const id=offCtx.getImageData(0,0,off.width,off.height),d=id.data;
+    const{r:sr,g:sg,b:sb}=selColor;let count=0;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]===0)continue;
+      const dr=d[i]-sr,dg=d[i+1]-sg,db=d[i+2]-sb;
+      if(dr*dr+dg*dg+db*db<=tolSq){d[i+3]=0;count++}
+    }
+    offCtx.putImageData(id,0,0);
+    render();
+    setStatus(`Deleted ${count.toLocaleString()} pixels matching ${hexLabel.textContent} (tolerance ${tol})`);
+    showToast(count?count.toLocaleString()+' pixels deleted':'No matching pixels found');
+  });
+
+  // ---------- DOWNLOAD ----------
+  downloadBtn.addEventListener('click',()=>{
+    if(!hasImage)return;
+    const a=document.createElement('a');
+    a.href=off.toDataURL('image/png');
+    a.download='color-deleted.png';
+    a.click();
+    showToast('PNG downloaded!');
+  });
+
+  setSelColor(255,0,0);
 })();
 
 // ═══════════════════════════════════════════════════════════════
