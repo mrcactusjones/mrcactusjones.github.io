@@ -3368,67 +3368,76 @@ try {
   function arcPts(cx,cy,r,a0,a1,n){ const p=[]; for(let i=0;i<=n;i++){ const a=a0+(a1-a0)*i/n; p.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}); } return p; }
 
   // ---- build the dieline geometry (all coords in the supplied unit) ----
-  // Roll-end tuck mailer box. Returns cut polylines (perimeter + slits) and fold lines.
+  // FEFCO 0427 roll-end tuck-front mailer box ("cherry lock" style). Reverse-
+  // engineered from the reference dieline: trim outline => cut lines, creases =>
+  // fold lines. Returns cut polylines + fold lines (no bleed).
+  //   spine (top->bottom): tuck | lid-top | back wall | base | front wall | front flap
+  //   lid-top & base carry tapered side wings; walls carry small roll ears;
+  //   the base has two "cherry lock" slots the folded side walls tuck into.
   function buildDieline(L,W,H){
-    const tf=Math.min(H*0.9, W*0.85);   // tuck flap depth
-    const rf=Math.min(H*0.85, W*0.8);   // front retaining flap depth
-    const df=Math.min(H*0.8, W*0.45);   // lid-front dust flap depth
-    const ti=L*0.04;                    // tuck top inset (trapezoid)
-    const rn=Math.min(L*0.09, tf*0.55); // thumb notch radius
-    const re=Math.min(H*0.45, W*0.25, L*0.12); // ear corner radius
-    const ch=Math.min(H,W,L)*0.10;      // generic chamfer
+    const ang=20*Math.PI/180, TAN=Math.tan(ang);
+    const tuckH=0.6*H, rf=0.7*H;        // top tuck depth / bottom front flap depth
+    const lidExt=0.9*H, endExt=H, earExt=0.86*H; // wing / end-wall / roll-ear reach
+    const tdLid=lidExt*TAN, earTd=earExt*TAN;    // 20deg taper drops
+    const rc=0.18*H, rcT=0.22*H, rcB=0.20*H;     // corner radii
+    const slotLen=0.4*W, slotW=0.06*H, slotInset=0.16*H; // cherry-lock slot
+    const tabW=0.26*W, tabD=0.07*H;     // end-wall locking tab
 
-    const yTF=tf, yFE=tf+H, yED=tf+H+W, yDC=tf+H+W+H, yCB=tf+H+W+H+W, yBA=tf+H+W+H+W+H, yA=yBA+rf;
+    // horizontal crease lines down the spine
+    const yA=tuckH, yB=tuckH+W, yC=tuckH+W+H, yD=tuckH+W+H+W, yE=tuckH+W+H+W+H, yF=yE+rf;
+    const cuts=[], folds=[];
 
-    const P=[]; const add=(x,y)=>P.push({x,y});
-    // tuck flap top (trapezoid) with centered thumb notch
-    add(ti,0); add(L/2-rn,0);
-    for(let i=1;i<=16;i++){ const th=Math.PI*i/16; add(L/2 - rn*Math.cos(th), rn*Math.sin(th)); }
-    add(L/2+rn,0); add(L-ti,0);
-    add(L,yTF);
-    // right dust flap (chamfered)
-    add(L+df-ch,yTF); add(L+df,yTF+ch); add(L+df,yFE-ch); add(L+df-ch,yFE); add(L,yFE);
-    // lid-top right edge (free)
-    add(L,yED);
-    // right ears + end wall: continuous outer edge, rounded top & bottom
-    add(L+H-re,yED);
-    arcPts(L+H-re, yED+re, re, -Math.PI/2, 0, 8).forEach(p=>add(p.x,p.y));
-    add(L+H, yBA-re);
-    arcPts(L+H-re, yBA-re, re, 0, Math.PI/2, 8).forEach(p=>add(p.x,p.y));
-    add(L,yBA);
-    // front retaining flap (chamfered corners)
-    add(L,yA-ch); add(L-ch,yA); add(ch,yA); add(0,yA-ch); add(0,yBA);
-    // left ears + end wall outer edge (upward), rounded bottom & top
-    add(-H+re,yBA);
-    arcPts(-H+re, yBA-re, re, Math.PI/2, Math.PI, 8).forEach(p=>add(p.x,p.y));
-    add(-H, yED+re);
-    arcPts(-H+re, yED+re, re, Math.PI, Math.PI*1.5, 8).forEach(p=>add(p.x,p.y));
-    add(0,yED);
-    // lid-top left edge (free)
-    add(0,yFE);
-    // left dust flap (chamfered)
-    add(-df+ch,yFE); add(-df,yFE-ch); add(-df,yTF+ch); add(-df+ch,yTF); add(0,yTF);
-    add(ti,0); // close
+    // center body: rounded top tuck cap + rounded bottom front-flap cap
+    let top=[{x:0,y:yA},{x:0,y:rcT}];
+    arcPts(rcT,rcT,rcT,Math.PI,1.5*Math.PI,7).forEach(p=>top.push(p));
+    top.push({x:L-rcT,y:0});
+    arcPts(L-rcT,rcT,rcT,-0.5*Math.PI,0,7).forEach(p=>top.push(p));
+    top.push({x:L,y:yA});
+    cuts.push(top);
+    let bot=[{x:0,y:yE},{x:0,y:yF-rcB}];
+    arcPts(rcB,yF-rcB,rcB,Math.PI,0.5*Math.PI,7).forEach(p=>bot.push(p));
+    bot.push({x:L-rcB,y:yF});
+    arcPts(L-rcB,yF-rcB,rcB,0.5*Math.PI,0,7).forEach(p=>bot.push(p));
+    bot.push({x:L,y:yE});
+    cuts.push(bot);
 
-    const cuts=[P];
-    // separation slits between roll ears and end walls
-    cuts.push([{x:-H,y:yDC},{x:0,y:yDC}]);
-    cuts.push([{x:-H,y:yCB},{x:0,y:yCB}]);
-    cuts.push([{x:L,y:yDC},{x:L+H,y:yDC}]);
-    cuts.push([{x:L,y:yCB},{x:L+H,y:yCB}]);
+    // side pieces — built on the left edge, then mirrored to the right
+    const mirror=p=>p.map(pt=>({x:L-pt.x,y:pt.y}));
+    function lidWing(){ // tapered lid-top side wall, rounded outer-top corner
+      let p=[{x:0,y:yA},{x:-lidExt+rc,y:yA}];
+      arcPts(-lidExt+rc,yA+rc,rc,-0.5*Math.PI,-Math.PI,6).forEach(q=>p.push(q));
+      p.push({x:-lidExt,y:yB-tdLid});
+      p.push({x:0,y:yB});
+      return p;
+    }
+    const ear=(y0,y1)=>[{x:0,y:y0},{x:-earExt,y:y0+earTd},{x:-earExt,y:y1-earTd},{x:0,y:y1}];
+    function endWall(){ // base side wall with centered cherry-lock tab
+      const cy=(yC+yD)/2, mt=cy-tabW/2, mb=cy+tabW/2;
+      return [{x:0,y:yC},{x:-endExt,y:yC},
+        {x:-endExt,y:mt},{x:-endExt-tabD,y:mt},{x:-endExt-tabD,y:mb},{x:-endExt,y:mb},
+        {x:-endExt,y:yD},{x:0,y:yD}];
+    }
+    [lidWing(), ear(yB,yC), endWall(), ear(yD,yE)].forEach(p=>{ cuts.push(p); cuts.push(mirror(p)); });
 
-    const folds=[
-      [{x:0,y:yDC},{x:L,y:yDC}], [{x:0,y:yCB},{x:L,y:yCB}],   // base <-> back / front wall
-      [{x:0,y:yED},{x:L,y:yED}], [{x:0,y:yFE},{x:L,y:yFE}],   // back<->lid-top, lid-top<->lid-front
-      [{x:0,y:yTF},{x:L,y:yTF}], [{x:0,y:yBA},{x:L,y:yBA}],   // lid-front<->tuck, front<->retain
-      [{x:0,y:yDC},{x:0,y:yCB}], [{x:L,y:yDC},{x:L,y:yCB}],   // base <-> end walls
-      [{x:0,y:yCB},{x:0,y:yBA}], [{x:L,y:yCB},{x:L,y:yBA}],   // front wall <-> front ears
-      [{x:0,y:yED},{x:0,y:yDC}], [{x:L,y:yED},{x:L,y:yDC}],   // back wall <-> back ears
-      [{x:0,y:yTF},{x:0,y:yFE}], [{x:L,y:yTF},{x:L,y:yFE}],   // lid-front <-> dust flaps
-    ];
-    // base panel rect for dimension annotation
-    const base={ x0:0, x1:L, y0:yDC, y1:yCB, wallY1:yBA };
-    return { cuts, folds, base, minX:-H, minY:0, maxX:L+H, maxY:yA };
+    // cherry-lock slots in the base
+    function slot(cx){
+      const cy=(yC+yD)/2, half=slotLen/2-slotW/2, r=slotW/2;
+      let p=[{x:cx-r,y:cy-half}];
+      arcPts(cx,cy-half,r,Math.PI,0,6).forEach(q=>p.push(q));
+      p.push({x:cx+r,y:cy+half});
+      arcPts(cx,cy+half,r,0,Math.PI,6).forEach(q=>p.push(q));
+      p.push({x:cx-r,y:cy-half});
+      return p;
+    }
+    cuts.push(slot(slotInset)); cuts.push(slot(L-slotInset));
+
+    // folds: horizontal creases + the two vertical hinge lines
+    [yA,yB,yC,yD,yE].forEach(y=>folds.push([{x:0,y},{x:L,y}]));
+    folds.push([{x:0,y:yA},{x:0,y:yE}]);
+    folds.push([{x:L,y:yA},{x:L,y:yE}]);
+
+    const base={ x0:0, x1:L, y0:yC, y1:yD, wallY1:yE };
+    return { cuts, folds, base, minX:-endExt-tabD, minY:0, maxX:L+endExt+tabD, maxY:yF };
   }
 
   const CUT='#ff2b2b', FOLD='#3a7bff', DIMC='#00e5ff';
@@ -3454,8 +3463,7 @@ try {
       ctx.shadowBlur=0;
     }
     stroke(d.folds, FOLD, false, 1.6);
-    stroke([d.cuts[0]], CUT, true, 2);
-    stroke(d.cuts.slice(1), CUT, false, 2);
+    stroke(d.cuts, CUT, false, 2);
 
     // dimension annotations (mimics the reference UI) -------------
     const b=d.base; ctx.fillStyle=DIMC; ctx.strokeStyle=DIMC; ctx.lineWidth=1; ctx.shadowBlur=0;
@@ -3484,7 +3492,7 @@ try {
       '<div class="hd">SPEC SHEET</div>'+
       '<div class="row"><span>Box (L&times;W&times;H)</span><b>'+fmtNum(L)+' &times; '+fmtNum(W)+' &times; '+fmtNum(H)+' '+u+'</b></div>'+
       '<div class="row"><span>Flat blank</span><b>'+flatW+' &times; '+flatH+' '+u+'</b></div>'+
-      '<div class="row"><span>Style</span><b>Roll-end tuck</b></div>'+
+      '<div class="row"><span>Style</span><b>Roll-end tuck &middot; FEFCO 0427</b></div>'+
       '<div class="row"><span>Bleed</span><b>none</b></div>';
   }
 
@@ -3506,8 +3514,7 @@ try {
     s+='<g id="fold-50pct-power" stroke="#0000FF">\n';
     d.folds.forEach(p=> s+='  <polyline points="'+pts(p)+'"/>\n');
     s+='</g>\n<g id="cut-100pct-power" stroke="#FF0000">\n';
-    s+='  <polygon points="'+pts(d.cuts[0])+'"/>\n';
-    d.cuts.slice(1).forEach(p=> s+='  <polyline points="'+pts(p)+'"/>\n');
+    d.cuts.forEach(p=> s+='  <polyline points="'+pts(p)+'"/>\n');
     s+='</g>\n</g>\n</svg>\n';
     return s;
   }
@@ -3527,8 +3534,7 @@ try {
     function polyToSeg(p,layer,col,close){ for(let i=0;i<p.length-1;i++) seg(p[i].x,p[i].y,p[i+1].x,p[i+1].y,layer,col);
       if(close) seg(p[p.length-1].x,p[p.length-1].y,p[0].x,p[0].y,layer,col); }
     d.folds.forEach(p=>polyToSeg(p,'FOLD',5,false));
-    polyToSeg(d.cuts[0],'CUT',1,true);
-    d.cuts.slice(1).forEach(p=>polyToSeg(p,'CUT',1,false));
+    d.cuts.forEach(p=>polyToSeg(p,'CUT',1,false));
     return '0\nSECTION\n2\nHEADER\n'+
       '9\n$ACADVER\n1\nAC1009\n'+
       '9\n$INSUNITS\n70\n'+insunits+'\n'+
