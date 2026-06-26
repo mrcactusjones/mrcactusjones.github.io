@@ -558,6 +558,102 @@
   #page-tts .shortcuts { margin-top:24px; display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
   #page-tts .shortcut { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
   #page-tts .key { display:inline-block; padding:2px 7px; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:4px; font-size:10px; color:var(--text-secondary); }
+
+  /* ═══════════════════════════════════ BOX DIELINE ═══════════════════════════════════ */
+  #page-box {
+    --bx-mag:#ff2e88; --bx-cyan:#00e5ff; --bx-yellow:#ffe14d; --bx-purple:#9d4edd;
+    --bx-cut:#ff2b2b; --bx-fold:#3a7bff;
+    min-height:calc(100vh - 48px);
+    padding:24px 18px 60px;
+    background:
+      radial-gradient( circle at 50% -10%, #2a1145 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent 0 38px, #ff2e8810 38px 39px),
+      repeating-linear-gradient(90deg, transparent 0 38px, #00e5ff0d 38px 39px),
+      #0a0612;
+    font-family:'IBM Plex Mono','JetBrains Mono',monospace;
+  }
+  #page-box .bx-app { max-width:1180px; margin:0 auto; }
+  #page-box .bx-titlebar {
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(90deg,#ff2e88,#9d4edd 60%,#00e5ff);
+    padding:7px 14px; border-radius:8px 8px 0 0;
+    box-shadow:0 0 22px #ff2e8855, inset 0 1px 0 #ffffff55;
+  }
+  #page-box .bx-titlebar .t { font-weight:700; font-size:13px; letter-spacing:3px; color:#0a0612; text-shadow:0 1px 0 #ffffff66; }
+  #page-box .bx-titlebar .dots { display:flex; gap:7px; }
+  #page-box .bx-titlebar .dots i { width:13px; height:13px; border-radius:50%; background:#0a0612; opacity:.55; }
+  #page-box .bx-shell {
+    display:grid; grid-template-columns:330px 1fr; gap:0;
+    border:2px solid #ff2e8855; border-top:none; border-radius:0 0 10px 10px;
+    background:#0d0818cc; backdrop-filter:blur(4px); overflow:hidden;
+  }
+  @media (max-width:840px){ #page-box .bx-shell { grid-template-columns:1fr; } }
+
+  #page-box .bx-panel { padding:20px 18px; border-right:2px solid #ff2e8833; }
+  #page-box .bx-hero h1 {
+    font-family:'VT323',monospace; font-size:42px; line-height:.9; letter-spacing:1px;
+    color:var(--bx-cyan); text-shadow:0 0 10px #00e5ff88, 3px 3px 0 var(--bx-mag); margin-bottom:2px;
+  }
+  #page-box .bx-hero p { font-size:11px; color:#c9a8ff; letter-spacing:1px; margin-bottom:18px; }
+
+  #page-box .bx-label { display:block; font-size:10px; letter-spacing:2px; color:var(--bx-yellow); text-transform:uppercase; margin:18px 0 8px; }
+  #page-box .bx-seg { display:flex; gap:0; border:2px solid var(--bx-cyan); border-radius:7px; overflow:hidden; }
+  #page-box .bx-seg button {
+    flex:1; font-family:inherit; font-size:12px; font-weight:700; letter-spacing:2px; padding:9px 4px;
+    background:transparent; color:var(--bx-cyan); border:none; cursor:pointer; transition:all .12s;
+  }
+  #page-box .bx-seg button + button { border-left:2px solid var(--bx-cyan); }
+  #page-box .bx-seg button.active { background:var(--bx-cyan); color:#06121a; text-shadow:none; box-shadow:inset 0 0 14px #ffffff66; }
+  #page-box .bx-seg button:not(.active):hover { background:#00e5ff22; }
+
+  #page-box .bx-dims { display:flex; flex-direction:column; gap:12px; margin-top:4px; }
+  #page-box .bx-dim { display:flex; align-items:center; gap:10px; }
+  #page-box .bx-dim .nm { width:78px; font-size:11px; letter-spacing:1px; color:#e8d6ff; }
+  #page-box .bx-dim .nm b { color:var(--bx-mag); font-size:13px; }
+  #page-box .bx-stepwrap { display:flex; flex:1; border:2px solid var(--bx-mag); border-radius:7px; overflow:hidden; background:#150a22; }
+  #page-box .bx-stepwrap button {
+    width:34px; font-family:inherit; font-size:18px; font-weight:700; background:#22102f; color:var(--bx-mag);
+    border:none; cursor:pointer; transition:background .12s;
+  }
+  #page-box .bx-stepwrap button:hover { background:var(--bx-mag); color:#150a22; }
+  #page-box .bx-stepwrap input {
+    flex:1; min-width:0; text-align:center; font-family:inherit; font-size:16px; font-weight:700;
+    background:transparent; color:#fff; border:none; outline:none; -moz-appearance:textfield;
+  }
+  #page-box .bx-stepwrap input::-webkit-outer-spin-button,
+  #page-box .bx-stepwrap input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  #page-box .bx-unit { font-size:10px; color:#8a7aa8; width:22px; text-align:left; }
+
+  #page-box .bx-readout { margin-top:18px; padding:12px 14px; border:1px dashed #00e5ff55; border-radius:8px; background:#04141a66; font-size:11px; line-height:1.85; color:#9fe9ff; }
+  #page-box .bx-readout .row { display:flex; justify-content:space-between; }
+  #page-box .bx-readout .row b { color:#fff; font-weight:600; }
+  #page-box .bx-readout .hd { color:var(--bx-yellow); letter-spacing:2px; font-size:9px; margin-bottom:4px; }
+
+  #page-box .bx-dlbtn {
+    width:100%; margin-top:18px; font-family:'VT323',monospace; font-size:26px; letter-spacing:2px; padding:10px;
+    background:linear-gradient(90deg,var(--bx-mag),var(--bx-purple)); color:#fff; border:none; border-radius:9px;
+    cursor:pointer; text-shadow:0 0 8px #00000088; box-shadow:0 0 18px #ff2e8866; transition:transform .1s, box-shadow .15s;
+  }
+  #page-box .bx-dlbtn:hover { transform:translateY(-2px); box-shadow:0 6px 26px #ff2e88aa; }
+  #page-box .bx-dlbtn:active { transform:translateY(0); }
+  #page-box .bx-reset { width:100%; margin-top:9px; font-family:inherit; font-size:10px; letter-spacing:2px; padding:7px; background:transparent; color:#8a7aa8; border:1px solid #8a7aa855; border-radius:7px; cursor:pointer; }
+  #page-box .bx-reset:hover { color:var(--bx-cyan); border-color:var(--bx-cyan); }
+
+  #page-box .bx-stage { position:relative; display:flex; flex-direction:column; padding:14px; background:repeating-linear-gradient(0deg,#0a0612 0 26px,#120a1e 26px 27px); }
+  #page-box .bx-canvas-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:360px; }
+  #page-box #boxCanvas { max-width:100%; height:auto; image-rendering:auto; filter:drop-shadow(0 0 12px #00000088); }
+  #page-box .bx-legend { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; padding:12px 8px 2px; font-size:11px; letter-spacing:1px; }
+  #page-box .bx-legend span { display:flex; align-items:center; gap:8px; color:#d8c8ff; }
+  #page-box .bx-legend i { width:26px; height:0; border-top:3px solid; border-radius:2px; }
+  #page-box .bx-legend .cut i { border-color:var(--bx-cut); box-shadow:0 0 8px var(--bx-cut); }
+  #page-box .bx-legend .fold i { border-color:var(--bx-fold); box-shadow:0 0 8px var(--bx-fold); }
+  #page-box .bx-toast {
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bx-cyan); color:#06121a; font-weight:700; font-size:12px; letter-spacing:1px;
+    padding:11px 22px; border-radius:8px; box-shadow:0 0 24px #00e5ffaa; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:9999;
+  }
+  #page-box .bx-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -572,6 +668,7 @@
   <button class="tab-btn" data-page="neglab">&#127902; Negative Lab</button>
   <button class="tab-btn" data-page="fastreader">&#9889; FastReader</button>
   <button class="tab-btn" data-page="tts">&#128264; TTS Reader</button>
+  <button class="tab-btn" data-page="box">&#128230; Box Dieline</button>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -640,10 +737,18 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <div class="home-card" data-goto="box">
+          <div class="hc-icon">&#128230;</div>
+          <div>
+            <div class="hc-name">BOX DIELINE</div>
+            <div class="hc-desc">Parametric roll-end mailer box generator for laser cutters. Dial in length/width/height in inches or mm and export a two-color SVG/DXF — red cut lines, blue half-power fold lines.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">6 PROGRAMS LOADED</span>
+      <span class="home-status-cell">7 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -1215,6 +1320,83 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════ PAGE 7: BOX DIELINE ═══════════════════════════════════ -->
+<div id="page-box" class="tool-page">
+  <div class="bx-app">
+    <div class="bx-titlebar">
+      <span class="t">&#9608; DIELINE.EXE — ROLL-END MAILER</span>
+      <span class="dots"><i></i><i></i><i></i></span>
+    </div>
+    <div class="bx-shell">
+      <div class="bx-panel">
+        <div class="bx-hero">
+          <h1>BOX<br>DIELINE</h1>
+          <p>// LASER-READY MAILER BLANK GENERATOR</p>
+        </div>
+
+        <label class="bx-label">Units</label>
+        <div class="bx-seg" id="boxUnitSeg">
+          <button data-unit="in" class="active">INCHES</button>
+          <button data-unit="mm">MILLIMETERS</button>
+        </div>
+
+        <label class="bx-label">Dimensions</label>
+        <div class="bx-dims">
+          <div class="bx-dim">
+            <span class="nm"><b>L</b> LENGTH</span>
+            <div class="bx-stepwrap">
+              <button data-d="L" data-s="-1">&minus;</button>
+              <input type="number" id="boxL" min="0.1" step="0.125">
+              <button data-d="L" data-s="1">+</button>
+            </div>
+            <span class="bx-unit boxUnitLbl">in</span>
+          </div>
+          <div class="bx-dim">
+            <span class="nm"><b>W</b> WIDTH</span>
+            <div class="bx-stepwrap">
+              <button data-d="W" data-s="-1">&minus;</button>
+              <input type="number" id="boxW" min="0.1" step="0.125">
+              <button data-d="W" data-s="1">+</button>
+            </div>
+            <span class="bx-unit boxUnitLbl">in</span>
+          </div>
+          <div class="bx-dim">
+            <span class="nm"><b>H</b> HEIGHT</span>
+            <div class="bx-stepwrap">
+              <button data-d="H" data-s="-1">&minus;</button>
+              <input type="number" id="boxH" min="0.1" step="0.125">
+              <button data-d="H" data-s="1">+</button>
+            </div>
+            <span class="bx-unit boxUnitLbl">in</span>
+          </div>
+        </div>
+
+        <div class="bx-readout" id="boxReadout"></div>
+
+        <label class="bx-label">Export Format</label>
+        <div class="bx-seg" id="boxFmtSeg">
+          <button data-fmt="svg" class="active">SVG</button>
+          <button data-fmt="dxf">DXF</button>
+        </div>
+
+        <button class="bx-dlbtn" id="boxDownload">&#11015; DOWNLOAD DIELINE</button>
+        <button class="bx-reset" id="boxReset">&#8635; RESET TO DEFAULT (4.5 &times; 3 &times; 1 IN)</button>
+      </div>
+
+      <div class="bx-stage">
+        <div class="bx-canvas-wrap">
+          <canvas id="boxCanvas" width="640" height="900"></canvas>
+        </div>
+        <div class="bx-legend">
+          <span class="cut"><i></i> RED &mdash; CUT &middot; 100% POWER</span>
+          <span class="fold"><i></i> BLUE &mdash; FOLD/SCORE &middot; 50% POWER</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bx-toast" id="boxToast"></div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -1231,7 +1413,7 @@ tabBtns.forEach(btn => {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.page === target));
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f' };
+    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -3158,6 +3340,258 @@ try {
 
   setInterval(()=>{if(isSpeaking&&!isPaused&&synth.speaking){synth.pause();synth.resume()}},10000);
   setStatus('ready','Ready — paste text or drop a file to begin');
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL 7: BOX DIELINE — parametric roll-end mailer box for laser
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const MM_PER_IN = 25.4;
+  // canonical dimensions stored in millimeters
+  const DEFAULT_MM = { L: 4.5*MM_PER_IN, W: 3*MM_PER_IN, H: 1*MM_PER_IN };
+  let dim = { ...DEFAULT_MM };
+  let unit = 'in';   // 'in' | 'mm'
+  let fmt  = 'svg';  // 'svg' | 'dxf'
+
+  const elL=document.getElementById('boxL'), elW=document.getElementById('boxW'), elH=document.getElementById('boxH');
+  const canvas=document.getElementById('boxCanvas'), ctx=canvas.getContext('2d');
+  const readout=document.getElementById('boxReadout'), toast=document.getElementById('boxToast');
+  const unitLbls=document.querySelectorAll('.boxUnitLbl');
+
+  const toUnit = mm => unit==='in' ? mm/MM_PER_IN : mm;
+  const fromUnit = v => unit==='in' ? v*MM_PER_IN : v;
+  const fmtNum = v => unit==='in' ? (Math.round(v*1000)/1000) : (Math.round(v*100)/100);
+
+  function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2200); }
+
+  // ---- arc helper: returns polyline points along a circular arc ----
+  function arcPts(cx,cy,r,a0,a1,n){ const p=[]; for(let i=0;i<=n;i++){ const a=a0+(a1-a0)*i/n; p.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}); } return p; }
+
+  // ---- build the dieline geometry (all coords in the supplied unit) ----
+  // Roll-end tuck mailer box. Returns cut polylines (perimeter + slits) and fold lines.
+  function buildDieline(L,W,H){
+    const tf=Math.min(H*0.9, W*0.85);   // tuck flap depth
+    const rf=Math.min(H*0.85, W*0.8);   // front retaining flap depth
+    const df=Math.min(H*0.8, W*0.45);   // lid-front dust flap depth
+    const ti=L*0.04;                    // tuck top inset (trapezoid)
+    const rn=Math.min(L*0.09, tf*0.55); // thumb notch radius
+    const re=Math.min(H*0.45, W*0.25, L*0.12); // ear corner radius
+    const ch=Math.min(H,W,L)*0.10;      // generic chamfer
+
+    const yTF=tf, yFE=tf+H, yED=tf+H+W, yDC=tf+H+W+H, yCB=tf+H+W+H+W, yBA=tf+H+W+H+W+H, yA=yBA+rf;
+
+    const P=[]; const add=(x,y)=>P.push({x,y});
+    // tuck flap top (trapezoid) with centered thumb notch
+    add(ti,0); add(L/2-rn,0);
+    for(let i=1;i<=16;i++){ const th=Math.PI*i/16; add(L/2 - rn*Math.cos(th), rn*Math.sin(th)); }
+    add(L/2+rn,0); add(L-ti,0);
+    add(L,yTF);
+    // right dust flap (chamfered)
+    add(L+df-ch,yTF); add(L+df,yTF+ch); add(L+df,yFE-ch); add(L+df-ch,yFE); add(L,yFE);
+    // lid-top right edge (free)
+    add(L,yED);
+    // right ears + end wall: continuous outer edge, rounded top & bottom
+    add(L+H-re,yED);
+    arcPts(L+H-re, yED+re, re, -Math.PI/2, 0, 8).forEach(p=>add(p.x,p.y));
+    add(L+H, yBA-re);
+    arcPts(L+H-re, yBA-re, re, 0, Math.PI/2, 8).forEach(p=>add(p.x,p.y));
+    add(L,yBA);
+    // front retaining flap (chamfered corners)
+    add(L,yA-ch); add(L-ch,yA); add(ch,yA); add(0,yA-ch); add(0,yBA);
+    // left ears + end wall outer edge (upward), rounded bottom & top
+    add(-H+re,yBA);
+    arcPts(-H+re, yBA-re, re, Math.PI/2, Math.PI, 8).forEach(p=>add(p.x,p.y));
+    add(-H, yED+re);
+    arcPts(-H+re, yED+re, re, Math.PI, Math.PI*1.5, 8).forEach(p=>add(p.x,p.y));
+    add(0,yED);
+    // lid-top left edge (free)
+    add(0,yFE);
+    // left dust flap (chamfered)
+    add(-df+ch,yFE); add(-df,yFE-ch); add(-df,yTF+ch); add(-df+ch,yTF); add(0,yTF);
+    add(ti,0); // close
+
+    const cuts=[P];
+    // separation slits between roll ears and end walls
+    cuts.push([{x:-H,y:yDC},{x:0,y:yDC}]);
+    cuts.push([{x:-H,y:yCB},{x:0,y:yCB}]);
+    cuts.push([{x:L,y:yDC},{x:L+H,y:yDC}]);
+    cuts.push([{x:L,y:yCB},{x:L+H,y:yCB}]);
+
+    const folds=[
+      [{x:0,y:yDC},{x:L,y:yDC}], [{x:0,y:yCB},{x:L,y:yCB}],   // base <-> back / front wall
+      [{x:0,y:yED},{x:L,y:yED}], [{x:0,y:yFE},{x:L,y:yFE}],   // back<->lid-top, lid-top<->lid-front
+      [{x:0,y:yTF},{x:L,y:yTF}], [{x:0,y:yBA},{x:L,y:yBA}],   // lid-front<->tuck, front<->retain
+      [{x:0,y:yDC},{x:0,y:yCB}], [{x:L,y:yDC},{x:L,y:yCB}],   // base <-> end walls
+      [{x:0,y:yCB},{x:0,y:yBA}], [{x:L,y:yCB},{x:L,y:yBA}],   // front wall <-> front ears
+      [{x:0,y:yED},{x:0,y:yDC}], [{x:L,y:yED},{x:L,y:yDC}],   // back wall <-> back ears
+      [{x:0,y:yTF},{x:0,y:yFE}], [{x:L,y:yTF},{x:L,y:yFE}],   // lid-front <-> dust flaps
+    ];
+    // base panel rect for dimension annotation
+    const base={ x0:0, x1:L, y0:yDC, y1:yCB, wallY1:yBA };
+    return { cuts, folds, base, minX:-H, minY:0, maxX:L+H, maxY:yA };
+  }
+
+  const CUT='#ff2b2b', FOLD='#3a7bff', DIMC='#00e5ff';
+
+  function render(){
+    const L=toUnit(dim.L), W=toUnit(dim.W), H=toUnit(dim.H);
+    const d=buildDieline(L,W,H);
+    const dpr=window.devicePixelRatio||1;
+    const cssW=640, cssH=900;
+    canvas.width=cssW*dpr; canvas.height=cssH*dpr;
+    canvas.style.width=cssW+'px'; canvas.style.height=cssH+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,cssW,cssH);
+
+    const pad=46, bw=d.maxX-d.minX, bh=d.maxY-d.minY;
+    const s=Math.min((cssW-2*pad)/bw,(cssH-2*pad)/bh);
+    const ox=(cssW-bw*s)/2 - d.minX*s, oy=(cssH-bh*s)/2 - d.minY*s;
+    const TX=x=>ox+x*s, TY=y=>oy+y*s;
+
+    function stroke(paths,color,close,w){ ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.shadowColor=color; ctx.shadowBlur=6;
+      paths.forEach(p=>{ ctx.beginPath(); p.forEach((pt,i)=> i?ctx.lineTo(TX(pt.x),TY(pt.y)):ctx.moveTo(TX(pt.x),TY(pt.y))); if(close)ctx.closePath(); ctx.stroke(); });
+      ctx.shadowBlur=0;
+    }
+    stroke(d.folds, FOLD, false, 1.6);
+    stroke([d.cuts[0]], CUT, true, 2);
+    stroke(d.cuts.slice(1), CUT, false, 2);
+
+    // dimension annotations (mimics the reference UI) -------------
+    const b=d.base; ctx.fillStyle=DIMC; ctx.strokeStyle=DIMC; ctx.lineWidth=1; ctx.shadowBlur=0;
+    ctx.font='600 12px "IBM Plex Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const u=unit;
+    function arrow(x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      const ah=5, an=Math.atan2(y2-y1,x2-x1);
+      [[x1,y1,an],[x2,y2,an+Math.PI]].forEach(([ax,ay,a])=>{ ctx.beginPath(); ctx.moveTo(ax,ay);
+        ctx.lineTo(ax+ah*Math.cos(a-0.4),ay+ah*Math.sin(a-0.4)); ctx.lineTo(ax+ah*Math.cos(a+0.4),ay+ah*Math.sin(a+0.4)); ctx.closePath(); ctx.fill(); }); }
+    function chip(t,cx,cy){ ctx.font='600 12px "IBM Plex Mono",monospace'; const w=ctx.measureText(t).width+10;
+      ctx.fillStyle='#06121a'; ctx.fillRect(cx-w/2,cy-9,w,18); ctx.strokeStyle=DIMC; ctx.strokeRect(cx-w/2,cy-9,w,18);
+      ctx.fillStyle=DIMC; ctx.fillText(t,cx,cy); }
+    // L across base middle
+    const ly=(TY(b.y0)+TY(b.y1))/2;
+    arrow(TX(b.x0),ly,TX(b.x1),ly); chip('L '+fmtNum(L)+' '+u,(TX(b.x0)+TX(b.x1))/2,ly);
+    // W down base left
+    const wx=TX(b.x0)+20;
+    arrow(wx,TY(b.y0),wx,TY(b.y1)); chip('W '+fmtNum(W)+' '+u,wx+34,(TY(b.y0)+TY(b.y1))/2);
+    // H on front wall
+    const hx=(TX(b.x0)+TX(b.x1))/2;
+    arrow(hx,TY(b.y1),hx,TY(b.wallY1)); chip('H '+fmtNum(H)+' '+u,hx,(TY(b.y1)+TY(b.wallY1))/2);
+
+    // readout panel ------------------------------------------------
+    const flatW=fmtNum(bw), flatH=fmtNum(bh);
+    readout.innerHTML =
+      '<div class="hd">SPEC SHEET</div>'+
+      '<div class="row"><span>Box (L&times;W&times;H)</span><b>'+fmtNum(L)+' &times; '+fmtNum(W)+' &times; '+fmtNum(H)+' '+u+'</b></div>'+
+      '<div class="row"><span>Flat blank</span><b>'+flatW+' &times; '+flatH+' '+u+'</b></div>'+
+      '<div class="row"><span>Style</span><b>Roll-end tuck</b></div>'+
+      '<div class="row"><span>Bleed</span><b>none</b></div>';
+  }
+
+  // ---- exporters ------------------------------------------------
+  function genSVG(){
+    const L=toUnit(dim.L), W=toUnit(dim.W), H=toUnit(dim.H);
+    const d=buildDieline(L,W,H);
+    const uu = unit==='in' ? 'in' : 'mm';
+    const margin = unit==='in' ? 0.2 : 5;
+    const minX=d.minX-margin, minY=d.minY-margin;
+    const w=(d.maxX-d.minX)+2*margin, h=(d.maxY-d.minY)+2*margin;
+    const sw = unit==='in' ? 0.0118 : 0.3; // hairline ~0.3mm
+    const f=n=>(+n.toFixed(4)).toString();
+    const pts=p=>p.map(pt=>f(pt.x)+','+f(pt.y)).join(' ');
+    let s='<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n';
+    s+='<svg xmlns="http://www.w3.org/2000/svg" width="'+f(w)+uu+'" height="'+f(h)+uu+'" '+
+       'viewBox="'+f(minX)+' '+f(minY)+' '+f(w)+' '+f(h)+'">\n';
+    s+='<g fill="none" stroke-width="'+sw+'" stroke-linejoin="round" stroke-linecap="round">\n';
+    s+='<g id="fold-50pct-power" stroke="#0000FF">\n';
+    d.folds.forEach(p=> s+='  <polyline points="'+pts(p)+'"/>\n');
+    s+='</g>\n<g id="cut-100pct-power" stroke="#FF0000">\n';
+    s+='  <polygon points="'+pts(d.cuts[0])+'"/>\n';
+    d.cuts.slice(1).forEach(p=> s+='  <polyline points="'+pts(p)+'"/>\n');
+    s+='</g>\n</g>\n</svg>\n';
+    return s;
+  }
+
+  function genDXF(){
+    const L=toUnit(dim.L), W=toUnit(dim.W), H=toUnit(dim.H);
+    const d=buildDieline(L,W,H);
+    const insunits = unit==='in' ? 1 : 4;
+    const flipY = y => (d.maxY - y); // DXF y is up
+    const f=n=>(+n.toFixed(5)).toString();
+    let e='';
+    function seg(x1,y1,x2,y2,layer,col){
+      e+='0\nLINE\n8\n'+layer+'\n62\n'+col+'\n'+
+         '10\n'+f(x1)+'\n20\n'+f(flipY(y1))+'\n30\n0\n'+
+         '11\n'+f(x2)+'\n21\n'+f(flipY(y2))+'\n31\n0\n';
+    }
+    function polyToSeg(p,layer,col,close){ for(let i=0;i<p.length-1;i++) seg(p[i].x,p[i].y,p[i+1].x,p[i+1].y,layer,col);
+      if(close) seg(p[p.length-1].x,p[p.length-1].y,p[0].x,p[0].y,layer,col); }
+    d.folds.forEach(p=>polyToSeg(p,'FOLD',5,false));
+    polyToSeg(d.cuts[0],'CUT',1,true);
+    d.cuts.slice(1).forEach(p=>polyToSeg(p,'CUT',1,false));
+    return '0\nSECTION\n2\nHEADER\n'+
+      '9\n$ACADVER\n1\nAC1009\n'+
+      '9\n$INSUNITS\n70\n'+insunits+'\n'+
+      '0\nENDSEC\n'+
+      '0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n2\n'+
+      '0\nLAYER\n2\nCUT\n70\n0\n62\n1\n6\nCONTINUOUS\n'+
+      '0\nLAYER\n2\nFOLD\n70\n0\n62\n5\n6\nCONTINUOUS\n'+
+      '0\nENDTAB\n0\nENDSEC\n'+
+      '0\nSECTION\n2\nENTITIES\n'+e+'0\nENDSEC\n0\nEOF\n';
+  }
+
+  function download(){
+    const isSvg = fmt==='svg';
+    const data = isSvg ? genSVG() : genDXF();
+    const blob = new Blob([data], { type: isSvg ? 'image/svg+xml' : 'application/dxf' });
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    const tag=fmtNum(toUnit(dim.L))+'x'+fmtNum(toUnit(dim.W))+'x'+fmtNum(toUnit(dim.H))+unit;
+    a.href=url; a.download='mailer-dieline_'+tag+'.'+fmt; document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+    showToast(fmt.toUpperCase()+' dieline downloaded');
+  }
+
+  // ---- UI wiring -----------------------------------------------
+  function syncInputs(){
+    elL.value=fmtNum(toUnit(dim.L)); elW.value=fmtNum(toUnit(dim.W)); elH.value=fmtNum(toUnit(dim.H));
+    const step = unit==='in' ? 0.125 : 1;
+    [elL,elW,elH].forEach(el=>el.step=step);
+    unitLbls.forEach(l=>l.textContent=unit);
+  }
+  function refresh(){ syncInputs(); render(); }
+
+  function readInput(el,key){ let v=parseFloat(el.value); if(isNaN(v)||v<=0){ render(); return; } dim[key]=fromUnit(v); render(); }
+  elL.addEventListener('input',()=>readInput(elL,'L'));
+  elW.addEventListener('input',()=>readInput(elW,'W'));
+  elH.addEventListener('input',()=>readInput(elH,'H'));
+  [elL,elW,elH].forEach(el=>el.addEventListener('blur',syncInputs));
+
+  document.querySelectorAll('#page-box .bx-stepwrap button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const key=btn.dataset.d, sgn=+btn.dataset.s, step= unit==='in'?0.125:1;
+      let v=Math.max(step, +(toUnit(dim[key])+sgn*step).toFixed(4));
+      dim[key]=fromUnit(v); refresh();
+    });
+  });
+
+  document.getElementById('boxUnitSeg').querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(btn.dataset.unit===unit) return;
+      unit=btn.dataset.unit;
+      document.querySelectorAll('#boxUnitSeg button').forEach(b=>b.classList.toggle('active',b.dataset.unit===unit));
+      refresh();
+    });
+  });
+  document.getElementById('boxFmtSeg').querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      fmt=btn.dataset.fmt;
+      document.querySelectorAll('#boxFmtSeg button').forEach(b=>b.classList.toggle('active',b.dataset.fmt===fmt));
+    });
+  });
+  document.getElementById('boxDownload').addEventListener('click',download);
+  document.getElementById('boxReset').addEventListener('click',()=>{ dim={...DEFAULT_MM}; refresh(); showToast('Reset to 4.5 × 3 × 1 in'); });
+
+  refresh();
 })();
 </script>
 </body>
