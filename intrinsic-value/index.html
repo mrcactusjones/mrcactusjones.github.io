@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intrinsic Value Portfolio</title>
+<meta name="description" content="A clean tracker for The Investor's Podcast — Intrinsic Value portfolio and watchlist.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="home">
+
+  <nav class="nav">
+    <a class="brand" href="index.html">
+      <span class="mark">IV</span>
+      <span class="txt"><b>Intrinsic Value</b><span>Portfolio Tracker</span></span>
+    </a>
+    <div class="links">
+      <a href="index.html" class="active">Portfolio</a>
+      <a href="watchlist.html">Watchlist</a>
+    </div>
+    <span class="spacer"></span>
+    <a class="listen" href="https://www.theinvestorspodcast.com/intrinsic-value-podcast/" target="_blank" rel="noopener">▶ Listen</a>
+  </nav>
+
+  <main class="wrap">
+    <header class="page-head">
+      <div class="eyebrow">The Investor's Podcast · Intrinsic Value</div>
+      <h1>Portfolio Holdings</h1>
+      <p>The live portfolio built each week on the show. Click any slice or holding to see its fair value, margin of safety, gain, and the model, podcast, and newsletter behind the pick.</p>
+    </header>
+
+    <section id="stats" class="stats"></section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Allocation</h2>
+        <span class="hint">Click a holding for full details</span>
+      </div>
+      <div class="portfolio-grid">
+        <div class="chart-pane">
+          <svg id="donut" class="donut" viewBox="0 0 200 200" role="img" aria-label="Portfolio allocation donut chart"></svg>
+          <div class="chart-caption">Weighting by portfolio value · updated <span id="capDate"></span></div>
+        </div>
+        <div id="legend" class="legend"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Data mirrored from the Intrinsic Value Master File. Prices and targets are as last recorded, not live quotes.
+      Source: <a href="https://www.theinvestorspodcast.com/intrinsic-value-podcast/" target="_blank" rel="noopener">theinvestorspodcast.com/intrinsic-value-podcast</a>.
+    </footer>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (function(){ var d=(window.PORTFOLIO_DATA&&window.PORTFOLIO_DATA.totals.updated)||"";
+      var el=document.getElementById("capDate"); if(el) el.textContent=d; })();
+  </script>
+</body>
+</html>

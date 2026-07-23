@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchlist · Intrinsic Value</title>
+<meta name="description" content="Shawn & Daniel's ranked watchlist plus every company covered on the Intrinsic Value podcast.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="watchlist">
+
+  <nav class="nav">
+    <a class="brand" href="index.html">
+      <span class="mark">IV</span>
+      <span class="txt"><b>Intrinsic Value</b><span>Portfolio Tracker</span></span>
+    </a>
+    <div class="links">
+      <a href="index.html">Portfolio</a>
+      <a href="watchlist.html" class="active">Watchlist</a>
+    </div>
+    <span class="spacer"></span>
+    <a class="listen" href="https://www.theinvestorspodcast.com/intrinsic-value-podcast/" target="_blank" rel="noopener">▶ Listen</a>
+  </nav>
+
+  <main class="wrap">
+    <header class="page-head">
+      <div class="eyebrow">Shawn & Daniel's Watch List</div>
+      <h1>Watchlist &amp; Ranking</h1>
+      <p>The current top ten ideas ranked by the hosts, followed by every company they've valued on the show — sortable by margin of safety and searchable by name or ticker.</p>
+    </header>
+
+    <section class="card" style="margin-bottom:34px">
+      <div class="card-head">
+        <h2>Top 10 Ideas Right Now</h2>
+        <span class="hint">Ranked by Shawn &amp; Daniel · click for details</span>
+      </div>
+      <div style="padding:20px 22px">
+        <div id="rankGrid" class="rank-grid"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="card-head" style="border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;background:var(--surface)">
+        <h2>Full Coverage</h2>
+        <span class="hint">Every company valued on the podcast</span>
+      </div>
+      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 16px 16px;background:var(--surface);padding:16px 18px">
+        <div class="table-tools">
+          <div class="search">
+            <span class="ic">⌕</span>
+            <input id="covSearch" type="text" placeholder="Search company or ticker…" autocomplete="off">
+          </div>
+          <span id="covCount" class="count-tag"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="cov">
+            <thead id="covHead"></thead>
+            <tbody id="covBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Data mirrored from the Intrinsic Value Master File. A positive margin of safety means the podcast's fair value estimate sits above the current price. Prices and targets are as last recorded, not live quotes.
+    </footer>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
