@@ -181,18 +181,37 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
               "  PPT_API_BASE=https://www.pokemonpricetracker.com/api/v2")
         return 0
 
+    from gapscan.providers.ppt import pick_match, results_of
+
     universe = store.load_universe()
-    card = universe.get(args.card)
-    if card is None:
-        print(f"{args.card} is not in the universe. Known ids look like 'base1-4'.")
+    if not universe:
+        print("No universe yet -- run `catalog` first.")
         return 1
+    if args.card:
+        card = universe.get(args.card)
+        if card is None:
+            print(f"{args.card} is not in the universe. Try one of: "
+                  + ", ".join(list(universe)[:5]))
+            return 1
+    else:
+        # Highest-priority card, so the probe uses one we actually care about.
+        card = max(universe.values(), key=lambda e: e.get("priority", 0))
+        print(f"(no --card given; using {card['id']})")
+
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
     print(f"GET {provider.base}/cards  for {card.get('name')} "
-          f"({card.get('set_name')} {card.get('number')})\n")
+          f"({card.get('set_name')} #{card.get('number')})\n")
     blob = provider.raw_response(card)
-    print(json.dumps(blob, indent=2)[:8000])
-    print("\n--- what the extractor found ---")
-    print(json.dumps(extract_quote(blob).__dict__, indent=2))
+
+    results = results_of(blob)
+    record, why = pick_match(results, card)
+    print(f"--- {len(results)} result(s); {why} ---\n")
+    print(json.dumps(record if record is not None else blob, indent=2)[:8000])
+    if record is not None:
+        print("\n--- keys on the matched record ---")
+        print(", ".join(sorted(record)))
+        print("\n--- what the extractor found ---")
+        print(json.dumps(extract_quote(record).__dict__, indent=2))
     return 0
 
 

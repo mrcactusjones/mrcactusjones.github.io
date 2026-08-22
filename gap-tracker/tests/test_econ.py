@@ -122,3 +122,42 @@ class TestProviderExtraction(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCardMatching(unittest.TestCase):
+    """Their search is fuzzy; taking the first hit would price the wrong card."""
+
+    def setUp(self):
+        from gapscan.providers.ppt import pick_match, results_of
+        self.pick, self.results_of = pick_match, results_of
+        self.card = {"id": "base1-4", "name": "Charizard",
+                     "set_name": "Base Set", "number": "4"}
+
+    def test_matches_on_set_and_name(self):
+        hits = [{"name": "Charizard EX - XY29", "setName": "XY Promos", "cardNumber": "XY29"},
+                {"name": "Charizard", "setName": "Base Set", "cardNumber": "4"}]
+        record, why = self.pick(hits, self.card)
+        self.assertEqual(record["setName"], "Base Set")
+        self.assertIn("number", why)
+
+    def test_rejects_a_wrong_card_rather_than_guessing(self):
+        hits = [{"name": "Charizard EX - XY29", "setName": "XY Promos", "cardNumber": "XY29"}]
+        record, why = self.pick(hits, self.card)
+        self.assertIsNone(record, "a same-name card from another set is not a match")
+        self.assertIn("no confident match", why)
+
+    def test_empty_results(self):
+        self.assertEqual(self.pick([], self.card)[0], None)
+
+    def test_envelope_shapes(self):
+        rows = [{"name": "x", "cardNumber": "1"}]
+        self.assertEqual(self.results_of({"data": rows}), rows)
+        self.assertEqual(self.results_of(rows), rows)
+        self.assertEqual(self.results_of({"cards": rows}), rows)
+        self.assertEqual(self.results_of({"name": "x"}), [{"name": "x"}])
+        self.assertEqual(self.results_of({"nope": 1}), [])
+
+    def test_number_mismatch_alone_is_not_enough(self):
+        # Right set, wrong card entirely.
+        hits = [{"name": "Blastoise", "setName": "Base Set", "cardNumber": "2"}]
+        self.assertIsNone(self.pick(hits, self.card)[0])

@@ -120,6 +120,57 @@ def _pick_raw(pairs) -> float | None:
     return best[1] if best else None
 
 
+def _norm(value) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+
+def results_of(blob) -> list[dict]:
+    """The list of card records, whatever the envelope is called."""
+    if isinstance(blob, list):
+        return [r for r in blob if isinstance(r, dict)]
+    if isinstance(blob, dict):
+        for key in ("data", "cards", "results", "items"):
+            value = blob.get(key)
+            if isinstance(value, list):
+                return [r for r in value if isinstance(r, dict)]
+        if any(k in blob for k in ("name", "cardNumber", "setName")):
+            return [blob]
+    return []
+
+
+def pick_match(results: list[dict], card: dict) -> tuple[dict | None, str]:
+    """Choose the record that really is this card.
+
+    Their search is fuzzy and returns whatever is closest, so taking the first
+    result would quietly price the wrong card. Require corroboration from the
+    card number and the set/name before believing a match.
+    """
+    want_num, want_set = _norm(card.get("number")), _norm(card.get("set_name"))
+    want_name = _norm(card.get("name"))
+    best_score, best, why = 0, None, "no results"
+
+    for record in results:
+        got_num = _norm(record.get("cardNumber") or record.get("number"))
+        got_set = _norm(record.get("setName") or record.get("set"))
+        got_name = _norm(record.get("name"))
+        score, notes = 0, []
+        if want_num and got_num == want_num:
+            score += 3; notes.append("number")
+        if want_set and got_set == want_set:
+            score += 2; notes.append("set")
+        elif want_set and got_set and (want_set in got_set or got_set in want_set):
+            score += 1; notes.append("set~")
+        if want_name and got_name and (want_name in got_name or got_name.startswith(want_name)):
+            score += 2; notes.append("name")
+        if score > best_score:
+            best_score, best, why = score, record, "+".join(notes)
+
+    # 4 = set + name, or number + name. Anything less isn't identification.
+    if best_score >= 4:
+        return best, f"matched on {why} (score {best_score})"
+    return None, f"no confident match (best score {best_score}, {why})"
+
+
 def extract_quote(blob: dict) -> Quote:
     """Pull a Quote out of an arbitrary response shape."""
     pairs = _flatten(blob)
@@ -232,7 +283,12 @@ class PPTProvider:
             print(f"  ! {card['id']}: {exc}")
             return None
 
-        quote = extract_quote(blob)
+        record, why = pick_match(results_of(blob), card)
+        if record is None:
+            print(f"  ? {card['id']}: {why}")
+            return None
+
+        quote = extract_quote(record)
         if quote.psa9 is None and quote.psa10 is None:
             return None
         if quote.raw is None:
