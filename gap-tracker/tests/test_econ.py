@@ -244,3 +244,81 @@ class TestRealResponseShape(unittest.TestCase):
     def test_graded_prices_are_requested(self):
         from gapscan.providers import ppt
         self.assertEqual(ppt.PPTProvider.EXTRA_PARAMS.get("includeEbay"), "true")
+
+
+class TestDataQualityGating(unittest.TestCase):
+    """A price from one old sale must not be presented as a sure thing."""
+
+    def setUp(self):
+        self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
+                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0)
+        self.th = Thresholds()
+
+    def _good(self, **over):
+        from gapscan.store import iso, utcnow
+        base = dict(raw=50, psa9=200, psa10=600, sales_9=20, sales_10=10,
+                    psa9_last_sale=iso(utcnow()), psa9_confidence="high")
+        base.update(over)
+        return Quote(**base)
+
+    def test_fresh_deep_comps_are_a_no_brainer(self):
+        self.assertEqual(evaluate(self._good(), self.econ, self.th).verdict, "no_brainer")
+
+    def test_stale_comps_lose_confidence(self):
+        from datetime import timedelta
+        from gapscan.store import iso, utcnow
+        old = iso(utcnow() - timedelta(days=120))
+        v = evaluate(self._good(psa9_last_sale=old), self.econ, self.th)
+        self.assertFalse(v.confident)
+        self.assertNotEqual(v.verdict, "no_brainer")
+        self.assertTrue(any("120 days ago" in r for r in v.reasons))
+
+    def test_provider_low_confidence_is_respected(self):
+        v = evaluate(self._good(psa9_confidence="low"), self.econ, self.th)
+        self.assertFalse(v.confident)
+        self.assertTrue(any("low-confidence" in r for r in v.reasons))
+
+    def test_outlier_flag_is_respected(self):
+        v = evaluate(self._good(psa9_outlier=True), self.econ, self.th)
+        self.assertFalse(v.confident)
+
+    def test_missing_last_sale_is_not_treated_as_stale(self):
+        v = evaluate(self._good(psa9_last_sale=None), self.econ, self.th)
+        self.assertTrue(v.confident, "absent date is unknown, not old")
+
+    def test_days_since_handles_zulu_and_garbage(self):
+        from gapscan.econ import days_since
+        self.assertIsNone(days_since(None))
+        self.assertIsNone(days_since("not-a-date"))
+        self.assertGreater(days_since("2020-01-01T00:00:00.000Z"), 1000)
+
+
+class TestSmartPricePreference(unittest.TestCase):
+    def test_smart_market_price_wins_over_average(self):
+        from gapscan.providers.ppt import extract_quote
+        rec = {"prices": {"market": 10.0}, "ebay": {"salesByGrade": {"psa9": {
+            "count": 4, "averagePrice": 999.0, "medianPrice": 500.0,
+            "smartMarketPrice": {"price": 120.0, "confidence": "medium"}}}}}
+        q = extract_quote(rec)
+        self.assertAlmostEqual(q.psa9, 120.0)
+        self.assertEqual(q.psa9_confidence, "medium")
+
+    def test_falls_back_to_median_then_average(self):
+        from gapscan.providers.ppt import extract_quote
+        rec = {"prices": {"market": 10.0}, "ebay": {"salesByGrade": {
+            "psa9": {"count": 2, "averagePrice": 999.0, "medianPrice": 500.0},
+            "psa10": {"count": 1, "averagePrice": 42.0}}}}
+        q = extract_quote(rec)
+        self.assertAlmostEqual(q.psa9, 500.0)
+        self.assertAlmostEqual(q.psa10, 42.0)
+
+    def test_cgc_is_captured(self):
+        from gapscan.providers.ppt import extract_quote
+        rec = {"prices": {"market": 10.0}, "ebay": {"salesByGrade": {
+            "psa9": {"count": 3, "medianPrice": 100.0},
+            "cgc9": {"count": 2, "medianPrice": 80.0},
+            "cgc10": {"count": 1, "medianPrice": 210.0}}}}
+        q = extract_quote(rec)
+        self.assertAlmostEqual(q.cgc9, 80.0)
+        self.assertAlmostEqual(q.cgc10, 210.0)
+        self.assertEqual(q.cgc9_sales, 2)

@@ -108,6 +108,8 @@
            <input type="range" id="prem" min="0" max="60" step="1"></div>
       <div><label>Min PSA 9 comps <span class="val" id="vcomps"></span></label>
            <input type="range" id="comps" min="0" max="30" step="1"></div>
+      <div><label>Max comp age <span class="val" id="vmaxage"></span></label>
+           <input type="range" id="maxage" min="14" max="365" step="7"></div>
       <div><label>Search</label><input type="search" id="q" placeholder="card or set"></div>
       <div><label>Set</label><select id="set"></select></div>
     </div>
@@ -141,8 +143,11 @@ function score(row, s) {
   const net9 = netOf(row.psa9, s);
   const net10 = row.psa10 != null ? netOf(row.psa10, s) : net9;
   const floor = net9 - cost, upside = net10 - cost;
+  const fresh = row.psa9_sale_age_days == null || row.psa9_sale_age_days <= s.maxAge;
   const confident = row.sales_9 >= s.comps &&
-                    (row.psa10 == null || row.sales_10 >= Math.ceil(s.comps * 0.6));
+                    (row.psa10 == null || row.sales_10 >= Math.ceil(s.comps * 0.6)) &&
+                    fresh &&
+                    (row.psa9_confidence || "").toLowerCase() !== "low";
   let verdict;
   if (floor >= 25 && floor / cost >= 0.25) verdict = confident ? "no_brainer" : "floor_positive";
   else if (floor > 0) verdict = "floor_positive";
@@ -157,7 +162,7 @@ const COLS = [
       <div class="meta">${esc(r.set_name || "")} ${esc(r.number || "")}</div>` },
   { k:"verdict",t:"Verdict",    cls:"l", fmt:r =>
       `<span class="v v-${r.verdict}">${r.verdict.replace(/_/g," ")}</span>` +
-      (r.confident ? "" : ` <span class="flag" title="Thin comps — treat as provisional">⚠</span>`) },
+      (r.confident ? "" : ` <span class="flag" title="Thin, stale or low-confidence comps — provisional">⚠</span>`) },
   { k:"raw",    t:"Raw",        fmt:r => money(r.raw) },
   { k:"psa9",   t:"PSA 9",      fmt:r => money(r.psa9) },
   { k:"psa10",  t:"PSA 10",     fmt:r => money(r.psa10) },
@@ -168,6 +173,10 @@ const COLS = [
   { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
       `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
   { k:"sales_9",t:"Comps 9/10", fmt:r => `<span class="num">${r.sales_9}/${r.sales_10}</span>` },
+  { k:"psa9_sale_age_days", t:"Last 9 sale", fmt:r => r.psa9_sale_age_days == null ? "—" :
+      `<span class="num${r.psa9_sale_age_days > 90 ? " neg" : ""}">${
+        Math.round(r.psa9_sale_age_days)}d</span>` },
+  { k:"cgc9",   t:"CGC 9",       fmt:r => money(r.cgc9) },
   { k:"floor_streak", t:"Streak", fmt:r =>
       `<span class="num" title="Consecutive days clearing the profit threshold">${r.floor_streak}d</span>` },
   { k:"history",t:"Trend",      fmt:r => spark(r.history) },
@@ -228,7 +237,7 @@ let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer",
 
 const S = () => ({
   fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
-  out:+out.value, prem:+prem.value, comps:+comps.value,
+  out:+out.value, prem:+prem.value, comps:+comps.value, maxAge:+maxage.value,
 });
 
 function render() {
@@ -236,6 +245,7 @@ function render() {
   vfee.textContent = `$${s.fee}`;   vship.textContent = `$${s.ship.toFixed(2)}`;
   vmkt.textContent = `${s.mkt}%`;   vout.textContent  = `$${s.out.toFixed(2)}`;
   vprem.textContent = `${s.prem}%`; vcomps.textContent = s.comps;
+  vmaxage.textContent = `${s.maxAge}d`;
 
   const needle = q.value.trim().toLowerCase();
   const wantSet = set.value;
@@ -277,6 +287,7 @@ function boot(data) {
   fee.value = e.grading_fee; ship.value = e.sub_ship_per_card;
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
   prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
+  maxage.value = t.max_sale_age_days;
 
   document.getElementById("coverage").innerHTML =
     `<span>Coverage <b>${c.scanned}/${c.universe}</b> cards</span>
@@ -301,7 +312,7 @@ function boot(data) {
   set.innerHTML = `<option value="">All sets</option>` +
     sets.map(([id, name]) => `<option value="${esc(id)}">${esc(name)}</option>`).join("");
 
-  ["fee","ship","mkt","out","prem","comps"].forEach(id =>
+  ["fee","ship","mkt","out","prem","comps","maxage"].forEach(id =>
     document.getElementById(id).addEventListener("input", render));
   q.addEventListener("input", render);
   set.addEventListener("change", render);

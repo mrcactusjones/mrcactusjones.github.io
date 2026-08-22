@@ -38,13 +38,29 @@ class MockProvider:
         mult9 = rng.uniform(1.4, 4.2) if vintage else rng.uniform(0.9, 1.8)
         mult10 = mult9 * rng.uniform(1.8, 5.0)
 
+        # Mirror the real feed's thin-and-sometimes-stale character, so the
+        # demo exercises the confidence and staleness paths rather than
+        # showing a rosier picture than production.
+        from datetime import timedelta
+        n9, n10 = rng.randint(0, 40), rng.randint(0, 25)
+        age9 = rng.choice([2, 9, 20, 45, 95, 140])
+        confidence = "low" if n9 <= 2 else rng.choice(["medium", "high", "high"])
+        last9 = iso(utcnow() - timedelta(days=age9))
+        last10 = iso(utcnow() - timedelta(days=age9 + rng.randint(0, 30)))
+
         return Quote(
             raw=round(raw, 2),
             psa9=round(raw * mult9, 2),
             psa10=round(raw * mult10, 2),
             psa8=round(raw * mult9 * 0.55, 2),
-            sales_9=rng.randint(0, 40),
-            sales_10=rng.randint(0, 25),
+            sales_9=n9,
+            sales_10=n10,
+            psa9_confidence=confidence,
+            psa10_confidence=confidence,
+            psa9_last_sale=last9,
+            psa10_last_sale=last10,
+            cgc9=round(raw * mult9 * 0.8, 2) if rng.random() < 0.4 else None,
+            cgc9_sales=rng.randint(0, 5),
             as_of=iso(utcnow()),
             source="mock",
         )

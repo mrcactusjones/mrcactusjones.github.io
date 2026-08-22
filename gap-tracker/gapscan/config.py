@@ -44,6 +44,7 @@ class Thresholds:
     min_sales_10: int = 3
     raw_price_min: float = 8.0       # below this the 9 can't clear grading cost
     raw_price_max: float = 400.0     # above this you can't buy volume anyway
+    max_sale_age_days: float = 90.0  # a comp older than this isn't a live market
 
 
 @dataclass

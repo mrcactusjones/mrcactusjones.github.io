@@ -6,6 +6,7 @@ plumbing to feed it prices.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 from .config import Economics, Thresholds
@@ -16,7 +17,11 @@ VERDICTS = ("dead", "ten_or_bust", "floor_positive", "no_brainer")
 
 @dataclass
 class Quote:
-    """Prices for one card. Any field may be None if there's no data."""
+    """Prices for one card. Any field may be None if there's no data.
+
+    The confidence/last-sale fields matter as much as the prices: a graded
+    "price" from one sale four months ago is not a price.
+    """
 
     raw: Optional[float] = None
     psa9: Optional[float] = None
@@ -26,6 +31,29 @@ class Quote:
     sales_10: int = 0
     as_of: Optional[str] = None
     source: Optional[str] = None
+    psa9_confidence: Optional[str] = None
+    psa10_confidence: Optional[str] = None
+    psa9_last_sale: Optional[str] = None
+    psa10_last_sale: Optional[str] = None
+    psa9_outlier: bool = False
+    psa10_outlier: bool = False
+    cgc9: Optional[float] = None
+    cgc10: Optional[float] = None
+    cgc9_sales: int = 0
+    cgc10_sales: int = 0
+
+
+def days_since(stamp: Optional[str]) -> Optional[float]:
+    """Age of an ISO timestamp in days, or None if unparseable."""
+    if not stamp:
+        return None
+    try:
+        when = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - when).total_seconds() / 86400.0
 
 
 @dataclass
@@ -76,6 +104,13 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds) -> Optional[
         reasons.append(f"only {quote.sales_9} PSA 9 comps (want {thresholds.min_sales_9}+)")
     if quote.psa10 is not None and quote.sales_10 < thresholds.min_sales_10:
         reasons.append(f"only {quote.sales_10} PSA 10 comps (want {thresholds.min_sales_10}+)")
+    stale = days_since(quote.psa9_last_sale)
+    if stale is not None and stale > thresholds.max_sale_age_days:
+        reasons.append(f"last PSA 9 sale was {stale:.0f} days ago")
+    if quote.psa9_confidence and quote.psa9_confidence.lower() == "low":
+        reasons.append("provider rates the PSA 9 price low-confidence")
+    if quote.psa9_outlier:
+        reasons.append("PSA 9 price flagged as an outlier")
     if quote.raw < thresholds.raw_price_min:
         reasons.append(f"raw ${quote.raw:.2f} below floor of ${thresholds.raw_price_min:.0f}")
     if quote.raw > thresholds.raw_price_max:

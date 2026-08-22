@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .config import Config
-from .econ import Quote, evaluate
+from .econ import Quote, days_since, evaluate
 from .scan import coverage
 from .store import Store, age_days, iso, utcnow
 
@@ -58,6 +58,15 @@ def build(universe: dict, store: Store, cfg: Config,
             "psa10": quote.psa10,
             "sales_9": quote.sales_9,
             "sales_10": quote.sales_10,
+            "cgc9": quote.cgc9,
+            "cgc10": quote.cgc10,
+            "psa9_confidence": quote.psa9_confidence,
+            "psa9_sale_age_days": (round(age, 1)
+                                   if (age := days_since(quote.psa9_last_sale)) is not None
+                                   else None),
+            "psa10_sale_age_days": (round(age10, 1)
+                                    if (age10 := days_since(quote.psa10_last_sale)) is not None
+                                    else None),
             "verdict": verdict.verdict,
             "all_in": verdict.all_in,
             "floor_profit": verdict.floor_profit,

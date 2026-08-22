@@ -188,8 +188,71 @@ def pick_match(results: list[dict], card: dict) -> tuple[dict | None, str]:
     return None, f"no confident match; need id or set+number. Saw: {seen}"
 
 
+def _grade_block(block) -> tuple[float | None, str | None, str | None, int]:
+    """(price, confidence, last_sale, count) for one grade.
+
+    Prefers the provider's own weighted estimate over a raw average: with one
+    or two sales, `averagePrice` is just that sale, while smartMarketPrice is
+    filtered and carries a confidence rating.
+    """
+    if not isinstance(block, dict):
+        return None, None, None, 0
+    smart = block.get("smartMarketPrice") or {}
+    price = _as_number(smart.get("price"))
+    confidence = smart.get("confidence")
+    if price is None:
+        price = _as_number(block.get("medianPrice"))
+    if price is None:
+        price = _as_number(block.get("averagePrice"))
+    count = int(_as_number(block.get("count")) or 0)
+    return price, confidence, block.get("lastSaleDate"), count
+
+
+def extract_graded(record: dict) -> Quote | None:
+    """Read the documented ebay.salesByGrade shape.
+
+    Returns None when the record isn't in that shape, so the generic
+    pattern-matching fallback can take over.
+    """
+    ebay = record.get("ebay")
+    if not isinstance(ebay, dict):
+        return None
+    grades = ebay.get("salesByGrade")
+    if not isinstance(grades, dict):
+        return None
+    outliers = ebay.get("smartPriceOutlierByGrade") or {}
+
+    psa9, c9, last9, n9 = _grade_block(grades.get("psa9"))
+    psa10, c10, last10, n10 = _grade_block(grades.get("psa10"))
+    psa8, _, _, _ = _grade_block(grades.get("psa8"))
+    cgc9, _, _, ncgc9 = _grade_block(grades.get("cgc9"))
+    cgc10, _, _, ncgc10 = _grade_block(grades.get("cgc10"))
+
+    prices = record.get("prices") or {}
+    raw = _as_number(prices.get("market")) or _as_number(prices.get("low"))
+
+    return Quote(
+        raw=raw, psa9=psa9, psa10=psa10, psa8=psa8,
+        sales_9=n9, sales_10=n10,
+        psa9_confidence=c9, psa10_confidence=c10,
+        psa9_last_sale=last9, psa10_last_sale=last10,
+        psa9_outlier=bool(outliers.get("psa9")),
+        psa10_outlier=bool(outliers.get("psa10")),
+        cgc9=cgc9, cgc10=cgc10, cgc9_sales=ncgc9, cgc10_sales=ncgc10,
+        as_of=iso(utcnow()), source="ppt",
+    )
+
+
 def extract_quote(blob: dict) -> Quote:
-    """Pull a Quote out of an arbitrary response shape."""
+    """Pull a Quote out of a card record.
+
+    Tries the documented shape first, then falls back to pattern matching so a
+    response format change degrades instead of breaking.
+    """
+    known = extract_graded(blob)
+    if known is not None and (known.psa9 is not None or known.psa10 is not None):
+        return known
+
     pairs = _flatten(blob)
     if EXPLICIT_PATHS:
         get = lambda k: _as_number(_dig(blob, EXPLICIT_PATHS[k])) if k in EXPLICIT_PATHS else None
