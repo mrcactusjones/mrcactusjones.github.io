@@ -89,6 +89,9 @@ def get_provider(args, cfg: Config):
 def cmd_catalog(args, cfg: Config, store: Store) -> int:
     fixture = FIXTURES / "catalog.json" if args.fixture else None
     only = set(args.sets.split(",")) if getattr(args, "sets", None) else None
+    if fixture is None:
+        keyed = "yes" if os.environ.get("POKEMONTCG_API_KEY") else "no (slower, expect 500s)"
+        print(f"pokemontcg.io key: {keyed}")
     universe, meta = build_catalog(load_seeds(), cfg.thresholds, fixture=fixture,
                                    verify_sets=True, only=only)
     if not universe:
