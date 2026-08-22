@@ -1,0 +1,8002 @@
+[
+ {
+  "id": "base1-1",
+  "name": "Flygon",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 293.53
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-2",
+  "name": "Machamp",
+  "number": "2",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 208.2
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-3",
+  "name": "Mew",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 45.35
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-4",
+  "name": "Dragonite",
+  "number": "4",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 38.29
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-5",
+  "name": "Absol",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 257.86
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-6",
+  "name": "Charizard",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 31.03
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-7",
+  "name": "Sceptile",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 58.76
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-8",
+  "name": "Snorlax",
+  "number": "8",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 118.59
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-9",
+  "name": "Meganium",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 96.92
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-10",
+  "name": "Rayquaza",
+  "number": "10",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 167.9
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-11",
+  "name": "Mewtwo",
+  "number": "11",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 291.16
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-12",
+  "name": "Venusaur",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 140.71
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-13",
+  "name": "Tyranitar",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 74.16
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-14",
+  "name": "Scizor",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 111.98
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-15",
+  "name": "Gardevoir",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 164.52
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-16",
+  "name": "Typhlosion",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 147.89
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-17",
+  "name": "Latios",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 297.37
+    }
+   }
+  }
+ },
+ {
+  "id": "base1-18",
+  "name": "Lugia",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base1",
+   "name": "Base Set"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 339.28
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-1",
+  "name": "Absol",
+  "number": "1",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 16.71
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-2",
+  "name": "Gardevoir",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 79.44
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-3",
+  "name": "Feraligatr",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 269.49
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-4",
+  "name": "Pikachu",
+  "number": "4",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 248.08
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-5",
+  "name": "Venusaur",
+  "number": "5",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 257.5
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-6",
+  "name": "Kingdra",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 255.76
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-7",
+  "name": "Meganium",
+  "number": "7",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 217.24
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-8",
+  "name": "Blastoise",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 59.19
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-9",
+  "name": "Gyarados",
+  "number": "9",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 186.15
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-10",
+  "name": "Rayquaza",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 42.55
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-11",
+  "name": "Raikou",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 163.33
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-12",
+  "name": "Umbreon",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 623.26
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-13",
+  "name": "Mew",
+  "number": "13",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 137.58
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-14",
+  "name": "Entei",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 54.2
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-15",
+  "name": "Ho-Oh",
+  "number": "15",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 586.12
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-16",
+  "name": "Flygon",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 227.05
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-17",
+  "name": "Snorlax",
+  "number": "17",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 302.83
+    }
+   }
+  }
+ },
+ {
+  "id": "base2-18",
+  "name": "Machamp",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base2",
+   "name": "Jungle"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 252.26
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-1",
+  "name": "Feraligatr",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 83.34
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-2",
+  "name": "Umbreon",
+  "number": "2",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 105.84
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-3",
+  "name": "Metagross",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 40.0
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-4",
+  "name": "Absol",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 193.0
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-5",
+  "name": "Mewtwo",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 66.17
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-6",
+  "name": "Blaziken",
+  "number": "6",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 47.21
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-7",
+  "name": "Mew",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 55.38
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-8",
+  "name": "Tyranitar",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 19.6
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-9",
+  "name": "Alakazam",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 54.76
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-10",
+  "name": "Espeon",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 286.0
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-11",
+  "name": "Ho-Oh",
+  "number": "11",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 135.15
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-12",
+  "name": "Charizard",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 691.01
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-13",
+  "name": "Salamence",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 45.18
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-14",
+  "name": "Gyarados",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 12.38
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-15",
+  "name": "Gardevoir",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 195.8
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-16",
+  "name": "Pikachu",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 129.82
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-17",
+  "name": "Entei",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 140.72
+    }
+   }
+  }
+ },
+ {
+  "id": "base3-18",
+  "name": "Scizor",
+  "number": "18",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base3",
+   "name": "Fossil"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 22.66
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-1",
+  "name": "Blastoise",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 248.44
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-2",
+  "name": "Sceptile",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 236.64
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-3",
+  "name": "Feraligatr",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 128.96
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-4",
+  "name": "Lugia",
+  "number": "4",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 87.55
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-5",
+  "name": "Kingdra",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 242.27
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-6",
+  "name": "Flygon",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 196.98
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-7",
+  "name": "Mew",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 185.48
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-8",
+  "name": "Mewtwo",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 200.66
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-9",
+  "name": "Blaziken",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 88.48
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-10",
+  "name": "Metagross",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 317.35
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-11",
+  "name": "Scizor",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 259.25
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-12",
+  "name": "Gardevoir",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 277.73
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-13",
+  "name": "Typhlosion",
+  "number": "13",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 27.87
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-14",
+  "name": "Umbreon",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 251.87
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-15",
+  "name": "Rayquaza",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 310.54
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-16",
+  "name": "Latios",
+  "number": "16",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 51.36
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-17",
+  "name": "Absol",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 102.73
+    }
+   }
+  }
+ },
+ {
+  "id": "base4-18",
+  "name": "Raikou",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base4",
+   "name": "Base Set 2"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 82.77
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-1",
+  "name": "Blaziken",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 256.53
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-2",
+  "name": "Snorlax",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 86.63
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-3",
+  "name": "Raikou",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 47.57
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-4",
+  "name": "Venusaur",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 276.3
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-5",
+  "name": "Blastoise",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 14.12
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-6",
+  "name": "Charizard",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 605.92
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-7",
+  "name": "Typhlosion",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 114.6
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-8",
+  "name": "Lugia",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 389.37
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-9",
+  "name": "Rayquaza",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 64.38
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-10",
+  "name": "Flygon",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 219.27
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-11",
+  "name": "Alakazam",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 8.3
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-12",
+  "name": "Latias",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 282.99
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-13",
+  "name": "Latios",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 187.97
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-14",
+  "name": "Gardevoir",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 117.67
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-15",
+  "name": "Mew",
+  "number": "15",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 317.5
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-16",
+  "name": "Feraligatr",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 204.88
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-17",
+  "name": "Metagross",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 259.46
+    }
+   }
+  }
+ },
+ {
+  "id": "base5-18",
+  "name": "Sceptile",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "base5",
+   "name": "Team Rocket"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 299.79
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-1",
+  "name": "Espeon",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 48.02
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-2",
+  "name": "Alakazam",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 305.7
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-3",
+  "name": "Rayquaza",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 59.22
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-4",
+  "name": "Entei",
+  "number": "4",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 143.49
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-5",
+  "name": "Suicune",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 151.13
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-6",
+  "name": "Snorlax",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 143.5
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-7",
+  "name": "Blastoise",
+  "number": "7",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 263.52
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-8",
+  "name": "Charizard",
+  "number": "8",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 322.98
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-9",
+  "name": "Latios",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 158.98
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-10",
+  "name": "Mewtwo",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 80.38
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-11",
+  "name": "Tyranitar",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 66.57
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-12",
+  "name": "Gardevoir",
+  "number": "12",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 293.87
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-13",
+  "name": "Dragonite",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 220.11
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-14",
+  "name": "Salamence",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 183.92
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-15",
+  "name": "Latias",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 287.02
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-16",
+  "name": "Flygon",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 189.15
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-17",
+  "name": "Milotic",
+  "number": "17",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 15.95
+    }
+   }
+  }
+ },
+ {
+  "id": "gym1-18",
+  "name": "Scizor",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym1",
+   "name": "Gym Heroes"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 141.32
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-1",
+  "name": "Celebi",
+  "number": "1",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 72.94
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-2",
+  "name": "Absol",
+  "number": "2",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 193.57
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-3",
+  "name": "Feraligatr",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 103.7
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-4",
+  "name": "Venusaur",
+  "number": "4",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 297.19
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-5",
+  "name": "Milotic",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 14.84
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-6",
+  "name": "Flygon",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 236.23
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-7",
+  "name": "Rayquaza",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 93.52
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-8",
+  "name": "Umbreon",
+  "number": "8",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 99.41
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-9",
+  "name": "Meganium",
+  "number": "9",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 41.48
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-10",
+  "name": "Gardevoir",
+  "number": "10",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 96.14
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-11",
+  "name": "Kingdra",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 123.8
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-12",
+  "name": "Sceptile",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 170.82
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-13",
+  "name": "Scizor",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 302.51
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-14",
+  "name": "Raikou",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 168.18
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-15",
+  "name": "Metagross",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 202.65
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-16",
+  "name": "Mew",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 249.37
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-17",
+  "name": "Suicune",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 274.25
+    }
+   }
+  }
+ },
+ {
+  "id": "gym2-18",
+  "name": "Espeon",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "gym2",
+   "name": "Gym Challenge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 149.16
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-1",
+  "name": "Metagross",
+  "number": "1",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 80.44
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-2",
+  "name": "Entei",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 194.48
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-3",
+  "name": "Espeon",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 110.41
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-4",
+  "name": "Ho-Oh",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 418.09
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-5",
+  "name": "Machamp",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 126.02
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-6",
+  "name": "Tyranitar",
+  "number": "6",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 279.48
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-7",
+  "name": "Meganium",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 260.21
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-8",
+  "name": "Milotic",
+  "number": "8",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 214.86
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-9",
+  "name": "Kingdra",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 135.89
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-10",
+  "name": "Alakazam",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 12.03
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-11",
+  "name": "Typhlosion",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 157.42
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-12",
+  "name": "Blaziken",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 203.38
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-13",
+  "name": "Absol",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 50.92
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-14",
+  "name": "Sceptile",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 13.81
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-15",
+  "name": "Lugia",
+  "number": "15",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 244.45
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-16",
+  "name": "Mew",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 100.21
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-17",
+  "name": "Latios",
+  "number": "17",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 107.65
+    }
+   }
+  }
+ },
+ {
+  "id": "neo1-18",
+  "name": "Feraligatr",
+  "number": "18",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo1",
+   "name": "Neo Genesis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 305.62
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-1",
+  "name": "Latias",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 66.54
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-2",
+  "name": "Rayquaza",
+  "number": "2",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 217.01
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-3",
+  "name": "Espeon",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 219.31
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-4",
+  "name": "Blaziken",
+  "number": "4",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 246.77
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-5",
+  "name": "Mew",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 21.62
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-6",
+  "name": "Gardevoir",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 258.95
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-7",
+  "name": "Tyranitar",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 202.2
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-8",
+  "name": "Raikou",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 216.13
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-9",
+  "name": "Meganium",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 225.33
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-10",
+  "name": "Typhlosion",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 176.8
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-11",
+  "name": "Lugia",
+  "number": "11",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 20.72
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-12",
+  "name": "Dragonite",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 222.46
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-13",
+  "name": "Latios",
+  "number": "13",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 141.69
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-14",
+  "name": "Celebi",
+  "number": "14",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 163.63
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-15",
+  "name": "Gyarados",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 101.33
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-16",
+  "name": "Venusaur",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 122.45
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-17",
+  "name": "Charizard",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 478.78
+    }
+   }
+  }
+ },
+ {
+  "id": "neo2-18",
+  "name": "Scizor",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo2",
+   "name": "Neo Discovery"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 120.08
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-1",
+  "name": "Typhlosion",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 183.8
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-2",
+  "name": "Metagross",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 40.83
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-3",
+  "name": "Latias",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 204.66
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-4",
+  "name": "Entei",
+  "number": "4",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 226.02
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-5",
+  "name": "Pikachu",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 172.75
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-6",
+  "name": "Ho-Oh",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 501.68
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-7",
+  "name": "Venusaur",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 90.13
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-8",
+  "name": "Espeon",
+  "number": "8",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 118.61
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-9",
+  "name": "Latios",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 52.7
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-10",
+  "name": "Celebi",
+  "number": "10",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 166.47
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-11",
+  "name": "Snorlax",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 160.22
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-12",
+  "name": "Dragonite",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 132.57
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-13",
+  "name": "Raikou",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 89.29
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-14",
+  "name": "Charizard",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 285.37
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-15",
+  "name": "Scizor",
+  "number": "15",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 274.02
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-16",
+  "name": "Rayquaza",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 292.25
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-17",
+  "name": "Flygon",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 9.27
+    }
+   }
+  }
+ },
+ {
+  "id": "neo3-18",
+  "name": "Meganium",
+  "number": "18",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo3",
+   "name": "Neo Revelation"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 250.93
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-1",
+  "name": "Shining Charizard",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 231.0
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-2",
+  "name": "Absol",
+  "number": "2",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 250.09
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-3",
+  "name": "Salamence",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 17.3
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-4",
+  "name": "Machamp",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 301.57
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-5",
+  "name": "Sceptile",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 302.06
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-6",
+  "name": "Alakazam",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 156.45
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-7",
+  "name": "Raikou",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 110.62
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-8",
+  "name": "Snorlax",
+  "number": "8",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 175.19
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-9",
+  "name": "Flygon",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 246.28
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-10",
+  "name": "Scizor",
+  "number": "10",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 242.2
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-11",
+  "name": "Venusaur",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 208.1
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-12",
+  "name": "Espeon",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 57.59
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-13",
+  "name": "Blaziken",
+  "number": "13",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 78.61
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-14",
+  "name": "Mew",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 150.95
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-15",
+  "name": "Shining Charizard",
+  "number": "15",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 55.13
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-16",
+  "name": "Meganium",
+  "number": "16",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 162.51
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-17",
+  "name": "Entei",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 174.78
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-18",
+  "name": "Umbreon",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 325.94
+    }
+   }
+  }
+ },
+ {
+  "id": "neo4-19",
+  "name": "Suicune",
+  "number": "19",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "neo4",
+   "name": "Neo Destiny"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 86.97
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-1",
+  "name": "Latias",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 39.07
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-2",
+  "name": "Gardevoir",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 289.72
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-3",
+  "name": "Salamence",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 184.87
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-4",
+  "name": "Latios",
+  "number": "4",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 146.31
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-5",
+  "name": "Tyranitar",
+  "number": "5",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 29.55
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-6",
+  "name": "Blastoise",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 79.16
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-7",
+  "name": "Mewtwo",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 87.79
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-8",
+  "name": "Alakazam",
+  "number": "8",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 212.02
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-9",
+  "name": "Ho-Oh",
+  "number": "9",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 56.1
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-10",
+  "name": "Blaziken",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 217.47
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-11",
+  "name": "Venusaur",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 56.1
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-12",
+  "name": "Kingdra",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 149.82
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-13",
+  "name": "Raikou",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 7.86
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-14",
+  "name": "Flygon",
+  "number": "14",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 170.99
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-15",
+  "name": "Entei",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 245.93
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-16",
+  "name": "Suicune",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 280.77
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-17",
+  "name": "Umbreon",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 632.64
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard1-18",
+  "name": "Espeon",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard1",
+   "name": "Expedition"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 24.05
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-1",
+  "name": "Machamp",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 219.9
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-2",
+  "name": "Mewtwo",
+  "number": "2",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 211.73
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-3",
+  "name": "Tyranitar",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 146.31
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-4",
+  "name": "Raikou",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 173.0
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-5",
+  "name": "Umbreon",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 312.48
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-6",
+  "name": "Metagross",
+  "number": "6",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 242.59
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-7",
+  "name": "Gardevoir",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 162.8
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-8",
+  "name": "Ho-Oh",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 56.81
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-9",
+  "name": "Absol",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 71.87
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-10",
+  "name": "Kingdra",
+  "number": "10",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 119.49
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-11",
+  "name": "Suicune",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 134.01
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-12",
+  "name": "Milotic",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 99.12
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-13",
+  "name": "Gyarados",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 229.52
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-14",
+  "name": "Alakazam",
+  "number": "14",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 226.49
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-15",
+  "name": "Salamence",
+  "number": "15",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 194.59
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-16",
+  "name": "Entei",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 316.03
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-17",
+  "name": "Espeon",
+  "number": "17",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 30.79
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard2-18",
+  "name": "Lugia",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard2",
+   "name": "Aquapolis"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 517.7
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-1",
+  "name": "Charizard",
+  "number": "1",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 757.02
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-2",
+  "name": "Blaziken",
+  "number": "2",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 66.28
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-3",
+  "name": "Scizor",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 9.49
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-4",
+  "name": "Milotic",
+  "number": "4",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 262.02
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-5",
+  "name": "Latios",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 294.63
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-6",
+  "name": "Feraligatr",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 126.9
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-7",
+  "name": "Rayquaza",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 21.34
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-8",
+  "name": "Ho-Oh",
+  "number": "8",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 190.06
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-9",
+  "name": "Gardevoir",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 92.31
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-10",
+  "name": "Venusaur",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 117.22
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-11",
+  "name": "Meganium",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 154.93
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-12",
+  "name": "Alakazam",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 288.36
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-13",
+  "name": "Typhlosion",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 177.3
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-14",
+  "name": "Flygon",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 70.41
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-15",
+  "name": "Suicune",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 118.24
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-16",
+  "name": "Salamence",
+  "number": "16",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 299.51
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-17",
+  "name": "Entei",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 189.33
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-18",
+  "name": "Snorlax",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 260.01
+    }
+   }
+  }
+ },
+ {
+  "id": "ecard3-19",
+  "name": "Pikachu",
+  "number": "19",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ecard3",
+   "name": "Skyridge"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 301.94
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-1",
+  "name": "Blastoise",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 74.93
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-2",
+  "name": "Gardevoir",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 307.92
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-3",
+  "name": "Umbreon",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 455.86
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-4",
+  "name": "Entei",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 150.6
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-5",
+  "name": "Celebi",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 9.74
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-6",
+  "name": "Meganium",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 265.83
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-7",
+  "name": "Absol",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 162.94
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-8",
+  "name": "Tyranitar",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 114.67
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-9",
+  "name": "Snorlax",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 228.56
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-10",
+  "name": "Raikou",
+  "number": "10",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 139.97
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-11",
+  "name": "Blaziken",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 280.81
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-12",
+  "name": "Dragonite",
+  "number": "12",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 178.37
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-13",
+  "name": "Scizor",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 210.0
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-14",
+  "name": "Ho-Oh",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 532.44
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-15",
+  "name": "Sceptile",
+  "number": "15",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 66.22
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-16",
+  "name": "Kingdra",
+  "number": "16",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 100.3
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-17",
+  "name": "Charizard",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 180.47
+    }
+   }
+  }
+ },
+ {
+  "id": "ex7-18",
+  "name": "Salamence",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex7",
+   "name": "Team Rocket Returns"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 111.26
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-1",
+  "name": "Rayquaza",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 291.8
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-2",
+  "name": "Lugia",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 506.18
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-3",
+  "name": "Raikou",
+  "number": "3",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 279.6
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-4",
+  "name": "Umbreon",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 75.56
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-5",
+  "name": "Celebi",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 203.16
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-6",
+  "name": "Typhlosion",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 145.96
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-7",
+  "name": "Latias",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 116.86
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-8",
+  "name": "Mew",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 103.66
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-9",
+  "name": "Milotic",
+  "number": "9",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 136.9
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-10",
+  "name": "Snorlax",
+  "number": "10",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 50.18
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-11",
+  "name": "Blastoise",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 55.47
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-12",
+  "name": "Gardevoir",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 221.57
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-13",
+  "name": "Blaziken",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 272.02
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-14",
+  "name": "Venusaur",
+  "number": "14",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 96.57
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-15",
+  "name": "Tyranitar",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 36.2
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-16",
+  "name": "Ho-Oh",
+  "number": "16",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 477.07
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-17",
+  "name": "Alakazam",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 174.58
+    }
+   }
+  }
+ },
+ {
+  "id": "ex10-18",
+  "name": "Feraligatr",
+  "number": "18",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex10",
+   "name": "Unseen Forces"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 164.81
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-1",
+  "name": "Tyranitar",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 18.01
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-2",
+  "name": "Ho-Oh",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 184.85
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-3",
+  "name": "Blaziken",
+  "number": "3",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 238.99
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-4",
+  "name": "Kingdra",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 178.81
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-5",
+  "name": "Celebi",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 261.39
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-6",
+  "name": "Mew",
+  "number": "6",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 200.6
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-7",
+  "name": "Charizard",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 562.5
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-8",
+  "name": "Umbreon",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 596.67
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-9",
+  "name": "Alakazam",
+  "number": "9",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 157.18
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-10",
+  "name": "Lugia",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 165.29
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-11",
+  "name": "Flygon",
+  "number": "11",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 318.82
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-12",
+  "name": "Latias",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 216.58
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-13",
+  "name": "Milotic",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 312.77
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-14",
+  "name": "Scizor",
+  "number": "14",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 11.82
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-15",
+  "name": "Entei",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 147.12
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-16",
+  "name": "Venusaur",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 253.85
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-17",
+  "name": "Feraligatr",
+  "number": "17",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 192.55
+    }
+   }
+  }
+ },
+ {
+  "id": "ex11-18",
+  "name": "Latios",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex11",
+   "name": "Delta Species"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 13.2
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-1",
+  "name": "Absol",
+  "number": "1",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 25.25
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-2",
+  "name": "Machamp",
+  "number": "2",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 96.82
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-3",
+  "name": "Espeon",
+  "number": "3",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 229.71
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-4",
+  "name": "Dragonite",
+  "number": "4",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 20.74
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-5",
+  "name": "Raikou",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 189.3
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-6",
+  "name": "Gyarados",
+  "number": "6",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 183.71
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-7",
+  "name": "Celebi",
+  "number": "7",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 148.26
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-8",
+  "name": "Kingdra",
+  "number": "8",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 208.81
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-9",
+  "name": "Gardevoir",
+  "number": "9",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 117.16
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-10",
+  "name": "Ho-Oh",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 250.44
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-11",
+  "name": "Mewtwo",
+  "number": "11",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 86.08
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-12",
+  "name": "Charizard",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 430.35
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-13",
+  "name": "Metagross",
+  "number": "13",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 110.95
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-14",
+  "name": "Umbreon",
+  "number": "14",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 609.71
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-15",
+  "name": "Blaziken",
+  "number": "15",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 207.86
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-16",
+  "name": "Latias",
+  "number": "16",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 170.02
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-17",
+  "name": "Venusaur",
+  "number": "17",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 58.26
+    }
+   }
+  }
+ },
+ {
+  "id": "ex13-18",
+  "name": "Salamence",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex13",
+   "name": "Holon Phantoms"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 260.62
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-1",
+  "name": "Umbreon Star",
+  "number": "1",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 184.37
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-2",
+  "name": "Espeon Star",
+  "number": "2",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 141.75
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-3",
+  "name": "Celebi",
+  "number": "3",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 120.6
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-4",
+  "name": "Charizard",
+  "number": "4",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 327.47
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-5",
+  "name": "Raikou",
+  "number": "5",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 127.28
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-6",
+  "name": "Suicune",
+  "number": "6",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 136.46
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-7",
+  "name": "Machamp",
+  "number": "7",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 169.37
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-8",
+  "name": "Umbreon Star",
+  "number": "8",
+  "rarity": "Rare Holo Star",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 792.23
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-9",
+  "name": "Absol",
+  "number": "9",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 96.79
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-10",
+  "name": "Ho-Oh",
+  "number": "10",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 308.26
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-11",
+  "name": "Lugia",
+  "number": "11",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 89.97
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-12",
+  "name": "Typhlosion",
+  "number": "12",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 33.98
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-13",
+  "name": "Scizor",
+  "number": "13",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 294.74
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-14",
+  "name": "Dragonite",
+  "number": "14",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 302.08
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-15",
+  "name": "Latias",
+  "number": "15",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 159.59
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-16",
+  "name": "Milotic",
+  "number": "16",
+  "rarity": "Rare Shining",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 121.55
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-17",
+  "name": "Gardevoir",
+  "number": "17",
+  "rarity": "Rare Holo",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 104.18
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-18",
+  "name": "Blaziken",
+  "number": "18",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 48.07
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-19",
+  "name": "Gyarados",
+  "number": "19",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 150.59
+    }
+   }
+  }
+ },
+ {
+  "id": "ex15-20",
+  "name": "Espeon Star",
+  "number": "20",
+  "rarity": "Rare Holo Star",
+  "set": {
+   "id": "ex15",
+   "name": "Dragon Frontiers"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 274.19
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-1",
+  "name": "Latias",
+  "number": "1",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 89.32
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-2",
+  "name": "Machamp",
+  "number": "2",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 177.42
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-3",
+  "name": "Typhlosion",
+  "number": "3",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 142.71
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-4",
+  "name": "Feraligatr",
+  "number": "4",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 25.64
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-5",
+  "name": "Gardevoir",
+  "number": "5",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 13.41
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-6",
+  "name": "Raikou",
+  "number": "6",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 156.61
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-7",
+  "name": "Salamence",
+  "number": "7",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 161.44
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-8",
+  "name": "Snorlax",
+  "number": "8",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 158.31
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-9",
+  "name": "Celebi",
+  "number": "9",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 70.81
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-10",
+  "name": "Sceptile",
+  "number": "10",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 124.73
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-11",
+  "name": "Charizard",
+  "number": "11",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 286.12
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-12",
+  "name": "Venusaur",
+  "number": "12",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 82.14
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-13",
+  "name": "Pikachu",
+  "number": "13",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 24.04
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-14",
+  "name": "Kingdra",
+  "number": "14",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 92.49
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-15",
+  "name": "Dragonite",
+  "number": "15",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 59.15
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-16",
+  "name": "Tyranitar",
+  "number": "16",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 13.81
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-17",
+  "name": "Umbreon",
+  "number": "17",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 196.21
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh45-18",
+  "name": "Blaziken",
+  "number": "18",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh45",
+   "name": "Shining Fates"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 72.85
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-1",
+  "name": "Tyranitar",
+  "number": "1",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 29.92
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-2",
+  "name": "Typhlosion",
+  "number": "2",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 163.23
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-3",
+  "name": "Espeon",
+  "number": "3",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 10.09
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-4",
+  "name": "Salamence",
+  "number": "4",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 178.17
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-5",
+  "name": "Sceptile",
+  "number": "5",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 85.9
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-6",
+  "name": "Lugia",
+  "number": "6",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 121.06
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-7",
+  "name": "Umbreon",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 330.64
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-8",
+  "name": "Gyarados",
+  "number": "8",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 82.11
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-9",
+  "name": "Mewtwo",
+  "number": "9",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 71.97
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-10",
+  "name": "Venusaur",
+  "number": "10",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 144.46
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-11",
+  "name": "Alakazam",
+  "number": "11",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 179.85
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-12",
+  "name": "Feraligatr",
+  "number": "12",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 46.18
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-13",
+  "name": "Celebi",
+  "number": "13",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 93.38
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-14",
+  "name": "Pikachu",
+  "number": "14",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 176.97
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-15",
+  "name": "Metagross",
+  "number": "15",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 35.28
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-16",
+  "name": "Machamp",
+  "number": "16",
+  "rarity": "Rare Holo V",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 14.09
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-17",
+  "name": "Kingdra",
+  "number": "17",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 18.25
+    }
+   }
+  }
+ },
+ {
+  "id": "swsh7-18",
+  "name": "Scizor",
+  "number": "18",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "swsh7",
+   "name": "Evolving Skies"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 174.04
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-1",
+  "name": "Mewtwo",
+  "number": "1",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 26.99
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-2",
+  "name": "Snorlax",
+  "number": "2",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 105.67
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-3",
+  "name": "Tyranitar",
+  "number": "3",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 125.95
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-4",
+  "name": "Latios",
+  "number": "4",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 160.24
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-5",
+  "name": "Pikachu",
+  "number": "5",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 48.7
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-6",
+  "name": "Mew",
+  "number": "6",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 41.46
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-7",
+  "name": "Metagross",
+  "number": "7",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 40.5
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-8",
+  "name": "Meganium",
+  "number": "8",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 104.28
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-9",
+  "name": "Sceptile",
+  "number": "9",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 7.89
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-10",
+  "name": "Suicune",
+  "number": "10",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 162.08
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-11",
+  "name": "Machamp",
+  "number": "11",
+  "rarity": "Rare Holo VMAX",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 160.65
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-12",
+  "name": "Gyarados",
+  "number": "12",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 72.28
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-13",
+  "name": "Alakazam",
+  "number": "13",
+  "rarity": "Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 136.6
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-14",
+  "name": "Milotic",
+  "number": "14",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 146.14
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-15",
+  "name": "Latias",
+  "number": "15",
+  "rarity": "Rare Ultra",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 101.77
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-16",
+  "name": "Celebi",
+  "number": "16",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 98.49
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-17",
+  "name": "Absol",
+  "number": "17",
+  "rarity": "Rare Secret",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 138.49
+    }
+   }
+  }
+ },
+ {
+  "id": "sv3pt5-18",
+  "name": "Entei",
+  "number": "18",
+  "rarity": "Special Illustration Rare",
+  "set": {
+   "id": "sv3pt5",
+   "name": "151"
+  },
+  "images": {
+   "small": ""
+  },
+  "tcgplayer": {
+   "prices": {
+    "holofoil": {
+     "market": 161.89
+    }
+   }
+  }
+ }
+]

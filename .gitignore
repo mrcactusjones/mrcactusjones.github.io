@@ -1,0 +1,6 @@
+# Personal-use price data: cached quotes, rankings and daily history.
+# Kept out of the repo so nothing gets republished from a personal-tier API key.
+gap-tracker/data/*
+!gap-tracker/data/.gitkeep
+__pycache__/
+*.pyc

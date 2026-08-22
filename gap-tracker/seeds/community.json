@@ -1,0 +1,59 @@
+{
+  "_comment": [
+    "Bootstrap hypothesis, not gospel. This file decides which cards get spent",
+    "credits first; the scanner replaces the guesswork with data as coverage",
+    "grows. Set ids follow pokemontcg.io. `run.py catalog --verify-sets` reports",
+    "any id that returns zero cards so typos surface immediately.",
+    "",
+    "Prior: PSA 9 profitability lives almost entirely in vintage. Modern PSA 9s",
+    "typically fetch 30-50% of the PSA 10 and lose money after fees, so modern",
+    "sets are seeded at low priority and included mainly as a control group."
+  ],
+  "sets": [
+    {"id": "base1",  "name": "Base Set",            "priority": 10, "why": "off-centre cuts + deep demand; the canonical vintage grade"},
+    {"id": "base2",  "name": "Jungle",              "priority": 7,  "why": "WOTC cut quality, holo bleed"},
+    {"id": "base3",  "name": "Fossil",              "priority": 7,  "why": "WOTC cut quality, holo bleed"},
+    {"id": "base4",  "name": "Base Set 2",          "priority": 5,  "why": "same era, thinner demand"},
+    {"id": "base5",  "name": "Team Rocket",         "priority": 8,  "why": "dark holos show edge wear badly"},
+    {"id": "gym1",   "name": "Gym Heroes",          "priority": 7,  "why": "chronic centring problems"},
+    {"id": "gym2",   "name": "Gym Challenge",       "priority": 7,  "why": "chronic centring problems"},
+    {"id": "neo1",   "name": "Neo Genesis",         "priority": 9,  "why": "factory print lines cap many copies at 8"},
+    {"id": "neo2",   "name": "Neo Discovery",       "priority": 8,  "why": "print lines"},
+    {"id": "neo3",   "name": "Neo Revelation",      "priority": 8,  "why": "print lines; Shining subset"},
+    {"id": "neo4",   "name": "Neo Destiny",         "priority": 9,  "why": "print lines; Shining subset is the scarce tier"},
+    {"id": "ecard1", "name": "Expedition",          "priority": 8,  "why": "e-Reader era foil scratches easily"},
+    {"id": "ecard2", "name": "Aquapolis",           "priority": 10, "why": "Crystal subset: layered foil, very few clean copies"},
+    {"id": "ecard3", "name": "Skyridge",            "priority": 10, "why": "smallest WOTC print run; Crystals are the hardest tier to grade"},
+    {"id": "ex7",    "name": "Team Rocket Returns", "priority": 8,  "why": "start of the Gold Star run"},
+    {"id": "ex10",   "name": "Unseen Forces",       "priority": 8,  "why": "Gold Stars"},
+    {"id": "ex11",   "name": "Delta Species",       "priority": 8,  "why": "Gold Stars"},
+    {"id": "ex13",   "name": "Holon Phantoms",      "priority": 8,  "why": "Gold Stars"},
+    {"id": "ex15",   "name": "Dragon Frontiers",    "priority": 9,  "why": "Gold Stars incl. the most chased copies"},
+    {"id": "swsh45", "name": "Shining Fates",       "priority": 3,  "why": "modern control group"},
+    {"id": "swsh7",  "name": "Evolving Skies",      "priority": 4,  "why": "modern control group; alt arts are condition sensitive"},
+    {"id": "sv3pt5", "name": "151",                 "priority": 3,  "why": "modern control group"}
+  ],
+  "rarities": [
+    "Rare Holo", "Rare Holo EX", "Rare Holo GX", "Rare Holo V", "Rare Holo VMAX",
+    "Rare Holo VSTAR", "Rare Secret", "Rare Ultra", "Rare Shining", "Rare Star",
+    "Rare BREAK", "Amazing Rare", "Radiant Rare", "Illustration Rare",
+    "Special Illustration Rare", "Double Rare", "Ultra Rare", "Shiny Rare",
+    "LEGEND", "Rare Prime", "Rare Holo Star"
+  ],
+  "cards": [
+    {"set": "ecard3", "name": "Charizard",   "priority": 10, "why": "Crystal Charizard: benchmark for a scarce, hard-to-grade vintage holo",
+     "source": "https://www.pokemonpricetracker.com/blog/posts/vintage-pokemon-card-prices-2026-complete-market-report"},
+    {"set": "ecard3", "name": "Ho-Oh",       "priority": 9,  "why": "Crystal Ho-Oh: layered foil, very thin PSA 10 population",
+     "source": "https://cardcollective.ai/2025/03/30/crystal-ho-oh-a-forgotten-holo-from-the-skyridge-era/"},
+    {"set": "ecard2", "name": "Kingdra",     "priority": 8,  "why": "Crystal Kingdra, frequently cited Aquapolis chase",
+     "source": "https://www.cardrake.com/cards/ecard2-148"},
+    {"set": "base1",  "name": "Charizard",   "priority": 9,  "why": "deepest demand in vintage; useful as a liquidity benchmark",
+     "source": "https://www.pokemonpricetracker.com/blog/posts/vintage-pokemon-cards-worth-money-in-2026-complete-guide"},
+    {"set": "neo4",   "name": "Shining Charizard", "priority": 9, "why": "Shining subset + Neo print lines",
+     "source": "https://www.snapgradeai.com/blog/which-pokemon-cards-are-worth-grading"},
+    {"set": "ex15",   "name": "Umbreon Star", "priority": 9, "why": "Gold Star cited as profitable even at PSA 9",
+     "source": "https://pregradecards.com/blog/best-pokemon-cards-to-grade-profit-2026"},
+    {"set": "ex15",   "name": "Espeon Star",  "priority": 8, "why": "Gold Star pair to Umbreon",
+     "source": "https://pregradecards.com/blog/best-pokemon-cards-to-grade-profit-2026"}
+  ]
+}

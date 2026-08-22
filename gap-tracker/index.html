@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grade Gap Tracker</title>
+<style>
+  :root {
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1b1b19; --muted:#6b6b66;
+    --line:#e2e2dd; --accent:#2f6f4f; --pos:#1f7a4d; --neg:#b03030;
+    --warn:#8a6d1f; --chip:#eeeeea; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16171a; --panel:#1e2024; --ink:#e9e9e4; --muted:#9a9a93;
+            --line:#2e3138; --accent:#69b98d; --pos:#5fc48c; --neg:#e07b7b;
+            --warn:#d4b458; --chip:#282b31; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { padding:22px 24px 8px; }
+  h1 { margin:0 0 4px; font-size:20px; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); font-size:13px; }
+  main { padding:0 24px 60px; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:16px; margin:16px 0; }
+  .grid { display:grid; gap:14px 22px;
+          grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px;
+          text-transform:uppercase; letter-spacing:.04em; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  input[type=search], select { width:100%; padding:7px 9px; border-radius:6px;
+          border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .val { font-family:var(--mono); font-size:13px; color:var(--ink); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .chip { border:1px solid var(--line); background:var(--chip); color:var(--ink);
+          border-radius:999px; padding:5px 12px; font-size:13px; cursor:pointer; }
+  .chip[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chip[aria-pressed="true"] .meta { color:#fff; opacity:.75; }
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px;
+               background:var(--panel); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  th, td { padding:9px 11px; text-align:right; white-space:nowrap;
+           border-bottom:1px solid var(--line); }
+  th { position:sticky; top:0; background:var(--panel); cursor:pointer;
+       font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+       color:var(--muted); user-select:none; }
+  th:hover { color:var(--ink); }
+  td.l, th.l { text-align:left; }
+  tbody tr:hover { background:var(--chip); }
+  .num { font-family:var(--mono); }
+  .pos { color:var(--pos); } .neg { color:var(--neg); }
+  .name { font-weight:600; }
+  .meta { color:var(--muted); font-size:12px; }
+  .v { font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); }
+  .v-no_brainer { background:var(--pos); color:#fff; border-color:transparent; }
+  .v-floor_positive { color:var(--pos); }
+  .v-ten_or_bust { color:var(--warn); }
+  .v-dead { color:var(--muted); }
+  .flag { color:var(--warn); cursor:help; }
+  .empty { padding:40px 20px; text-align:center; color:var(--muted); }
+  code { background:var(--chip); padding:2px 6px; border-radius:4px; font-size:12.5px; }
+  .bar { display:flex; flex-wrap:wrap; gap:18px; align-items:baseline;
+         font-size:13px; color:var(--muted); }
+  .bar b { color:var(--ink); font-family:var(--mono); font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Grade Gap Tracker</h1>
+  <div class="sub">Ranked by what clears at a <strong>PSA 9</strong> — the downside case, not the PSA 10 lottery.</div>
+</header>
+<main>
+  <div class="panel bar" id="coverage"></div>
+
+  <div class="panel">
+    <div class="grid">
+      <div><label>Grading fee <span class="val" id="vfee"></span></label>
+           <input type="range" id="fee" min="0" max="60" step="1"></div>
+      <div><label>Sub shipping / card <span class="val" id="vship"></span></label>
+           <input type="range" id="ship" min="0" max="20" step="0.5"></div>
+      <div><label>Marketplace fee <span class="val" id="vmkt"></span></label>
+           <input type="range" id="mkt" min="0" max="25" step="0.25"></div>
+      <div><label>Ship to buyer <span class="val" id="vout"></span></label>
+           <input type="range" id="out" min="0" max="20" step="0.5"></div>
+      <div><label>Raw buy premium <span class="val" id="vprem"></span></label>
+           <input type="range" id="prem" min="0" max="60" step="1"></div>
+      <div><label>Min PSA 9 comps <span class="val" id="vcomps"></span></label>
+           <input type="range" id="comps" min="0" max="30" step="1"></div>
+      <div><label>Search</label><input type="search" id="q" placeholder="card or set"></div>
+      <div><label>Set</label><select id="set"></select></div>
+    </div>
+    <div class="chips" id="verdicts"></div>
+  </div>
+
+  <div class="tablewrap"><table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <div class="empty" id="empty" hidden></div>
+</main>
+<script>
+"use strict";
+
+// Mirrors gapscan/econ.py so the sliders recompute instantly. If the Python
+// cost model changes, change it here too.
+function allIn(raw, s)  { return raw * (1 + s.prem/100) + s.fee + s.ship; }
+function netOf(price, s){ return price * (1 - s.mkt/100) - s.out; }
+
+function breakevenP10(cost, net9, net10) {
+  const spread = net10 - net9;
+  if (spread <= 0) return null;
+  const p = (cost - net9) / spread;
+  if (p <= 0) return 0;
+  return p <= 1 ? p : null;
+}
+
+function score(row, s) {
+  const cost = allIn(row.raw, s);
+  const net9 = netOf(row.psa9, s);
+  const net10 = row.psa10 != null ? netOf(row.psa10, s) : net9;
+  const floor = net9 - cost, upside = net10 - cost;
+  const confident = row.sales_9 >= s.comps &&
+                    (row.psa10 == null || row.sales_10 >= Math.ceil(s.comps * 0.6));
+  let verdict;
+  if (floor >= 25 && floor / cost >= 0.25) verdict = confident ? "no_brainer" : "floor_positive";
+  else if (floor > 0) verdict = "floor_positive";
+  else if (upside > 0) verdict = "ten_or_bust";
+  else verdict = "dead";
+  return { ...row, cost, floor, upside, confident, verdict,
+           floorRoi: floor / cost, be: breakevenP10(cost, net9, net10) };
+}
+
+const COLS = [
+  { k:"name",   t:"Card",       cls:"l", fmt:r => `<span class="name">${esc(r.name)}</span>
+      <div class="meta">${esc(r.set_name || "")} ${esc(r.number || "")}</div>` },
+  { k:"verdict",t:"Verdict",    cls:"l", fmt:r =>
+      `<span class="v v-${r.verdict}">${r.verdict.replace(/_/g," ")}</span>` +
+      (r.confident ? "" : ` <span class="flag" title="Thin comps — treat as provisional">⚠</span>`) },
+  { k:"raw",    t:"Raw",        fmt:r => money(r.raw) },
+  { k:"psa9",   t:"PSA 9",      fmt:r => money(r.psa9) },
+  { k:"psa10",  t:"PSA 10",     fmt:r => money(r.psa10) },
+  { k:"cost",   t:"All-in",     fmt:r => money(r.cost) },
+  { k:"floor",  t:"Floor @ 9",  fmt:r => signed(r.floor) },
+  { k:"floorRoi",t:"Floor ROI", fmt:r => pct(r.floorRoi) },
+  { k:"upside", t:"At 10",      fmt:r => signed(r.upside) },
+  { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
+      `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
+  { k:"sales_9",t:"Comps 9/10", fmt:r => `<span class="num">${r.sales_9}/${r.sales_10}</span>` },
+  { k:"floor_streak", t:"Streak", fmt:r =>
+      `<span class="num" title="Consecutive days clearing the profit threshold">${r.floor_streak}d</span>` },
+  { k:"history",t:"Trend",      fmt:r => spark(r.history) },
+  { k:"scanned_days_ago", t:"Age", fmt:r => `<span class="num">${r.scanned_days_ago}d</span>` },
+];
+
+const VERDICT_ORDER = ["no_brainer","floor_positive","ten_or_bust","dead"];
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const money  = v => v == null ? "—" : `<span class="num">$${v.toFixed(2)}</span>`;
+const pct    = v => v == null ? "—" : `<span class="num ${v>=0?"pos":"neg"}">${(v*100).toFixed(0)}%</span>`;
+const signed = v => v == null ? "—" :
+  `<span class="num ${v>=0?"pos":"neg"}">${v<0?"-":""}$${Math.abs(v).toFixed(2)}</span>`;
+
+function spark(series) {
+  const pts = (series || []).filter(v => v != null);
+  if (pts.length < 2) return `<span class="meta">—</span>`;
+  const w = 68, h = 18, min = Math.min(...pts), max = Math.max(...pts);
+  const span = (max - min) || 1;
+  const d = pts.map((v, i) =>
+    `${(i / (pts.length - 1) * w).toFixed(1)},${(h - (v - min) / span * h).toFixed(1)}`).join(" ");
+  const up = pts[pts.length - 1] >= pts[0];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <polyline fill="none" stroke="${up ? "var(--pos)" : "var(--neg)"}"
+      stroke-width="1.5" points="${d}"/></svg>`;
+}
+
+let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
+
+const S = () => ({
+  fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
+  out:+out.value, prem:+prem.value, comps:+comps.value,
+});
+
+function render() {
+  const s = S();
+  vfee.textContent = `$${s.fee}`;   vship.textContent = `$${s.ship.toFixed(2)}`;
+  vmkt.textContent = `${s.mkt}%`;   vout.textContent  = `$${s.out.toFixed(2)}`;
+  vprem.textContent = `${s.prem}%`; vcomps.textContent = s.comps;
+
+  const needle = q.value.trim().toLowerCase();
+  const wantSet = set.value;
+  let rows = DATA.rows.map(r => score(r, s))
+    .filter(r => ACTIVE.has(r.verdict))
+    .filter(r => !wantSet || r.set_id === wantSet)
+    .filter(r => !needle ||
+      (r.name || "").toLowerCase().includes(needle) ||
+      (r.set_name || "").toLowerCase().includes(needle));
+
+  rows.sort((a, b) => {
+    const x = a[SORT.key], y = b[SORT.key];
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * SORT.dir;
+  });
+
+  head.innerHTML = COLS.map(c =>
+    `<th class="${c.cls || ""}" data-k="${c.k}">${c.t}${
+      SORT.key === c.k ? (SORT.dir < 0 ? " ↓" : " ↑") : ""}</th>`).join("");
+  head.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    SORT = { key: k, dir: SORT.key === k ? -SORT.dir : -1 };
+    render();
+  });
+
+  document.getElementById("rows").innerHTML = rows.slice(0, 400).map(r =>
+    `<tr title="${esc(r.seed_reason || "")}">` +
+    COLS.map(c => `<td class="${c.cls || ""}">${c.fmt(r)}</td>`).join("") + "</tr>").join("");
+
+  const empty = document.getElementById("empty");
+  empty.hidden = rows.length > 0;
+  empty.textContent = "Nothing matches these filters.";
+}
+
+function boot(data) {
+  DATA = data;
+  const e = data.config.econ, t = data.config.thresholds, c = data.coverage;
+  fee.value = e.grading_fee; ship.value = e.sub_ship_per_card;
+  mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
+  prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
+
+  document.getElementById("coverage").innerHTML =
+    `<span>Coverage <b>${c.scanned}/${c.universe}</b> cards</span>
+     <span>Oldest scan <b>${c.oldest_scan_days}d</b></span>
+     <span>Stale <b>${c.stale}</b></span>
+     <span>Full sweep in <b>~${c.days_to_full_coverage}d</b></span>
+     <span>Updated <b>${(data.generated_at || "").replace("T", " ").slice(0, 16)}</b></span>`;
+
+  const counts = data.verdict_counts || {};
+  document.getElementById("verdicts").innerHTML = VERDICT_ORDER.map(v =>
+    `<button class="chip" data-v="${v}" aria-pressed="${ACTIVE.has(v)}">${
+      v.replace(/_/g, " ")} <span class="meta">${counts[v] || 0}</span></button>`).join("");
+  document.getElementById("verdicts").querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    const v = b.dataset.v;
+    ACTIVE.has(v) ? ACTIVE.delete(v) : ACTIVE.add(v);
+    b.setAttribute("aria-pressed", ACTIVE.has(v));
+    render();
+  });
+
+  const sets = [...new Map(data.rows.map(r => [r.set_id, r.set_name])).entries()]
+    .sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+  set.innerHTML = `<option value="">All sets</option>` +
+    sets.map(([id, name]) => `<option value="${esc(id)}">${esc(name)}</option>`).join("");
+
+  ["fee","ship","mkt","out","prem","comps"].forEach(id =>
+    document.getElementById(id).addEventListener("input", render));
+  q.addEventListener("input", render);
+  set.addEventListener("change", render);
+  render();
+}
+
+fetch("data/rankings.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(boot)
+  .catch(() => {
+    document.querySelector("main").innerHTML =
+      `<div class="panel empty">No <code>data/rankings.json</code> yet.<br><br>
+       Run <code>python3 run.py demo</code> for fake data, or
+       <code>python3 run.py daily --provider ppt</code> for real prices.</div>`;
+  });
+</script>
+</body>
+</html>
