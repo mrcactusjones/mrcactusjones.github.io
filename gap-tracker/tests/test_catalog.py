@@ -13,8 +13,8 @@ from gapscan import catalog
 from gapscan.config import Thresholds
 
 
-def _http_error(code: int) -> urllib.error.HTTPError:
-    return urllib.error.HTTPError("http://x", code, "boom", {}, None)
+def _http_error(code: int, headers: dict | None = None) -> urllib.error.HTTPError:
+    return urllib.error.HTTPError("http://x", code, "boom", headers or {}, None)
 
 
 def _card(set_id: str, num: int, price: float = 50.0) -> dict:
@@ -46,6 +46,29 @@ class TestFetchResilience(unittest.TestCase):
                 catalog.fetch_set("base5", retries=4)
         self.assertEqual(get.call_count, 4)
         self.assertIn("500", str(ctx.exception))
+
+    def test_retry_after_header_is_honoured_without_burning_an_attempt(self):
+        responses = [_http_error(429, {"Retry-After": "5"}),
+                     {"data": [_card("base5", 1)]}]
+        def side_effect(*_a, **_k):
+            item = responses.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+        with mock.patch.object(catalog, "_get", side_effect=side_effect), \
+             mock.patch.object(catalog.time, "sleep") as sleep:
+            cards = catalog.fetch_set("base5", retries=4)
+        self.assertEqual(len(cards), 1)
+        self.assertIn(5, [c.args[0] for c in sleep.call_args_list],
+                      "should wait exactly what Retry-After asked for")
+
+    def test_absurd_retry_after_is_capped(self):
+        with mock.patch.object(catalog, "_get",
+                               side_effect=_http_error(429, {"Retry-After": "9999"})), \
+             mock.patch.object(catalog.time, "sleep") as sleep:
+            with self.assertRaises(catalog.SetFetchError):
+                catalog.fetch_set("base5", retries=2)
+        self.assertTrue(all(c.args[0] <= 60 for c in sleep.call_args_list))
 
     def test_retry_succeeds_after_a_transient_failure(self):
         responses = [_http_error(500), {"data": [_card("base5", 1)]}]

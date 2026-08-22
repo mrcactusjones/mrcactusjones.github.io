@@ -21,14 +21,31 @@ PAGE_SIZE = 250
 USER_AGENT = "gap-tracker/0.1 (personal research tool)"
 
 
+# Unauthenticated pokemontcg.io throttles aggressively, and it surfaces as
+# intermittent 500s rather than clean 429s. Pace the requests; a free API key
+# from dev.pokemontcg.io raises the ceiling and lets us go faster.
+_UNAUTHED_INTERVAL = 1.2
+_AUTHED_INTERVAL = 0.25
+_last_call = 0.0
+
+
 def _get(path: str, params: dict) -> dict:
+    global _last_call
+    key = os.environ.get("POKEMONTCG_API_KEY")
+    interval = _AUTHED_INTERVAL if key else _UNAUTHED_INTERVAL
+    wait = interval - (time.monotonic() - _last_call)
+    if wait > 0:
+        time.sleep(wait)
+
     url = f"{API}/{path}?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    key = os.environ.get("POKEMONTCG_API_KEY")
     if key:
         req.add_header("X-Api-Key", key)
-    with urllib.request.urlopen(req, timeout=45) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            return json.loads(resp.read().decode())
+    finally:
+        _last_call = time.monotonic()
 
 
 class SetFetchError(Exception):
@@ -56,10 +73,14 @@ def fetch_set(set_id: str, retries: int = 4) -> list[dict]:
                 last_error = f"HTTP {exc.code} {exc.reason}"
                 if 400 <= exc.code < 500 and exc.code != 429:
                     raise SetFetchError(last_error) from exc
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                if retry_after and str(retry_after).isdigit():
+                    time.sleep(min(int(retry_after), 60))
+                    continue
             except (urllib.error.URLError, TimeoutError) as exc:
                 last_error = str(getattr(exc, "reason", exc))
             if attempt < retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(3 * (2 ** attempt))  # 3s, 6s, 12s
         if blob is None:
             raise SetFetchError(last_error)
 
