@@ -31,20 +31,38 @@ def _get(path: str, params: dict) -> dict:
         return json.loads(resp.read().decode())
 
 
-def fetch_set(set_id: str, retries: int = 3) -> list[dict]:
-    """All cards in a set, following pagination."""
+class SetFetchError(Exception):
+    """One set could not be fetched. Never fatal: the build skips it."""
+
+
+def fetch_set(set_id: str, retries: int = 4) -> list[dict]:
+    """All cards in a set, following pagination.
+
+    pokemontcg.io returns intermittent 500s, so server errors and timeouts are
+    retried with backoff. A 4xx means the request itself is wrong -- usually a
+    bad set id -- and is reported immediately rather than retried.
+    """
     out: list[dict] = []
     page = 1
     while True:
+        blob = None
+        last_error = "unknown"
         for attempt in range(retries):
             try:
                 blob = _get("cards", {"q": f"set.id:{set_id}",
                                       "pageSize": PAGE_SIZE, "page": page})
                 break
+            except urllib.error.HTTPError as exc:
+                last_error = f"HTTP {exc.code} {exc.reason}"
+                if 400 <= exc.code < 500 and exc.code != 429:
+                    raise SetFetchError(last_error) from exc
             except (urllib.error.URLError, TimeoutError) as exc:
-                if attempt == retries - 1:
-                    raise SystemExit(f"pokemontcg.io unreachable for {set_id}: {exc}")
+                last_error = str(getattr(exc, "reason", exc))
+            if attempt < retries - 1:
                 time.sleep(2 ** attempt)
+        if blob is None:
+            raise SetFetchError(last_error)
+
         cards = blob.get("data") or []
         out.extend(cards)
         if len(cards) < PAGE_SIZE:
@@ -80,21 +98,29 @@ def _named_bonus(card: dict, named: list[dict]) -> tuple[int, str | None]:
 
 
 def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
-          verify_sets: bool = False) -> tuple[dict, dict]:
+          verify_sets: bool = False, only: set[str] | None = None) -> tuple[dict, dict]:
     """Return (universe, meta). Universe is keyed by pokemontcg.io card id."""
     rarities = {r.lower() for r in seeds.get("rarities", [])}
     named = seeds.get("cards", [])
     universe: dict[str, dict] = {}
     empty_sets: list[str] = []
+    failed_sets: dict[str, str] = {}
     skipped = {"rarity": 0, "no_price": 0, "price_band": 0}
 
-    for entry in seeds.get("sets", []):
+    wanted = [e for e in seeds.get("sets", []) if not only or e["id"] in only]
+    for entry in wanted:
         set_id = entry["id"]
         if fixture is not None:
             cards = [c for c in json.loads(fixture.read_text())
                      if (c.get("set") or {}).get("id") == set_id]
         else:
-            cards = fetch_set(set_id)
+            try:
+                cards = fetch_set(set_id)
+            except SetFetchError as exc:
+                # One flaky or misnamed set must not throw away the whole run.
+                failed_sets[set_id] = str(exc)
+                print(f"  ! {set_id}: {exc} (skipped)")
+                continue
         if not cards:
             empty_sets.append(set_id)
             continue
@@ -127,11 +153,13 @@ def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
                 "seed_reason": why or entry.get("why"),
                 "image": (card.get("images") or {}).get("small"),
                 "tier": "candidate",
+                "source": "fixture" if fixture else "api",
             }
 
     meta = {
-        "sets_requested": len(seeds.get("sets", [])),
+        "sets_requested": len(wanted),
         "empty_sets": empty_sets,
+        "failed_sets": failed_sets,
         "skipped": skipped,
         "universe_size": len(universe),
         "source": "fixture" if fixture else "api.pokemontcg.io",
@@ -139,4 +167,8 @@ def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
     if verify_sets and empty_sets:
         print("WARNING: these set ids returned no cards -- check them against "
               "pokemontcg.io: " + ", ".join(empty_sets))
+    if failed_sets:
+        print(f"WARNING: {len(failed_sets)} set(s) failed and were skipped. "
+              f"Retry just those with:  run.py catalog --sets "
+              + ",".join(failed_sets))
     return universe, meta

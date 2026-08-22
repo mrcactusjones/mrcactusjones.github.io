@@ -88,18 +88,30 @@ def get_provider(args, cfg: Config):
 
 def cmd_catalog(args, cfg: Config, store: Store) -> int:
     fixture = FIXTURES / "catalog.json" if args.fixture else None
+    only = set(args.sets.split(",")) if getattr(args, "sets", None) else None
     universe, meta = build_catalog(load_seeds(), cfg.thresholds, fixture=fixture,
-                                   verify_sets=True)
+                                   verify_sets=True, only=only)
     if not universe:
         print("No candidates matched. Check set ids and the raw price band.")
         return 1
-    # Preserve watchlist tiers across rebuilds.
-    for card_id, entry in store.load_universe().items():
-        if card_id in universe and entry.get("tier"):
-            universe[card_id]["tier"] = entry["tier"]
-    store.save_universe(universe, meta)
-    print(f"universe: {len(universe)} candidates from {meta['sets_requested']} sets "
-          f"({meta['source']})")
+
+    source = "fixture" if fixture else "api"
+    existing = store.load_universe()
+    # Never mix demo cards into a live universe, or vice versa.
+    same_source = {k: v for k, v in existing.items() if v.get("source", "api") == source}
+    # A partial build (--sets, or sets that failed) must leave the rest intact:
+    # replace only the sets actually rebuilt this run.
+    rebuilt = {v["set_id"] for v in universe.values()}
+    merged = {k: v for k, v in same_source.items() if v.get("set_id") not in rebuilt}
+    merged.update(universe)
+    for card_id, entry in existing.items():
+        if card_id in merged and entry.get("tier"):
+            merged[card_id]["tier"] = entry["tier"]
+
+    store.save_universe(merged, meta)
+    kept = len(merged) - len(universe)
+    print(f"universe: {len(merged)} candidates ({len(universe)} from this run"
+          + (f", {kept} kept from earlier runs" if kept else "") + f") [{source}]")
     print(f"  filtered out: {meta['skipped']}")
     return 0
 
@@ -152,18 +164,53 @@ def cmd_daily(args, cfg: Config, store: Store) -> int:
 
 
 def cmd_probe(args, cfg: Config, store: Store) -> int:
+    from gapscan.providers.ppt import PPTProvider, discover, extract_quote
+
+    if args.discover:
+        key = os.environ.get("PPT_API_KEY")
+        if not key:
+            print("PPT_API_KEY is not set (put it in .env).")
+            return 1
+        print("Trying candidate endpoints -- a 404 costs no credits.\n")
+        for url, result in discover(key):
+            print(f"  {result}\n    {url}\n")
+        print("Set the working base in .env, e.g.:\n"
+              "  PPT_API_BASE=https://www.pokemonpricetracker.com/api/v2")
+        return 0
+
     universe = store.load_universe()
     card = universe.get(args.card)
     if card is None:
         print(f"{args.card} is not in the universe. Known ids look like 'base1-4'.")
         return 1
-    from gapscan.providers.ppt import PPTProvider
-    from gapscan.providers.ppt import extract_quote
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
+    print(f"GET {provider.base}/cards  for {card.get('name')} "
+          f"({card.get('set_name')} {card.get('number')})\n")
     blob = provider.raw_response(card)
     print(json.dumps(blob, indent=2)[:8000])
     print("\n--- what the extractor found ---")
     print(json.dumps(extract_quote(blob).__dict__, indent=2))
+    return 0
+
+
+def cmd_reset(args, cfg: Config, store: Store) -> int:
+    """Wipe cached prices and rankings -- e.g. to clear demo data before going live."""
+    import shutil
+    targets = [store.cards, store.history, store.root / "rankings.json",
+               store.universe_path]
+    present = [t for t in targets if t.exists()]
+    if not present:
+        print("Nothing to reset.")
+        return 0
+    if not args.yes:
+        print("This will delete:")
+        for t in present:
+            print(f"  {t}")
+        print("\nRe-run with --yes to confirm. Logs and .env are left alone.")
+        return 1
+    for t in present:
+        shutil.rmtree(t) if t.is_dir() else t.unlink()
+    print(f"Reset {len(present)} item(s). Next step: run.py catalog")
     return 0
 
 
@@ -264,6 +311,7 @@ def main() -> int:
 
     p = sub.add_parser("catalog", help="rebuild the candidate universe (free)")
     p.add_argument("--fixture", action="store_true", help="use the offline fixture")
+    p.add_argument("--sets", help="comma-separated set ids to rebuild, e.g. base5,gym1")
     add_log(p)
     p.set_defaults(func=cmd_catalog)
 
@@ -286,12 +334,19 @@ def main() -> int:
     p.add_argument("--top", type=int, default=15)
     p.add_argument("--rebuild-catalog", action="store_true")
     p.add_argument("--fixture", action="store_true")
+    p.add_argument("--sets", help="comma-separated set ids to rebuild")
     add_log(p)
     p.set_defaults(func=cmd_daily)
 
     p = sub.add_parser("probe", help="dump a raw provider response")
-    p.add_argument("--card", required=True)
+    p.add_argument("--card", help="universe card id, e.g. base1-4")
+    p.add_argument("--discover", action="store_true",
+                   help="try candidate API endpoints and report what answers")
     p.set_defaults(func=cmd_probe)
+
+    p = sub.add_parser("reset", help="delete cached prices/rankings (e.g. demo data)")
+    p.add_argument("--yes", action="store_true", help="actually do it")
+    p.set_defaults(func=cmd_reset)
 
     p = sub.add_parser("demo", help="populate with fake data end to end")
     p.add_argument("--days", type=int, default=21)

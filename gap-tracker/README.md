@@ -23,10 +23,26 @@ Everything works before you have an API key. When you're ready for real prices:
 3. Check the plumbing before spending anything:
 
 ```bash
-python3 run.py catalog                          # free; warns on bad set ids
+python3 run.py reset --yes                      # clear demo data first, if you ran it
+python3 run.py catalog                          # free; warns on bad or failed set ids
 python3 run.py scan --provider ppt --dry-run    # shows what it would fetch, spends nothing
 python3 run.py probe --card base1-4             # 1 card: confirms the field mapping
 ```
+
+If `catalog` reports skipped sets (pokemontcg.io throws intermittent 500s),
+retry just those — the rest of the universe is kept:
+
+```bash
+python3 run.py catalog --sets base5,gym1
+```
+
+If `probe` 404s, the endpoint has moved. Find the live one, no credits spent:
+
+```bash
+python3 run.py probe --discover
+```
+
+then put the working base in `.env` as `PPT_API_BASE`.
 
 4. Then run it for real:
 

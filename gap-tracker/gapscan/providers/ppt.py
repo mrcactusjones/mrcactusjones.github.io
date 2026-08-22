@@ -23,7 +23,7 @@ import urllib.request
 from ..econ import Quote
 from ..store import iso, utcnow
 
-DEFAULT_BASE = "https://www.pokemonpricetracker.com/api/v1"
+DEFAULT_BASE = "https://www.pokemonpricetracker.com/api/v2"
 
 # Fill these in after a `probe` run to bypass pattern matching entirely.
 # Values are dotted paths into the response, e.g. "data.0.prices.psa10.market".
@@ -140,6 +140,42 @@ def extract_quote(blob: dict) -> Quote:
         as_of=iso(utcnow()),
         source="ppt",
     )
+
+
+CANDIDATE_BASES = [
+    "https://www.pokemonpricetracker.com/api/v2",
+    "https://www.pokemonpricetracker.com/api/v1",
+    "https://www.pokemonpricetracker.com/api",
+    "https://api.pokemonpricetracker.com/v2",
+]
+CANDIDATE_PATHS = ["cards?search=charizard&limit=1", "sets?limit=1"]
+
+
+def discover(api_key: str) -> list[tuple[str, str]]:
+    """Probe candidate endpoints and report what each one answers.
+
+    A 404 costs no credits, so this is a cheap way to find the live route
+    without guessing in code.
+    """
+    results = []
+    for base in CANDIDATE_BASES:
+        for path in CANDIDATE_PATHS:
+            url = f"{base}/{path}"
+            req = urllib.request.Request(url, headers={
+                "Authorization": f"Bearer {api_key}",
+                "Accept": "application/json",
+                "User-Agent": "gap-tracker/0.1 (personal research tool)"})
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    body = resp.read(400).decode("utf-8", "replace")
+                    results.append((url, f"{resp.status} OK  {body[:220]}"))
+            except urllib.error.HTTPError as exc:
+                detail = exc.read(200).decode("utf-8", "replace").replace("\n", " ")
+                results.append((url, f"{exc.code} {exc.reason}  {detail[:160]}"))
+            except Exception as exc:  # noqa: BLE001 - report anything, keep probing
+                results.append((url, f"error: {exc}"))
+            time.sleep(1.1)
+    return results
 
 
 class PPTProvider:

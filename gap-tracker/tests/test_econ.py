@@ -103,6 +103,16 @@ class TestProviderExtraction(unittest.TestCase):
         blob = {"psa10": {"marketPrice": 999.0}, "rawMarket": 20.0}
         self.assertAlmostEqual(extract_quote(blob).raw, 20.0)
 
+    def test_documented_v2_shape(self):
+        """The shape their API docs advertise: flat, `market` for raw."""
+        blob = {"data": [{"name": "Magikarp", "set": "Paldea Evolved",
+                          "market": 264.46, "psa10": 1356.83, "psa9": 410.0,
+                          "roi": "+109%", "delta7d": "+6.1%"}]}
+        q = extract_quote(blob)
+        self.assertAlmostEqual(q.raw, 264.46)
+        self.assertAlmostEqual(q.psa9, 410.0)
+        self.assertAlmostEqual(q.psa10, 1356.83)
+
     def test_psa9_pattern_does_not_swallow_psa10(self):
         blob = {"psa10": {"market": 400.0}, "psa9": {"market": 100.0}}
         q = extract_quote(blob)
