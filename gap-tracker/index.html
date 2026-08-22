@@ -5,70 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grade Gap Tracker</title>
 <style>
+  /* One knob drives the whole type scale; the A-/A+ control writes it and
+     persists it per browser. Everything below is in rem so it follows. */
+  html { font-size: 17px; }
   :root {
-    --bg:#f7f7f5; --panel:#ffffff; --ink:#1b1b19; --muted:#6b6b66;
-    --line:#e2e2dd; --accent:#2f6f4f; --pos:#1f7a4d; --neg:#b03030;
-    --warn:#8a6d1f; --chip:#eeeeea; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1b1b19; --muted:#63635e;
+    --line:#e2e2dd; --accent:#2f6f4f; --pos:#186b41; --neg:#a52a2a;
+    --warn:#7a5f14; --chip:#eeeeea; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#16171a; --panel:#1e2024; --ink:#e9e9e4; --muted:#9a9a93;
-            --line:#2e3138; --accent:#69b98d; --pos:#5fc48c; --neg:#e07b7b;
-            --warn:#d4b458; --chip:#282b31; }
+    :root { --bg:#16171a; --panel:#1e2024; --ink:#e9e9e4; --muted:#a3a39b;
+            --line:#2e3138; --accent:#69b98d; --pos:#69c894; --neg:#e58585;
+            --warn:#d9bb60; --chip:#282b31; }
   }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
-         font:15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
-  header { padding:22px 24px 8px; }
-  h1 { margin:0 0 4px; font-size:20px; letter-spacing:-0.01em; }
-  .sub { color:var(--muted); font-size:13px; }
-  main { padding:0 24px 60px; }
+         font:1rem/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { padding:1.4rem 1.5rem .5rem; display:flex; flex-wrap:wrap;
+           gap:1rem; align-items:flex-start; justify-content:space-between; }
+  h1 { margin:0 0 .2rem; font-size:1.45rem; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); font-size:.9rem; }
+  main { padding:0 1.5rem 4rem; }
   .panel { background:var(--panel); border:1px solid var(--line);
-           border-radius:10px; padding:16px; margin:16px 0; }
-  .grid { display:grid; gap:14px 22px;
-          grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
-  label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px;
-          text-transform:uppercase; letter-spacing:.04em; }
-  input[type=range] { width:100%; accent-color:var(--accent); }
-  input[type=search], select { width:100%; padding:7px 9px; border-radius:6px;
+           border-radius:.6rem; padding:1rem 1.1rem; margin:1rem 0; }
+  .grid { display:grid; gap:1rem 1.5rem;
+          grid-template-columns:repeat(auto-fit,minmax(13rem,1fr)); }
+  label { display:block; font-size:.78rem; color:var(--muted); margin-bottom:.3rem;
+          text-transform:uppercase; letter-spacing:.05em; }
+  input[type=range] { width:100%; accent-color:var(--accent); height:1.25rem; }
+  input[type=search], select { width:100%; padding:.5rem .6rem; border-radius:.35rem;
           border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
-  .val { font-family:var(--mono); font-size:13px; color:var(--ink); }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .val { font-family:var(--mono); font-size:.85rem; color:var(--ink); }
+  .chips { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.9rem; }
   .chip { border:1px solid var(--line); background:var(--chip); color:var(--ink);
-          border-radius:999px; padding:5px 12px; font-size:13px; cursor:pointer; }
+          border-radius:999px; padding:.35rem .85rem; font-size:.88rem; cursor:pointer;
+          font-family:inherit; }
   .chip[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .chip[aria-pressed="true"] .meta { color:#fff; opacity:.75; }
-  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px;
+  .chip[aria-pressed="true"] .meta { color:#fff; opacity:.8; }
+  .sizer { display:flex; gap:.3rem; align-items:center; }
+  .sizer button { border:1px solid var(--line); background:var(--panel); color:var(--ink);
+          border-radius:.35rem; width:2rem; height:2rem; cursor:pointer;
+          font:inherit; line-height:1; }
+  .sizer button:hover { border-color:var(--accent); }
+  .sizer span { color:var(--muted); font-size:.78rem; text-transform:uppercase;
+          letter-spacing:.05em; margin-right:.2rem; }
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:.6rem;
                background:var(--panel); }
-  table { border-collapse:collapse; width:100%; font-size:13.5px; }
-  th, td { padding:9px 11px; text-align:right; white-space:nowrap;
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  th, td { padding:.65rem .8rem; text-align:right; white-space:nowrap;
            border-bottom:1px solid var(--line); }
   th { position:sticky; top:0; background:var(--panel); cursor:pointer;
-       font-size:11px; text-transform:uppercase; letter-spacing:.04em;
-       color:var(--muted); user-select:none; }
+       font-size:.72rem; text-transform:uppercase; letter-spacing:.05em;
+       color:var(--muted); user-select:none; z-index:1; }
   th:hover { color:var(--ink); }
   td.l, th.l { text-align:left; }
   tbody tr:hover { background:var(--chip); }
   .num { font-family:var(--mono); }
   .pos { color:var(--pos); } .neg { color:var(--neg); }
-  .name { font-weight:600; }
-  .meta { color:var(--muted); font-size:12px; }
-  .v { font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); }
-  .v-no_brainer { background:var(--pos); color:#fff; border-color:transparent; }
+  .name { font-weight:600; font-size:1rem; }
+  .meta { color:var(--muted); font-size:.8rem; }
+  .v { font-size:.75rem; padding:.15rem .5rem; border-radius:999px;
+       border:1px solid var(--line); white-space:nowrap; }
+  .v-no_brainer { background:var(--accent); color:#fff; border-color:transparent; }
   .v-floor_positive { color:var(--pos); }
   .v-ten_or_bust { color:var(--warn); }
   .v-dead { color:var(--muted); }
   .flag { color:var(--warn); cursor:help; }
-  .empty { padding:40px 20px; text-align:center; color:var(--muted); }
-  code { background:var(--chip); padding:2px 6px; border-radius:4px; font-size:12.5px; }
-  .bar { display:flex; flex-wrap:wrap; gap:18px; align-items:baseline;
-         font-size:13px; color:var(--muted); }
+  .empty { padding:2.5rem 1.2rem; text-align:center; color:var(--muted); }
+  code { background:var(--chip); padding:.1rem .35rem; border-radius:.25rem; font-size:.9em; }
+  .bar { display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; align-items:baseline;
+         font-size:.9rem; color:var(--muted); }
   .bar b { color:var(--ink); font-family:var(--mono); font-weight:600; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Grade Gap Tracker</h1>
-  <div class="sub">Ranked by what clears at a <strong>PSA 9</strong> — the downside case, not the PSA 10 lottery.</div>
+  <div>
+    <h1>Grade Gap Tracker</h1>
+    <div class="sub">Ranked by what clears at a <strong>PSA 9</strong> — the downside case, not the PSA 10 lottery.</div>
+  </div>
+  <div class="sizer">
+    <span>Text</span>
+    <button id="smaller" title="Smaller text" aria-label="Smaller text">A−</button>
+    <button id="bigger" title="Larger text" aria-label="Larger text">A+</button>
+    <button id="resetsize" title="Reset text size" aria-label="Reset text size">⤾</button>
+  </div>
 </header>
 <main>
   <div class="panel bar" id="coverage"></div>
@@ -164,7 +185,9 @@ const signed = v => v == null ? "—" :
 function spark(series) {
   const pts = (series || []).filter(v => v != null);
   if (pts.length < 2) return `<span class="meta">—</span>`;
-  const w = 68, h = 18, min = Math.min(...pts), max = Math.max(...pts);
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 17;
+  const w = Math.round(rem * 4.4), h = Math.round(rem * 1.2);
+  const min = Math.min(...pts), max = Math.max(...pts);
   const span = (max - min) || 1;
   const d = pts.map((v, i) =>
     `${(i / (pts.length - 1) * w).toFixed(1)},${(h - (v - min) / span * h).toFixed(1)}`).join(" ");
@@ -173,6 +196,33 @@ function spark(series) {
     <polyline fill="none" stroke="${up ? "var(--pos)" : "var(--neg)"}"
       stroke-width="1.5" points="${d}"/></svg>`;
 }
+
+// --- text size -----------------------------------------------------------
+// Stored per browser. Every read and write is guarded: some contexts (private
+// windows, blocked site data) throw on access rather than returning null.
+const SIZE_KEY = "gapTrackerFontPx", SIZE_MIN = 13, SIZE_MAX = 26, SIZE_DEFAULT = 17;
+
+function applySize(px) {
+  const clamped = Math.min(SIZE_MAX, Math.max(SIZE_MIN, px));
+  document.documentElement.style.fontSize = clamped + "px";
+  try { localStorage.setItem(SIZE_KEY, String(clamped)); } catch (e) { /* ignore */ }
+  return clamped;
+}
+
+function currentSize() {
+  const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(px) ? px : SIZE_DEFAULT;
+}
+
+(function initSize() {
+  let stored = null;
+  try { stored = localStorage.getItem(SIZE_KEY); } catch (e) { /* ignore */ }
+  const px = parseFloat(stored);
+  if (Number.isFinite(px)) applySize(px);
+  document.getElementById("bigger").onclick    = () => applySize(currentSize() + 1);
+  document.getElementById("smaller").onclick   = () => applySize(currentSize() - 1);
+  document.getElementById("resetsize").onclick = () => applySize(SIZE_DEFAULT);
+})();
 
 let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
