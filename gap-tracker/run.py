@@ -65,7 +65,9 @@ def load_env_file(path: Path) -> None:
     environment. Keeps the API key out of shell history and out of git."""
     if not path.exists():
         return
-    for raw in path.read_text().splitlines():
+    # utf-8-sig: PowerShell and Notepad can prepend a BOM, which would
+    # otherwise become part of the first key name.
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
