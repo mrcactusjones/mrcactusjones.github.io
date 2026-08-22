@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -24,6 +25,52 @@ from gapscan.catalog import build as build_catalog
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
 from gapscan.providers.mock import MockProvider
 from gapscan.store import Store
+
+
+class _Tee:
+    """Mirror writes to the console and a log file."""
+
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, text):
+        for stream in self.streams:
+            stream.write(text)
+        return len(text)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+def start_logging(root: Path):
+    """Tee stdout/stderr into data/logs/YYYY-MM-DD.log.
+
+    Kept in Python rather than the shell wrappers so date formatting and
+    directory creation work identically on Windows, macOS and Linux.
+    """
+    from datetime import datetime, timezone
+    log_dir = root / "data" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc)
+    handle = open(log_dir / f"{stamp.date().isoformat()}.log", "a", encoding="utf-8")
+    handle.write(f"\n=== {stamp.replace(microsecond=0).isoformat()} ===\n")
+    sys.stdout = _Tee(sys.__stdout__, handle)
+    sys.stderr = _Tee(sys.__stderr__, handle)
+    return handle
+
+
+def load_env_file(path: Path) -> None:
+    """Read KEY=VALUE lines from a local .env, without overriding the real
+    environment. Keeps the API key out of shell history and out of git."""
+    if not path.exists():
+        return
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 def load_seeds() -> dict:
@@ -209,18 +256,25 @@ def main() -> int:
         p.add_argument("--provider", choices=("mock", "ppt"), default="mock")
         p.add_argument("--drift", default="", help="mock only: vary the fake prices")
 
+    def add_log(p):
+        p.add_argument("--log", action="store_true",
+                       help="also append output to data/logs/<date>.log")
+
     p = sub.add_parser("catalog", help="rebuild the candidate universe (free)")
     p.add_argument("--fixture", action="store_true", help="use the offline fixture")
+    add_log(p)
     p.set_defaults(func=cmd_catalog)
 
     p = sub.add_parser("scan", help="spend the day's credits on graded prices")
     add_provider(p)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--budget", type=int, help="override daily credits")
+    add_log(p)
     p.set_defaults(func=cmd_scan)
 
     p = sub.add_parser("rank", help="re-rank, snapshot, promote the watchlist")
     p.add_argument("--top", type=int, default=15)
+    add_log(p)
     p.set_defaults(func=cmd_rank)
 
     p = sub.add_parser("daily", help="catalog (if needed) + scan + rank")
@@ -230,6 +284,7 @@ def main() -> int:
     p.add_argument("--top", type=int, default=15)
     p.add_argument("--rebuild-catalog", action="store_true")
     p.add_argument("--fixture", action="store_true")
+    add_log(p)
     p.set_defaults(func=cmd_daily)
 
     p = sub.add_parser("probe", help="dump a raw provider response")
@@ -245,8 +300,16 @@ def main() -> int:
     p.set_defaults(func=cmd_serve)
 
     args = parser.parse_args()
-    cfg = Config.load(args.config)
-    return args.func(args, cfg, Store())
+    here = Path(__file__).resolve().parent
+    load_env_file(here / ".env")
+    handle = start_logging(here) if getattr(args, "log", False) else None
+    try:
+        cfg = Config.load(args.config)
+        return args.func(args, cfg, Store())
+    finally:
+        if handle is not None:
+            sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
+            handle.close()
 
 
 if __name__ == "__main__":

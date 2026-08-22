@@ -17,12 +17,48 @@ python3 run.py serve     # http://127.0.0.1:8765/index.html
 
 Everything works before you have an API key. When you're ready for real prices:
 
+1. Get a free key at [pokemonpricetracker.com](https://www.pokemonpricetracker.com/pricing)
+   (100 credits/day, no card required).
+2. Copy `.env.example` to `.env` and paste the key in. `.env` is git-ignored.
+3. Check the plumbing before spending anything:
+
 ```bash
-export PPT_API_KEY=...           # pokemonpricetracker.com
-python3 run.py catalog           # free: builds the candidate universe
-python3 run.py scan --provider ppt --dry-run   # see what it would spend
-python3 run.py daily --provider ppt            # what cron should call
+python3 run.py catalog                          # free; warns on bad set ids
+python3 run.py scan --provider ppt --dry-run    # shows what it would fetch, spends nothing
+python3 run.py probe --card base1-4             # 1 card: confirms the field mapping
 ```
+
+4. Then run it for real:
+
+```bash
+python3 run.py daily --provider ppt --log
+```
+
+## Running it daily
+
+Missing a day costs a day of price history, so schedule it.
+
+**Windows** — one command, then it runs at 9am daily:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-schedule.ps1
+Start-ScheduledTask -TaskName GapTracker     # test it immediately
+```
+
+Change the time with `-At "7:00AM"`. Remove it with
+`Unregister-ScheduledTask -TaskName GapTracker -Confirm:$false`. If PowerShell
+policy blocks it, `scripts\run-daily.bat` does the same job and can be pointed
+at by Task Scheduler's GUI.
+
+**macOS / Linux** — `crontab -e`, then:
+
+```
+0 9 * * * /full/path/to/gap-tracker/scripts/run-daily.sh
+```
+
+Either way, output lands in `data/logs/<date>.log`. The scheduled task is set
+to catch up on a missed run rather than skip it, so a sleeping laptop doesn't
+put a hole in the history.
 
 ## The money math
 
@@ -76,10 +112,12 @@ gapscan/catalog.py      free universe build from pokemontcg.io
 gapscan/scan.py         budget-aware rolling scanner
 gapscan/rank.py         ranking, snapshots, watchlist promotion
 gapscan/providers/      mock (offline) and ppt (real) price sources
+scripts/                run-daily wrappers + Windows Task Scheduler installer
 seeds/community.json    curated bootstrap: which sets/cards get credits first
 fixtures/catalog.json   offline stand-in for pokemontcg.io so demo needs no network
 index.html              dashboard; recomputes client-side as you move the sliders
-data/                   git-ignored: cache, rankings, daily history
+.env                    git-ignored: your API key (copy .env.example)
+data/                   git-ignored: cache, rankings, daily history, logs
 ```
 
 ## Configuration
