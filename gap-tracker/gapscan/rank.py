@@ -22,12 +22,20 @@ def _streak(series: list[dict], threshold: float) -> int:
     return count
 
 
-def build(universe: dict, store: Store, cfg: Config) -> dict:
-    history = store.load_history()
+def build(universe: dict, store: Store, cfg: Config,
+          quotes: dict | None = None, history: dict | None = None) -> dict:
+    """Rank every priced card.
+
+    `quotes` and `history` let a caller supply data it already holds, so a
+    repeated build (the demo replaying many days) doesn't re-read the whole
+    cache directory each time.
+    """
+    if history is None:
+        history = store.load_history()
     rows = []
 
     for entry in universe.values():
-        cached = store.load_quote(entry["id"])
+        cached = quotes[entry["id"]] if quotes is not None else store.load_quote(entry["id"])
         if not cached or cached.get("miss") or not cached.get("quote"):
             continue
         quote = Quote(**cached["quote"])
@@ -76,7 +84,7 @@ def build(universe: dict, store: Store, cfg: Config) -> dict:
     return {
         "generated_at": iso(utcnow()),
         "config": cfg.to_dict(),
-        "coverage": coverage(universe, store, cfg),
+        "coverage": coverage(universe, store, cfg, quotes=quotes),
         "verdict_counts": counts,
         "rows": rows,
     }

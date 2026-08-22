@@ -119,25 +119,45 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
 
 
 def cmd_demo(args, cfg: Config, store: Store) -> int:
-    """Fill the dashboard with fake but plausible data, including history."""
+    """Fill the dashboard with fake but plausible data, including history.
+
+    Everything is held in memory and written once at the end. Writing each
+    simulated day to disk meant thousands of file operations, which is fast on
+    Linux and painfully slow on Windows, where every file create is scanned.
+    """
     args.fixture = True
     if cmd_catalog(args, cfg, store):
         return 1
     universe = store.load_universe()
-    cfg.budget.daily_credits = len(universe) * cfg.budget.credits_per_card
+
+    quotes: dict[str, dict] = {}
+    history: dict[str, list[dict]] = {}
+    stamp = store_now()
+    print(f"simulating {args.days} days across {len(universe)} cards ", end="", flush=True)
+
     for day in range(args.days):
         provider = MockProvider(drift_seed=f"day{day}")
         for entry in universe.values():
-            quote = provider.fetch(entry)
-            store.save_quote(entry["id"], {
-                "id": entry["id"], "fetched_at": store_now(), "miss": False,
-                "quote": quote.__dict__, "provider": "mock"})
-        rankings = rank_mod.build(universe, store, cfg)
+            quotes[entry["id"]] = {
+                "id": entry["id"], "fetched_at": stamp, "miss": False,
+                "quote": provider.fetch(entry).__dict__, "provider": "mock"}
+
+        rankings = rank_mod.build(universe, store, cfg, quotes=quotes, history=history)
         rank_mod.promote_watchlist(universe, rankings, cfg)
-        # Backdate each pass so the history series has more than one point.
-        _write_backdated_snapshot(store, rankings, args.days - day - 1)
+
+        days_ago = args.days - day - 1
+        _write_backdated_snapshot(store, rankings, days_ago)
+        date = _snapshot_date(days_ago)
+        for row in rankings["rows"]:
+            history.setdefault(row["id"], []).append(
+                {"date": date, "floor_profit": row["floor_profit"]})
+        print(".", end="", flush=True)
+    print()
+
+    for card_id, record in quotes.items():
+        store.save_quote(card_id, record)
     store.save_universe(universe)
-    rankings = rank_mod.build(universe, store, cfg)
+    rankings = rank_mod.build(universe, store, cfg, quotes=quotes, history=history)
     store.save_rankings(rankings)
     print(f"demo data ready: {len(rankings['rows'])} cards, {args.days} days of history")
     print("now run:  python3 run.py serve")
@@ -149,10 +169,15 @@ def store_now() -> str:
     return iso(utcnow())
 
 
-def _write_backdated_snapshot(store: Store, rankings: dict, days_ago: int) -> None:
+def _snapshot_date(days_ago: int) -> str:
     from datetime import timedelta
-    from gapscan.store import utcnow, _atomic_write
-    day = (utcnow() - timedelta(days=days_ago)).date().isoformat()
+    from gapscan.store import utcnow
+    return (utcnow() - timedelta(days=days_ago)).date().isoformat()
+
+
+def _write_backdated_snapshot(store: Store, rankings: dict, days_ago: int) -> None:
+    from gapscan.store import _atomic_write
+    day = _snapshot_date(days_ago)
     slim = [{k: r[k] for k in ("id", "floor_profit", "upside_profit", "verdict",
                                "raw", "psa9", "psa10") if k in r}
             for r in rankings["rows"]]

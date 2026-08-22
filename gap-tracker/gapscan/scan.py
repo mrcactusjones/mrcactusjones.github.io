@@ -82,11 +82,13 @@ def run(universe: dict, store: Store, cfg: Config, provider, dry_run: bool = Fal
             "watchlist": len(watch_batch), "discovery": len(disc_batch)}
 
 
-def coverage(universe: dict, store: Store, cfg: Config) -> dict:
+def coverage(universe: dict, store: Store, cfg: Config,
+             quotes: dict | None = None) -> dict:
+    """Pass `quotes` to score against an in-memory cache instead of the disk."""
     seen = stale = 0
     oldest = 0.0
     for entry in universe.values():
-        cached = store.load_quote(entry["id"])
+        cached = quotes[entry["id"]] if quotes is not None else store.load_quote(entry["id"])
         if not cached:
             continue
         seen += 1
