@@ -120,6 +120,15 @@ def _pick_raw(pairs) -> float | None:
     return best[1] if best else None
 
 
+class PPTError(Exception):
+    """An HTTP error that keeps the server's own explanation attached."""
+
+    def __init__(self, code: int, detail: str):
+        self.code = code
+        self.detail = detail
+        super().__init__(f"HTTP {code}: {detail}")
+
+
 def _norm(value) -> str:
     return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
 
@@ -255,29 +264,39 @@ class PPTProvider:
         try:
             with urllib.request.urlopen(req, timeout=45) as resp:
                 return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            # The body explains *why* -- discarding it turns a one-line fix
+            # into a guessing game.
+            try:
+                detail = exc.read(500).decode("utf-8", "replace").strip()
+            except Exception:  # noqa: BLE001
+                detail = ""
+            raise PPTError(exc.code, detail or exc.reason) from None
         finally:
             self._last_call = time.monotonic()
 
-    def raw_response(self, card: dict) -> dict:
+    # Kept minimal on purpose: `probe --discover` proved the API accepts
+    # search+limit and rejects invented parameters with a 400.
+    EXTRA_PARAMS: dict[str, str] = {}
+
+    def search_text(self, card: dict) -> str:
+        return f"{card.get('name', '')} {card.get('set_name', '')}".strip()
+
+    def raw_response(self, card: dict, search: str | None = None) -> dict:
         """Unparsed response -- what `run.py probe` prints."""
-        query = f"{card.get('name', '')} {card.get('set_name', '')}".strip()
-        return self._request("cards", {
-            "search": query,
-            "number": card.get("number") or "",
-            "limit": 5,
-            "includePsa": "true",
-            "includeHistory": "false",
-        })
+        params = {"search": search or self.search_text(card), "limit": 10}
+        params.update(self.EXTRA_PARAMS)
+        return self._request("cards", params)
 
     def fetch(self, card: dict) -> Quote | None:
         try:
             blob = self.raw_response(card)
-        except urllib.error.HTTPError as exc:
+        except PPTError as exc:
             if exc.code in (401, 403):
-                raise SystemExit(f"PPT rejected the API key ({exc.code}).")
+                raise SystemExit(f"PPT rejected the API key ({exc.code}): {exc.detail}")
             if exc.code == 429:
-                raise SystemExit("PPT rate limit / daily credits exhausted. Resume tomorrow.")
-            print(f"  ! {card['id']}: HTTP {exc.code}")
+                raise SystemExit(f"PPT rate limit / credits exhausted: {exc.detail}")
+            print(f"  ! {card['id']}: {exc}")
             return None
         except (urllib.error.URLError, TimeoutError) as exc:
             print(f"  ! {card['id']}: {exc}")

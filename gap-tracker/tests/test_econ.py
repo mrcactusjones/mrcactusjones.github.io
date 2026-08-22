@@ -161,3 +161,35 @@ class TestCardMatching(unittest.TestCase):
         # Right set, wrong card entirely.
         hits = [{"name": "Blastoise", "setName": "Base Set", "cardNumber": "2"}]
         self.assertIsNone(self.pick(hits, self.card)[0])
+
+
+class TestErrorSurfacing(unittest.TestCase):
+    """A 4xx body explains the problem; losing it costs a debugging round-trip."""
+
+    def test_http_error_body_is_kept(self):
+        import io
+        import urllib.error
+        from unittest import mock
+        from gapscan.providers import ppt
+
+        err = urllib.error.HTTPError(
+            "http://x", 400, "Bad Request", {},
+            io.BytesIO(b'{"error":"Unknown parameter: includePsa"}'))
+        provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        provider.api_key, provider.base = "k", "http://x"
+        provider.min_interval, provider._last_call = 0, 0
+        with mock.patch.object(ppt.urllib.request, "urlopen", side_effect=err):
+            with self.assertRaises(ppt.PPTError) as ctx:
+                provider._request("cards", {"search": "x"})
+        self.assertEqual(ctx.exception.code, 400)
+        self.assertIn("includePsa", str(ctx.exception))
+
+    def test_only_proven_params_are_sent(self):
+        from unittest import mock
+        from gapscan.providers import ppt
+        provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        provider.api_key, provider.base = "k", "http://x"
+        provider.min_interval, provider._last_call = 0, 0
+        with mock.patch.object(provider, "_request", return_value={}) as req:
+            provider.raw_response({"name": "Kingdra", "set_name": "Aquapolis"})
+        self.assertEqual(set(req.call_args[0][1]), {"search", "limit"})

@@ -198,10 +198,19 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
         card = max(universe.values(), key=lambda e: e.get("priority", 0))
         print(f"(no --card given; using {card['id']})")
 
+    from gapscan.providers.ppt import PPTError
+
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
-    print(f"GET {provider.base}/cards  for {card.get('name')} "
-          f"({card.get('set_name')} #{card.get('number')})\n")
-    blob = provider.raw_response(card)
+    query = args.search or provider.search_text(card)
+    print(f"GET {provider.base}/cards?search={query}&limit=10")
+    print(f"  looking for: {card.get('name')} ({card.get('set_name')} "
+          f"#{card.get('number')})\n")
+    try:
+        blob = provider.raw_response(card, search=args.search)
+    except PPTError as exc:
+        print(f"Request failed: {exc}")
+        print("\nTry a different search term:  run.py probe --search \"Kingdra\"")
+        return 1
 
     results = results_of(blob)
     record, why = pick_match(results, card)
@@ -364,6 +373,7 @@ def main() -> int:
     p.add_argument("--card", help="universe card id, e.g. base1-4")
     p.add_argument("--discover", action="store_true",
                    help="try candidate API endpoints and report what answers")
+    p.add_argument("--search", help="override the search text sent to the API")
     p.set_defaults(func=cmd_probe)
 
     p = sub.add_parser("reset", help="delete cached prices/rankings (e.g. demo data)")
