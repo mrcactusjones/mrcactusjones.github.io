@@ -184,7 +184,8 @@ class TestErrorSurfacing(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 400)
         self.assertIn("includePsa", str(ctx.exception))
 
-    def test_only_proven_params_are_sent(self):
+    def test_only_documented_params_are_sent(self):
+        """search+limit were proven by discover; includeEbay is what returns PSA."""
         from unittest import mock
         from gapscan.providers import ppt
         provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
@@ -192,4 +193,54 @@ class TestErrorSurfacing(unittest.TestCase):
         provider.min_interval, provider._last_call = 0, 0
         with mock.patch.object(provider, "_request", return_value={}) as req:
             provider.raw_response({"name": "Kingdra", "set_name": "Aquapolis"})
-        self.assertEqual(set(req.call_args[0][1]), {"search", "limit"})
+        self.assertEqual(set(req.call_args[0][1]), {"search", "limit", "includeEbay"})
+        self.assertEqual(req.call_args[0][1]["search"], "Kingdra Aquapolis")
+
+
+class TestRealResponseShape(unittest.TestCase):
+    """Built from the actual API response, including the wrong-card near miss."""
+
+    KINGDRA_HOLO = {
+        "externalCatalogId": "ecard2-H14", "setName": "Aquapolis",
+        "cardNumber": "H14/H32", "name": "Kingdra (H14)",
+        "prices": {"market": 214.44, "low": 99.2, "sellers": 9, "listings": 11},
+        "ebay": {"salesByGrade": {
+            "psa10": {"price": 1250.0, "count": 6},
+            "psa9": {"price": 430.0, "count": 14},
+            "psa8": {"price": 210.0, "count": 3}}},
+    }
+
+    def test_extracts_prices_from_sales_by_grade(self):
+        q = extract_quote(self.KINGDRA_HOLO)
+        self.assertAlmostEqual(q.raw, 214.44)
+        self.assertAlmostEqual(q.psa9, 430.0)
+        self.assertAlmostEqual(q.psa10, 1250.0)
+        self.assertEqual(q.sales_9, 14)
+        self.assertEqual(q.sales_10, 6)
+
+    def test_holo_variant_is_not_accepted_for_the_plain_card(self):
+        from gapscan.providers.ppt import pick_match
+        plain = {"id": "ecard2-19", "name": "Kingdra",
+                 "set_name": "Aquapolis", "number": "19"}
+        record, why = pick_match([self.KINGDRA_HOLO], plain)
+        self.assertIsNone(record, "H14 holo is a different card from #19")
+        self.assertIn("no confident match", why)
+
+    def test_external_catalog_id_matches_exactly(self):
+        from gapscan.providers.ppt import pick_match
+        holo = {"id": "ecard2-H14", "name": "Kingdra",
+                "set_name": "Aquapolis", "number": "H14"}
+        record, why = pick_match([self.KINGDRA_HOLO], holo)
+        self.assertIsNotNone(record)
+        self.assertIn("externalCatalogId", why)
+
+    def test_slashed_numbers_compare_on_the_first_part(self):
+        from gapscan.providers.ppt import pick_match
+        record, why = pick_match(
+            [{"setName": "151", "cardNumber": "25/165", "name": "Pikachu"}],
+            {"id": "sv3pt5-25", "name": "Pikachu", "set_name": "151", "number": "25"})
+        self.assertIsNotNone(record, "25 should match 25/165")
+
+    def test_graded_prices_are_requested(self):
+        from gapscan.providers import ppt
+        self.assertEqual(ppt.PPTProvider.EXTRA_PARAMS.get("includeEbay"), "true")

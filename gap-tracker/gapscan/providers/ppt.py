@@ -24,6 +24,9 @@ from ..econ import Quote
 from ..store import iso, utcnow
 
 DEFAULT_BASE = "https://www.pokemonpricetracker.com/api/v2"
+# Wide enough that the right printing is in the page; matching is exact,
+# so extra results cost nothing but are cheap insurance.
+SEARCH_LIMIT = 25
 
 # Fill these in after a `probe` run to bypass pattern matching entirely.
 # Values are dotted paths into the response, e.g. "data.0.prices.psa10.market".
@@ -147,37 +150,42 @@ def results_of(blob) -> list[dict]:
     return []
 
 
+def _norm_number(value) -> str:
+    """Card numbers come as '19', 'H14/H32', '25/165'. Compare the first part."""
+    return _norm(str(value or "").split("/")[0])
+
+
 def pick_match(results: list[dict], card: dict) -> tuple[dict | None, str]:
     """Choose the record that really is this card.
 
-    Their search is fuzzy and returns whatever is closest, so taking the first
-    result would quietly price the wrong card. Require corroboration from the
-    card number and the set/name before believing a match.
+    Their search is fuzzy, and a set can hold two cards with the same name --
+    Aquapolis has both Kingdra #19 and holo Kingdra H14. Name and set agreeing
+    is therefore NOT identification; the card number has to agree too, or the
+    catalog id has to match outright.
     """
-    want_num, want_set = _norm(card.get("number")), _norm(card.get("set_name"))
-    want_name = _norm(card.get("name"))
-    best_score, best, why = 0, None, "no results"
+    want_id = _norm(card.get("id"))
+    want_num = _norm_number(card.get("number"))
+    want_set = _norm(card.get("set_name"))
+
+    # Best case: they carry a pokemontcg.io-style id, so this is exact.
+    if want_id:
+        for record in results:
+            if _norm(record.get("externalCatalogId")) == want_id:
+                return record, f"exact externalCatalogId ({record.get('externalCatalogId')})"
 
     for record in results:
-        got_num = _norm(record.get("cardNumber") or record.get("number"))
+        got_num = _norm_number(record.get("cardNumber") or record.get("number"))
         got_set = _norm(record.get("setName") or record.get("set"))
-        got_name = _norm(record.get("name"))
-        score, notes = 0, []
-        if want_num and got_num == want_num:
-            score += 3; notes.append("number")
-        if want_set and got_set == want_set:
-            score += 2; notes.append("set")
-        elif want_set and got_set and (want_set in got_set or got_set in want_set):
-            score += 1; notes.append("set~")
-        if want_name and got_name and (want_name in got_name or got_name.startswith(want_name)):
-            score += 2; notes.append("name")
-        if score > best_score:
-            best_score, best, why = score, record, "+".join(notes)
+        if not (want_num and got_num and want_num == got_num):
+            continue
+        if want_set and got_set and not (
+                want_set == got_set or want_set in got_set or got_set in want_set):
+            continue
+        return record, f"set+number ({record.get('setName')} #{record.get('cardNumber')})"
 
-    # 4 = set + name, or number + name. Anything less isn't identification.
-    if best_score >= 4:
-        return best, f"matched on {why} (score {best_score})"
-    return None, f"no confident match (best score {best_score}, {why})"
+    seen = ", ".join(
+        f"{r.get('setName')} #{r.get('cardNumber')}" for r in results[:4]) or "nothing"
+    return None, f"no confident match; need id or set+number. Saw: {seen}"
 
 
 def extract_quote(blob: dict) -> Quote:
@@ -277,14 +285,16 @@ class PPTProvider:
 
     # Kept minimal on purpose: `probe --discover` proved the API accepts
     # search+limit and rejects invented parameters with a 400.
-    EXTRA_PARAMS: dict[str, str] = {}
+    # includeEbay is what returns ebay.salesByGrade.psa9 / .psa10; without it
+    # the response carries TCGplayer raw prices only.
+    EXTRA_PARAMS: dict[str, str] = {"includeEbay": "true"}
 
     def search_text(self, card: dict) -> str:
         return f"{card.get('name', '')} {card.get('set_name', '')}".strip()
 
     def raw_response(self, card: dict, search: str | None = None) -> dict:
         """Unparsed response -- what `run.py probe` prints."""
-        params = {"search": search or self.search_text(card), "limit": 10}
+        params = {"search": search or self.search_text(card), "limit": SEARCH_LIMIT}
         params.update(self.EXTRA_PARAMS)
         return self._request("cards", params)
 

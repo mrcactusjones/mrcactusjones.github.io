@@ -219,6 +219,10 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
     if record is not None:
         print("\n--- keys on the matched record ---")
         print(", ".join(sorted(record)))
+        graded = record.get("ebay")
+        print("\n--- graded block ---")
+        print(json.dumps(graded, indent=2)[:3000] if graded
+              else "none returned (PSA prices need includeEbay=true)")
         print("\n--- what the extractor found ---")
         print(json.dumps(extract_quote(record).__dict__, indent=2))
     return 0
