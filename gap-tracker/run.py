@@ -116,7 +116,9 @@ def cmd_catalog(args, cfg: Config, store: Store) -> int:
         if card_id in merged and entry.get("tier"):
             merged[card_id]["tier"] = entry["tier"]
 
-    merged.update(watchlist_mod.to_universe(watchlist_mod.load()))
+    watch_blob = watchlist_mod.load()
+    watchlist_mod.save(watch_blob)          # persist any migrated resolutions
+    merged.update(watchlist_mod.to_universe(watch_blob))
     store.save_universe(merged, meta)
     kept = len(merged) - len(universe)
     print(f"universe: {len(merged)} candidates ({len(universe)} from this run"
@@ -307,8 +309,13 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
             mark = "ok " if watchlist_mod.is_resolved(entry) else "?? "
             where = entry.get("set_name") or f"unresolved (hint: {entry.get('set_hint')})"
             print(f"  {mark}{entry['name']} #{entry['number']} -- {where}")
-        print(f"\n{sum(1 for e in entries if watchlist_mod.is_resolved(e))}"
-              f"/{len(entries)} resolved. Resolve the rest with --resolve.")
+        # Persist anything migrated out of the tracked file, so reverting that
+        # file can't take the resolutions with it.
+        watchlist_mod.save(blob)
+        done = sum(1 for e in entries if watchlist_mod.is_resolved(e))
+        print(f"\n{done}/{len(entries)} resolved; stored in {watchlist_mod.LOCAL}")
+        if done < len(entries):
+            print("Resolve the rest with --resolve.")
         return 0
 
     from gapscan.providers.ppt import PPTError, PPTProvider
