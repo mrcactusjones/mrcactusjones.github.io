@@ -178,6 +178,7 @@ class TestErrorSurfacing(unittest.TestCase):
         provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
         provider.api_key, provider.base = "k", "http://x"
         provider.min_interval, provider._last_call = 0, 0
+        provider.search_limit, provider.include_graded = 1, True
         with mock.patch.object(ppt.urllib.request, "urlopen", side_effect=err):
             with self.assertRaises(ppt.PPTError) as ctx:
                 provider._request("cards", {"search": "x"})
@@ -191,6 +192,7 @@ class TestErrorSurfacing(unittest.TestCase):
         provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
         provider.api_key, provider.base = "k", "http://x"
         provider.min_interval, provider._last_call = 0, 0
+        provider.search_limit, provider.include_graded = 1, True
         with mock.patch.object(provider, "_request", return_value={}) as req:
             provider.raw_response({"name": "Kingdra", "set_name": "Aquapolis"})
         self.assertEqual(set(req.call_args[0][1]), {"search", "limit", "includeEbay"})
@@ -322,3 +324,35 @@ class TestSmartPricePreference(unittest.TestCase):
         self.assertAlmostEqual(q.cgc9, 80.0)
         self.assertAlmostEqual(q.cgc10, 210.0)
         self.assertEqual(q.cgc9_sales, 2)
+
+
+class TestCreditCost(unittest.TestCase):
+    """Billing is per card RETURNED. Getting this wrong burned a whole day."""
+
+    def test_cost_scales_with_the_limit_not_the_request(self):
+        from gapscan.config import ScanBudget
+        self.assertEqual(ScanBudget(search_limit=1, include_graded=True).credits_per_call, 2)
+        self.assertEqual(ScanBudget(search_limit=1, include_graded=False).credits_per_call, 1)
+        # The setting that quietly cost 50 credits a call:
+        self.assertEqual(ScanBudget(search_limit=25, include_graded=True).credits_per_call, 50)
+
+    def test_default_limit_is_one(self):
+        from gapscan.config import ScanBudget
+        b = ScanBudget()
+        self.assertEqual(b.search_limit, 1)
+        self.assertEqual(b.daily_credits // b.credits_per_call, 50)
+
+    def test_provider_derives_its_own_cost(self):
+        from gapscan.providers import ppt
+        p = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        ppt.PPTProvider.__init__(p, api_key="k", search_limit=5, include_graded=True)
+        self.assertEqual(p.credits_per_card, 10)
+
+    def test_credits_from_error_reads_the_429_body(self):
+        from gapscan.providers.ppt import credits_from_error
+        body = ('{"error":"Daily credit limit exceeded","available":19,'
+                '"resetsAt":"2026-08-24T00:00:00.000Z"}')
+        msg = credits_from_error(body)
+        self.assertIn("19", msg)
+        self.assertIn("2026-08-24", msg)
+        self.assertIsNone(credits_from_error("not json"))

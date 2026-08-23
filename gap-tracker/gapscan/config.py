@@ -57,12 +57,22 @@ class ScanBudget:
     """
 
     daily_credits: int = 100
-    credits_per_card: int = 2
+    # The API bills per card RETURNED, not per request: a call costs
+    # search_limit x (1 base + 1 if the graded block is included). A limit of 25
+    # therefore cost 50 credits a call, not 2.
+    search_limit: int = 1
+    include_graded: bool = True
+    credits_per_card: int = 2  # derived; kept for config compatibility
     watchlist_size: int = 50
     watchlist_ttl_days: int = 7      # graded comps move on weeks, not days
     candidate_ttl_days: int = 30
     rejected_ttl_days: int = 90      # cards that failed badly; check back rarely
     watchlist_share: float = 0.5     # cap on budget spent refreshing knowns
+
+
+    @property
+    def credits_per_call(self) -> int:
+        return max(1, self.search_limit) * (2 if self.include_graded else 1)
 
 
 @dataclass

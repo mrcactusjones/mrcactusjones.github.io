@@ -26,7 +26,7 @@ from ..store import iso, utcnow
 DEFAULT_BASE = "https://www.pokemonpricetracker.com/api/v2"
 # Wide enough that the right printing is in the page; matching is exact,
 # so extra results cost nothing but are cheap insurance.
-SEARCH_LIMIT = 25
+SEARCH_LIMIT = 1  # per-card billing: every extra result is another credit
 
 # Fill these in after a `probe` run to bypass pattern matching entirely.
 # Values are dotted paths into the response, e.g. "data.0.prices.psa10.market".
@@ -309,12 +309,41 @@ def discover(api_key: str) -> list[tuple[str, str]]:
     return results
 
 
+FILTER_CANDIDATES = [
+    # (param name, how to build its value from a universe card)
+    ("externalCatalogId", lambda c: c.get("id")),
+    ("externalId", lambda c: c.get("id")),
+    ("catalogId", lambda c: c.get("id")),
+    ("cardId", lambda c: c.get("id")),
+    ("tcgPlayerId", lambda c: c.get("tcgplayer_id")),
+    ("cardNumber", lambda c: c.get("number")),
+    ("number", lambda c: c.get("number")),
+    ("set", lambda c: c.get("set_name")),
+    ("setName", lambda c: c.get("set_name")),
+]
+
+
+def credits_from_error(detail: str) -> str | None:
+    """Pull the remaining-credit figure out of a 429 body."""
+    try:
+        blob = json.loads(detail)
+    except (ValueError, TypeError):
+        return None
+    if "available" in blob:
+        return f"{blob.get('available')} credit(s) left, resets {blob.get('resetsAt')}"
+    return blob.get("message")
+
+
 class PPTProvider:
     name = "ppt"
 
     def __init__(self, credits_per_card: int = 2, api_key: str | None = None,
-                 base: str | None = None, min_interval: float = 1.1):
-        self.credits_per_card = credits_per_card
+                 base: str | None = None, min_interval: float = 1.1,
+                 search_limit: int = SEARCH_LIMIT, include_graded: bool = True):
+        self.search_limit = max(1, search_limit)
+        self.include_graded = include_graded
+        # Billing is per card returned, so the cost of one lookup is the limit.
+        self.credits_per_card = self.search_limit * (2 if include_graded else 1)
         self.api_key = api_key or os.environ.get("PPT_API_KEY")
         if not self.api_key:
             raise SystemExit("PPT_API_KEY is not set. Export it, or run with --provider mock.")
@@ -356,15 +385,17 @@ class PPTProvider:
         return f"{card.get('name', '')} {card.get('set_name', '')}".strip()
 
     def raw_response(self, card: dict, search: str | None = None,
-                     graded: bool = True) -> dict:
+                     graded: bool = True, filters: dict | None = None) -> dict:
         """Unparsed response -- what `run.py probe` prints.
 
         graded=False omits the eBay block, which is what makes a call cost two
         credits instead of one. Identity resolution doesn't need prices.
         """
-        params = {"search": search or self.search_text(card), "limit": SEARCH_LIMIT}
-        if graded:
+        params = {"search": search or self.search_text(card), "limit": self.search_limit}
+        if graded and self.include_graded:
             params.update(self.EXTRA_PARAMS)
+        if filters:
+            params.update(filters)
         return self._request("cards", params)
 
     def fetch(self, card: dict) -> Quote | None:

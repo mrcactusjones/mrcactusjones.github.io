@@ -84,7 +84,9 @@ def get_provider(args, cfg: Config):
     if args.provider == "mock":
         return MockProvider(drift_seed=getattr(args, "drift", "") or "")
     from gapscan.providers.ppt import PPTProvider
-    return PPTProvider(credits_per_card=cfg.budget.credits_per_card)
+    return PPTProvider(credits_per_card=cfg.budget.credits_per_call,
+                       search_limit=cfg.budget.search_limit,
+                       include_graded=cfg.budget.include_graded)
 
 
 def cmd_catalog(args, cfg: Config, store: Store) -> int:
@@ -204,7 +206,8 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
 
     from gapscan.providers.ppt import PPTError
 
-    provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
+    provider = PPTProvider(credits_per_card=cfg.budget.credits_per_call,
+                           search_limit=cfg.budget.search_limit)
     query = args.search or provider.search_text(card)
     print(f"GET {provider.base}/cards?search={query}&limit=10")
     print(f"  looking for: {card.get('name')} ({card.get('set_name')} "
@@ -232,6 +235,65 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_filters(args, cfg: Config, store: Store) -> int:
+    """Find a parameter that fetches exactly one known card.
+
+    Billing is per card returned, so each attempt uses limit=1 and no graded
+    block: one credit, win or lose.
+    """
+    from gapscan.providers.ppt import (FILTER_CANDIDATES, PPTError, PPTProvider,
+                                       credits_from_error, results_of)
+
+    universe = store.load_universe()
+    card = universe.get(args.card) if args.card else None
+    if card is None:
+        live = [e for e in universe.values() if e.get("source") != "fixture"]
+        if not live:
+            print("No live universe -- run `catalog` first.")
+            return 1
+        card = max(live, key=lambda e: e.get("priority", 0))
+    print(f"Target: {card['id']}  {card.get('name')} "
+          f"({card.get('set_name')} #{card.get('number')})")
+    print("Each attempt costs 1 credit (limit=1, no graded block).\n")
+
+    provider = PPTProvider(credits_per_card=1, search_limit=1, include_graded=False)
+    winners = []
+    for name, build in FILTER_CANDIDATES:
+        value = build(card)
+        if not value:
+            continue
+        try:
+            blob = provider.raw_response(card, search="", graded=False,
+                                         filters={name: value})
+        except PPTError as exc:
+            if exc.code == 429:
+                print(f"  out of credits -- {credits_from_error(exc.detail) or exc.detail}")
+                break
+            print(f"  {name}={value}: HTTP {exc.code}")
+            continue
+
+        records = results_of(blob)
+        if not records:
+            print(f"  {name}={value}: 0 results")
+            continue
+        top = records[0]
+        got = top.get("externalCatalogId")
+        exact = str(got) == str(card["id"])
+        flag = "HIT " if exact else "    "
+        print(f"  {flag}{name}={value}: {len(records)} result(s), "
+              f"top={top.get('setName')} #{top.get('cardNumber')} id={got}")
+        if exact:
+            winners.append(name)
+
+    print()
+    if winners:
+        print(f"Exact-lookup parameter(s): {', '.join(winners)}")
+        print(f"Put it in .env as  PPT_LOOKUP_PARAM={winners[0]}")
+    else:
+        print("No exact-lookup parameter found. Falling back to search+verify.")
+    return 0
+
+
 def cmd_watchlist(args, cfg: Config, store: Store) -> int:
     """Resolve hand-picked cards to exact provider records, then track them."""
     blob = watchlist_mod.load()
@@ -251,7 +313,8 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
 
     from gapscan.providers.ppt import PPTError, PPTProvider
 
-    provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
+    provider = PPTProvider(credits_per_card=cfg.budget.credits_per_call,
+                           search_limit=cfg.budget.search_limit)
     pending = [e for e in entries if not watchlist_mod.is_resolved(e) or args.force]
     print(f"Resolving {len(pending)} entr(ies), 1 credit each (no price data).\n")
 
@@ -262,6 +325,12 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
             blob_resp = provider.raw_response({"name": entry["name"]}, search=query,
                                               graded=False)
         except PPTError as exc:
+            from gapscan.providers.ppt import credits_from_error
+            if exc.code == 429:
+                print(f"  {entry['name']} #{entry['number']}: out of credits -- "
+                      f"{credits_from_error(exc.detail) or exc.detail}")
+                print("  stopping; the rest keep their place in the list.")
+                break
             print(f"  {entry['name']} #{entry['number']}: request failed -- {exc}")
             continue
 
@@ -506,6 +575,10 @@ def main() -> int:
                    help="try candidate API endpoints and report what answers")
     p.add_argument("--search", help="override the search text sent to the API")
     p.set_defaults(func=cmd_probe)
+
+    p = sub.add_parser("filters", help="find an exact-lookup param (1 credit per try)")
+    p.add_argument("--card", help="universe card id to test against")
+    p.set_defaults(func=cmd_filters)
 
     p = sub.add_parser("watchlist", help="hand-picked cards; --resolve to pin them")
     p.add_argument("--resolve", action="store_true", help="look each entry up (1 credit each)")
