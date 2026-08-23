@@ -228,6 +228,70 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_status(args, cfg: Config, store: Store) -> int:
+    """Where the project stands. Spends no credits."""
+    import json as _json
+
+    print("keys")
+    for name, label in (("PPT_API_KEY", "pokemonpricetracker"),
+                        ("POKEMONTCG_API_KEY", "pokemontcg.io")):
+        value = os.environ.get(name)
+        shown = f"...{value[-4:]}" if value else "MISSING"
+        print(f"  {label:<22} {shown}")
+
+    universe = store.load_universe()
+    if not universe:
+        print("\nNo universe yet. Next: run.py catalog")
+        return 0
+
+    sources = {}
+    tiers = {}
+    for entry in universe.values():
+        sources[entry.get("source", "?")] = sources.get(entry.get("source", "?"), 0) + 1
+        tiers[entry.get("tier", "candidate")] = tiers.get(entry.get("tier", "candidate"), 0) + 1
+    cov = scan_mod.coverage(universe, store, cfg)
+    per_day = max(cfg.budget.daily_credits // (cfg.budget.credits_per_card or 1), 1)
+
+    print(f"\nuniverse   {len(universe)} cards  {sources}")
+    if sources.get("fixture"):
+        print("           WARNING: demo data. Clear it with `run.py reset --yes`, "
+              "then `run.py catalog`.")
+    print(f"tiers      {tiers}")
+    print(f"coverage   {cov['scanned']}/{cov['universe']} scanned, {cov['stale']} stale, "
+          f"oldest {cov['oldest_scan_days']}d")
+    print(f"           ~{cov['days_to_full_coverage']} more day(s) at {per_day} cards/day")
+
+    newest, misses = None, 0
+    for _, record in store.all_quotes():
+        if record.get("miss"):
+            misses += 1
+        stamp = record.get("fetched_at")
+        if stamp and (newest is None or stamp > newest):
+            newest = stamp
+    if newest:
+        print(f"last scan  {newest}  ({misses} card(s) with no graded data)")
+    else:
+        print("last scan  never -- next: run.py daily --provider ppt --log")
+
+    snapshots = sorted(store.history.glob("*.json")) if store.history.exists() else []
+    print(f"history    {len(snapshots)} day(s)"
+          + (f", {snapshots[0].stem} to {snapshots[-1].stem}" if snapshots else ""))
+
+    rankings = store.root / "rankings.json"
+    if rankings.exists():
+        blob = _json.loads(rankings.read_text())
+        counts = blob.get("verdict_counts", {})
+        confident = sum(1 for r in blob.get("rows", []) if r.get("confident"))
+        print(f"rankings   {len(blob.get('rows', []))} priced, {confident} confident, {counts}")
+        best = [r for r in blob.get("rows", []) if r.get("confident")][:3]
+        for row in best:
+            print(f"           ${row['floor_profit']:>8.2f} floor  {row['name']} "
+                  f"({row['set_name']} {row['number']})")
+    else:
+        print("rankings   none yet")
+    return 0
+
+
 def cmd_reset(args, cfg: Config, store: Store) -> int:
     """Wipe cached prices and rankings -- e.g. to clear demo data before going live."""
     import shutil
@@ -379,6 +443,9 @@ def main() -> int:
                    help="try candidate API endpoints and report what answers")
     p.add_argument("--search", help="override the search text sent to the API")
     p.set_defaults(func=cmd_probe)
+
+    p = sub.add_parser("status", help="where things stand; spends no credits")
+    p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("reset", help="delete cached prices/rankings (e.g. demo data)")
     p.add_argument("--yes", action="store_true", help="actually do it")
