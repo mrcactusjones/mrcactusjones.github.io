@@ -59,14 +59,41 @@ class TestResolution(unittest.TestCase):
             self.assertIn("name", entry)
             self.assertIn("number", entry)
 
-    def test_resolved_entry_survives_a_round_trip(self, ):
+    def test_resolution_persists_without_touching_the_tracked_file(self):
+        import json as _json
         import tempfile
         watchlist.apply_resolution(self.entry, record("Portal", "094/106", "Clefairy"))
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "w.json"
-            watchlist.save({"cards": [self.entry]}, path)
-            again = watchlist.load(path)
+            tracked = Path(tmp) / "watchlist.json"
+            local = Path(tmp) / "local.json"
+            # The tracked file holds only the request, never the answer.
+            tracked.write_text(_json.dumps(
+                {"cards": [{"name": "Clefairy", "number": "094", "set_hint": "POR 2026"}]}))
+            before = tracked.read_text()
+
+            watchlist.save({"cards": [self.entry]}, local)
+            self.assertEqual(tracked.read_text(), before,
+                             "saving must not modify the tracked list")
+
+            again = watchlist.load(tracked, local)
         self.assertTrue(watchlist.is_resolved(again["cards"][0]))
+        self.assertEqual(again["cards"][0]["set_name"], "Portal")
+
+    def test_resolution_left_in_the_tracked_file_is_migrated(self):
+        import json as _json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tracked = Path(tmp) / "watchlist.json"
+            local = Path(tmp) / "local.json"
+            resolved = dict(self.entry, set_name="Portal", external_id="por-094")
+            tracked.write_text(_json.dumps({"cards": [resolved]}))
+
+            blob = watchlist.load(tracked, local)
+            self.assertTrue(watchlist.is_resolved(blob["cards"][0]))
+            watchlist.save(blob, local)
+            # Now it lives locally, so the tracked file can be reverted safely.
+            tracked.write_text(_json.dumps({"cards": [self.entry]}))
+            again = watchlist.load(tracked, local)
         self.assertEqual(again["cards"][0]["set_name"], "Portal")
 
 

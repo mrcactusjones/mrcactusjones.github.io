@@ -9,22 +9,57 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .config import SEEDS
+from .config import DATA, SEEDS
 from .providers.ppt import _norm, _norm_number, results_of
 
+# The tracked list of what to track, edited by hand.
 PATH = SEEDS / "watchlist.json"
+# Machine-written lookups, kept out of git so `git pull` never fights them.
+LOCAL = DATA / "watchlist.local.json"
+
+RESOLVED_FIELDS = ("set_name", "external_id", "ppt_id", "resolved_name",
+                   "resolved_number", "rarity")
 
 
-def load(path: Path | None = None) -> dict:
-    path = path or PATH
+def _key(entry: dict) -> str:
+    return f"{_norm(entry.get('name'))}|{_norm_number(entry.get('number'))}"
+
+
+def _read(path: Path) -> dict:
     if not path.exists():
-        return {"cards": []}
-    return json.loads(path.read_text(encoding="utf-8-sig"))
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError:
+        return {}
 
 
-def save(blob: dict, path: Path | None = None) -> None:
-    path = path or PATH
-    path.write_text(json.dumps(blob, indent=2) + "\n")
+def load(path: Path | None = None, local: Path | None = None) -> dict:
+    """The hand-edited list, with locally stored resolutions layered on."""
+    blob = _read(path or PATH) or {"cards": []}
+    blob.setdefault("cards", [])
+    resolutions = dict((_read(local or LOCAL) or {}).get("resolutions", {}))
+
+    for entry in blob["cards"]:
+        key = _key(entry)
+        # Migration: adopt any resolution still sitting in the tracked file.
+        if key not in resolutions and is_resolved(entry):
+            resolutions[key] = {f: entry[f] for f in RESOLVED_FIELDS if f in entry}
+        entry.update(resolutions.get(key, {}))
+
+    blob["_resolutions"] = resolutions
+    return blob
+
+
+def save(blob: dict, local: Path | None = None) -> None:
+    """Write resolutions only, and only to the untracked local file."""
+    resolutions = dict(blob.get("_resolutions", {}))
+    for entry in blob.get("cards", []):
+        if is_resolved(entry):
+            resolutions[_key(entry)] = {f: entry[f] for f in RESOLVED_FIELDS if f in entry}
+    target = local or LOCAL
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps({"resolutions": resolutions}, indent=2) + "\n")
 
 
 def is_resolved(entry: dict) -> bool:

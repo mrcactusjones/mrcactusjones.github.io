@@ -354,7 +354,7 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
 
     watchlist_mod.save(blob)
     done = sum(1 for e in entries if watchlist_mod.is_resolved(e))
-    print(f"\n{done}/{len(entries)} resolved -> {watchlist_mod.PATH}")
+    print(f"\n{done}/{len(entries)} resolved -> {watchlist_mod.LOCAL}")
     if done:
         print("Next: run.py catalog   (folds them into the universe)")
     return 0
