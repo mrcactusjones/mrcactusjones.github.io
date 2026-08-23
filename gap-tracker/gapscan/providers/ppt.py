@@ -355,10 +355,16 @@ class PPTProvider:
     def search_text(self, card: dict) -> str:
         return f"{card.get('name', '')} {card.get('set_name', '')}".strip()
 
-    def raw_response(self, card: dict, search: str | None = None) -> dict:
-        """Unparsed response -- what `run.py probe` prints."""
+    def raw_response(self, card: dict, search: str | None = None,
+                     graded: bool = True) -> dict:
+        """Unparsed response -- what `run.py probe` prints.
+
+        graded=False omits the eBay block, which is what makes a call cost two
+        credits instead of one. Identity resolution doesn't need prices.
+        """
         params = {"search": search or self.search_text(card), "limit": SEARCH_LIMIT}
-        params.update(self.EXTRA_PARAMS)
+        if graded:
+            params.update(self.EXTRA_PARAMS)
         return self._request("cards", params)
 
     def fetch(self, card: dict) -> Quote | None:

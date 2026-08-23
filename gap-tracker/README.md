@@ -50,6 +50,26 @@ then put the working base in `.env` as `PPT_API_BASE`.
 python3 run.py daily --provider ppt --log
 ```
 
+## Tracking specific cards
+
+`seeds/watchlist.json` holds hand-picked cards. They bypass the rarity and
+price-band filters, sit at the top of the scan queue, and survive catalog
+rebuilds.
+
+A name and number alone can match the wrong printing, so an entry has to be
+pinned to an exact provider record before it is tracked:
+
+```bash
+python3 run.py watchlist              # what's in the list, what's resolved
+python3 run.py watchlist --resolve    # look each one up, 1 credit each
+python3 run.py catalog                # fold the resolved ones into the universe
+```
+
+Resolution matches on card number and reports what it found. One candidate is
+accepted automatically; several are listed for you to choose between; none
+prints what it did see, so you can correct the number or set hint. Nothing is
+guessed.
+
 ## Running it daily
 
 Missing a day costs a day of price history, so schedule it.

@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gapscan import rank as rank_mod
+from gapscan import watchlist as watchlist_mod
 from gapscan import scan as scan_mod
 from gapscan.catalog import build as build_catalog
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
@@ -101,7 +102,9 @@ def cmd_catalog(args, cfg: Config, store: Store) -> int:
     source = "fixture" if fixture else "api"
     existing = store.load_universe()
     # Never mix demo cards into a live universe, or vice versa.
-    same_source = {k: v for k, v in existing.items() if v.get("source", "api") == source}
+    # Hand-picked cards are never touched by a catalog rebuild.
+    same_source = {k: v for k, v in existing.items()
+                   if v.get("source", "api") == source or v.get("source") == "manual"}
     # A partial build (--sets, or sets that failed) must leave the rest intact:
     # replace only the sets actually rebuilt this run.
     rebuilt = {v["set_id"] for v in universe.values()}
@@ -111,6 +114,7 @@ def cmd_catalog(args, cfg: Config, store: Store) -> int:
         if card_id in merged and entry.get("tier"):
             merged[card_id]["tier"] = entry["tier"]
 
+    merged.update(watchlist_mod.to_universe(watchlist_mod.load()))
     store.save_universe(merged, meta)
     kept = len(merged) - len(universe)
     print(f"universe: {len(merged)} candidates ({len(universe)} from this run"
@@ -225,6 +229,65 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
               else "none returned (PSA prices need includeEbay=true)")
         print("\n--- what the extractor found ---")
         print(json.dumps(extract_quote(record).__dict__, indent=2))
+    return 0
+
+
+def cmd_watchlist(args, cfg: Config, store: Store) -> int:
+    """Resolve hand-picked cards to exact provider records, then track them."""
+    blob = watchlist_mod.load()
+    entries = blob.get("cards", [])
+    if not entries:
+        print(f"No entries in {watchlist_mod.PATH}")
+        return 0
+
+    if not args.resolve:
+        for entry in entries:
+            mark = "ok " if watchlist_mod.is_resolved(entry) else "?? "
+            where = entry.get("set_name") or f"unresolved (hint: {entry.get('set_hint')})"
+            print(f"  {mark}{entry['name']} #{entry['number']} -- {where}")
+        print(f"\n{sum(1 for e in entries if watchlist_mod.is_resolved(e))}"
+              f"/{len(entries)} resolved. Resolve the rest with --resolve.")
+        return 0
+
+    from gapscan.providers.ppt import PPTError, PPTProvider
+
+    provider = PPTProvider(credits_per_card=cfg.budget.credits_per_card)
+    pending = [e for e in entries if not watchlist_mod.is_resolved(e) or args.force]
+    print(f"Resolving {len(pending)} entr(ies), 1 credit each (no price data).\n")
+
+    for entry in pending:
+        query = f"{entry['name']} {entry.get('set_hint', '')}".strip() if args.use_hint \
+            else entry["name"]
+        try:
+            blob_resp = provider.raw_response({"name": entry["name"]}, search=query,
+                                              graded=False)
+        except PPTError as exc:
+            print(f"  {entry['name']} #{entry['number']}: request failed -- {exc}")
+            continue
+
+        records = watchlist_mod.results_of(blob_resp)
+        hits = watchlist_mod.candidates_for(entry, records)
+        label = f"{entry['name']} #{entry['number']} ({entry.get('set_hint')})"
+
+        if len(hits) == 1:
+            watchlist_mod.apply_resolution(entry, hits[0])
+            print(f"  OK  {label}\n        -> {watchlist_mod.summarise(hits[0])}")
+        elif not hits:
+            print(f"  --  {label}: no result with that number "
+                  f"among {len(records)} hit(s)")
+            for record in records[:5]:
+                print(f"        saw: {watchlist_mod.summarise(record)}")
+        else:
+            print(f"  ??  {label}: {len(hits)} candidates -- pick one and put its "
+                  f"set name in watchlist.json")
+            for record in hits[:8]:
+                print(f"        {watchlist_mod.summarise(record)}")
+
+    watchlist_mod.save(blob)
+    done = sum(1 for e in entries if watchlist_mod.is_resolved(e))
+    print(f"\n{done}/{len(entries)} resolved -> {watchlist_mod.PATH}")
+    if done:
+        print("Next: run.py catalog   (folds them into the universe)")
     return 0
 
 
@@ -443,6 +506,13 @@ def main() -> int:
                    help="try candidate API endpoints and report what answers")
     p.add_argument("--search", help="override the search text sent to the API")
     p.set_defaults(func=cmd_probe)
+
+    p = sub.add_parser("watchlist", help="hand-picked cards; --resolve to pin them")
+    p.add_argument("--resolve", action="store_true", help="look each entry up (1 credit each)")
+    p.add_argument("--force", action="store_true", help="re-resolve already-resolved entries")
+    p.add_argument("--use-hint", action="store_true",
+                   help="include set_hint in the search text")
+    p.set_defaults(func=cmd_watchlist)
 
     p = sub.add_parser("status", help="where things stand; spends no credits")
     p.set_defaults(func=cmd_status)

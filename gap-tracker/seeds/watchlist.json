@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "Hand-picked cards that always get scanned, ahead of the generic seed list.",
+    "These bypass the rarity and price-band filters entirely -- if you put a card",
+    "here, it is tracked, full stop.",
+    "",
+    "Run `run.py watchlist --resolve` to pin each entry to an exact provider",
+    "record. Resolution fills in set_name and external_id; until then an entry is",
+    "not scanned, because a name and number alone can match the wrong printing.",
+    "",
+    "set_hint is only used to narrow the search -- the resolver reports what it",
+    "actually found, and you confirm."
+  ],
+  "cards": [
+    {
+      "name": "Mega Dragonite ex",
+      "number": "271",
+      "set_hint": "ASC 2026",
+      "note": "Mega Attack Rare"
+    },
+    {
+      "name": "Dewgong",
+      "number": "097",
+      "set_hint": "PFL 2025",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Clefairy",
+      "number": "094",
+      "set_hint": "POR 2026",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Xerneas",
+      "number": "091",
+      "set_hint": "CRI 2026",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Ampharos",
+      "number": "090",
+      "set_hint": "CRI 2026",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Froakie",
+      "number": "088",
+      "set_hint": "CRI 2026",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Meowth",
+      "number": "106",
+      "set_hint": "PFL 2025",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Machoke",
+      "number": "177",
+      "set_hint": "MEW 2023",
+      "note": "Illustration Rare"
+    },
+    {
+      "name": "Mew ex",
+      "number": "216",
+      "set_hint": "PAF 2024",
+      "note": "Shiny Ultra Rare"
+    }
+  ]
+}
