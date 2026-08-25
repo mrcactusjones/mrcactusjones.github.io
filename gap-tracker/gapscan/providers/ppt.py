@@ -123,6 +123,10 @@ def _pick_raw(pairs) -> float | None:
     return best[1] if best else None
 
 
+class OutOfCredits(Exception):
+    """The daily credit allowance is gone; stop, don't keep asking."""
+
+
 class PPTError(Exception):
     """An HTTP error that keeps the server's own explanation attached."""
 
@@ -339,7 +343,8 @@ class PPTProvider:
 
     def __init__(self, credits_per_card: int = 2, api_key: str | None = None,
                  base: str | None = None, min_interval: float = 1.1,
-                 search_limit: int = SEARCH_LIMIT, include_graded: bool = True):
+                 search_limit: int = SEARCH_LIMIT, include_graded: bool = True,
+                 wide_limit: int = 5):
         self.search_limit = max(1, search_limit)
         self.include_graded = include_graded
         # Billing is per card returned, so the cost of one lookup is the limit.
@@ -348,6 +353,8 @@ class PPTProvider:
         if not self.api_key:
             raise SystemExit("PPT_API_KEY is not set. Export it, or run with --provider mock.")
         self.base = (base or os.environ.get("PPT_API_BASE") or DEFAULT_BASE).rstrip("/")
+        self.wide_limit = wide_limit
+        self.credits_used = 0
         self.min_interval = min_interval  # stay well under 60 req/min
         self._last_call = 0.0
 
@@ -391,35 +398,65 @@ class PPTProvider:
         graded=False omits the eBay block, which is what makes a call cost two
         credits instead of one. Identity resolution doesn't need prices.
         """
-        params = {"search": search or self.search_text(card), "limit": self.search_limit}
+        text = self.search_text(card) if search is None else search
+        params = {"search": text, "limit": self.search_limit}
         if graded and self.include_graded:
             params.update(self.EXTRA_PARAMS)
         if filters:
             params.update(filters)
         return self._request("cards", params)
 
+    def _attempt(self, card: dict, limit: int) -> tuple[list[dict], int]:
+        """One lookup. Returns (records, credits spent).
+
+        Billing is on the requested limit, not the rows that come back, so a
+        miss costs exactly as much as a hit.
+        """
+        previous = self.search_limit
+        self.search_limit = limit
+        try:
+            filters = {"set": card["set_name"]} if card.get("set_name") else None
+            blob = self.raw_response(card, search=card.get("name"), filters=filters)
+        finally:
+            self.search_limit = previous
+        cost = limit * (2 if self.include_graded else 1)
+        self.credits_used += cost
+        return results_of(blob), cost
+
+    def next_cost(self) -> int:
+        """Credits the next narrow lookup will cost."""
+        return self.search_limit * (2 if self.include_graded else 1)
+
     def fetch(self, card: dict) -> Quote | None:
         try:
-            blob = self.raw_response(card)
+            records, _ = self._attempt(card, self.search_limit)
+            record, why = pick_match(records, card)
+
+            # A narrow lookup returns the provider's top guess, which for a set
+            # holding two same-named cards can be the wrong printing. Widen once
+            # rather than discarding the card.
+            if record is None and self.wide_limit > self.search_limit:
+                records, _ = self._attempt(card, self.wide_limit)
+                record, why = pick_match(records, card)
+                why += " (after widening)"
+
+            if record is None:
+                print(f"  ? {card['id']}: {why}")
+                return None
+
+            quote = extract_quote(record)
+            if quote.psa9 is None and quote.psa10 is None:
+                return None
+            if quote.raw is None:
+                quote.raw = card.get("raw_hint")
+            return quote
         except PPTError as exc:
             if exc.code in (401, 403):
                 raise SystemExit(f"PPT rejected the API key ({exc.code}): {exc.detail}")
             if exc.code == 429:
-                raise SystemExit(f"PPT rate limit / credits exhausted: {exc.detail}")
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
             print(f"  ! {card['id']}: {exc}")
             return None
         except (urllib.error.URLError, TimeoutError) as exc:
             print(f"  ! {card['id']}: {exc}")
             return None
-
-        record, why = pick_match(results_of(blob), card)
-        if record is None:
-            print(f"  ? {card['id']}: {why}")
-            return None
-
-        quote = extract_quote(record)
-        if quote.psa9 is None and quote.psa10 is None:
-            return None
-        if quote.raw is None:
-            quote.raw = card.get("raw_hint")  # fall back to the free catalog price
-        return quote

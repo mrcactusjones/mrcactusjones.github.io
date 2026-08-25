@@ -119,3 +119,51 @@ class TestBuildSkipsFailures(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCreditAccounting(unittest.TestCase):
+    """Cost is billed on the requested limit, so it is knowable in advance."""
+
+    def _provider(self, **kw):
+        from gapscan.providers import ppt
+        p = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        ppt.PPTProvider.__init__(p, api_key="k", **kw)
+        return p
+
+    def test_next_cost_matches_the_limit(self):
+        self.assertEqual(self._provider(search_limit=1).next_cost(), 2)
+        self.assertEqual(self._provider(search_limit=5).next_cost(), 10)
+        self.assertEqual(self._provider(search_limit=5, include_graded=False).next_cost(), 5)
+
+    def test_a_miss_costs_the_same_as_a_hit(self):
+        provider = self._provider(search_limit=1, wide_limit=0)
+        with mock.patch.object(provider, "raw_response", return_value={"data": []}):
+            self.assertIsNone(provider.fetch(
+                {"id": "base1-4", "name": "Charizard", "set_name": "Base Set", "number": "4"}))
+        self.assertEqual(provider.credits_used, 2, "an empty result is still billed")
+
+    def test_widening_is_tried_once_when_the_narrow_hit_is_wrong(self):
+        provider = self._provider(search_limit=1, wide_limit=5)
+        want = {"id": "ecard2-19", "name": "Kingdra",
+                "set_name": "Aquapolis", "number": "19"}
+        wrong = {"setName": "Aquapolis", "cardNumber": "H14/H32", "name": "Kingdra (H14)",
+                 "externalCatalogId": "ecard2-H14",
+                 "prices": {"market": 1.0},
+                 "ebay": {"salesByGrade": {"psa9": {"count": 1, "medianPrice": 9}}}}
+        right = dict(wrong, cardNumber="019/147", externalCatalogId="ecard2-19",
+                     name="Kingdra (19)")
+        pages = [{"data": [wrong]}, {"data": [wrong, right]}]
+        with mock.patch.object(provider, "raw_response", side_effect=lambda *a, **k: pages.pop(0)):
+            quote = provider.fetch(want)
+        self.assertIsNotNone(quote, "widening should recover the right printing")
+        self.assertEqual(provider.credits_used, 12, "2 for the narrow try, 10 for the wide")
+
+    def test_set_filter_is_sent_when_known(self):
+        provider = self._provider(search_limit=1, wide_limit=0)
+        with mock.patch.object(provider, "_request", return_value={"data": []}) as req:
+            provider.fetch({"id": "x", "name": "Kingdra",
+                            "set_name": "Aquapolis", "number": "19"})
+        params = req.call_args[0][1]
+        self.assertEqual(params["set"], "Aquapolis")
+        self.assertEqual(params["search"], "Kingdra")
+        self.assertEqual(params["limit"], 1)

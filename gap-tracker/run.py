@@ -265,8 +265,10 @@ def cmd_filters(args, cfg: Config, store: Store) -> int:
         if not value:
             continue
         try:
+            # search="" really means empty now, so a hit is the filter's doing.
             blob = provider.raw_response(card, search="", graded=False,
                                          filters={name: value})
+            provider.credits_used += 1
         except PPTError as exc:
             if exc.code == 429:
                 print(f"  out of credits -- {credits_from_error(exc.detail) or exc.detail}")

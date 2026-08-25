@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from .config import Config
+from .providers.ppt import OutOfCredits
 from .store import Store, age_days, iso, utcnow
 
 
@@ -62,8 +63,20 @@ def run(universe: dict, store: Store, cfg: Config, provider, dry_run: bool = Fal
         return {"scanned": 0, "dry_run": True, "planned": len(batch)}
 
     scanned = misses = 0
+    spend_cap = budget.daily_credits
     for row in batch:
-        quote = provider.fetch(row)
+        # Cost is known before the call, and a widened retry can double it, so
+        # stop while there is still room rather than triggering a 429.
+        used = getattr(provider, "credits_used", 0)
+        upcoming = getattr(provider, "next_cost", lambda: per_card)()
+        if used + upcoming > spend_cap:
+            print(f"  budget reached: {used}/{spend_cap} credits used")
+            break
+        try:
+            quote = provider.fetch(row)
+        except OutOfCredits as exc:
+            print(f"  stopping: {exc}")
+            break
         if quote is None:
             misses += 1
             # Record the miss so a card with no graded market isn't retried daily.
@@ -76,8 +89,9 @@ def run(universe: dict, store: Store, cfg: Config, provider, dry_run: bool = Fal
                                          "provider": provider.name})
         scanned += 1
 
-    credits = scanned * per_card
-    print(f"  done: {scanned} cards ({credits} credits), {misses} with no graded data")
+    credits = getattr(provider, "credits_used", scanned * per_card)
+    print(f"  done: {scanned} cards ({credits} credits actually spent), "
+          f"{misses} with no graded data")
     return {"scanned": scanned, "misses": misses, "credits_spent": credits,
             "watchlist": len(watch_batch), "discovery": len(disc_batch)}
 
