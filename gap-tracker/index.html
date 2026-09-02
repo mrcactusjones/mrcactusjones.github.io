@@ -110,11 +110,20 @@
            <input type="range" id="comps" min="0" max="30" step="1"></div>
       <div><label>Max comp age <span class="val" id="vmaxage"></span></label>
            <input type="range" id="maxage" min="14" max="365" step="7"></div>
+      <div title="Used only when the card has no PSA 8 comp to price the downside">
+           <label>Sub-9 recovery <span class="val" id="vlowrec"></span></label>
+           <input type="range" id="lowrec" min="0" max="150" step="5"></div>
       <div><label>Search</label><input type="search" id="q" placeholder="card or set"></div>
       <div><label>Set</label><select id="set"></select></div>
     </div>
     <div class="chips" id="verdicts"></div>
   </div>
+
+  <p class="meta" style="margin:.4rem 0 0">
+    Gem % marked * is inferred from the mix of graded sales, not a PSA population
+    report. Either way it reflects cards people chose to submit, so it overstates
+    the odds for a random raw copy.
+  </p>
 
   <div class="tablewrap"><table>
     <thead><tr id="head"></tr></thead>
@@ -138,6 +147,14 @@ function breakevenP10(cost, net9, net10) {
   return p <= 1 ? p : null;
 }
 
+// Mirrors econ.evaluate's EV branch.
+function expectedValue(row, s, cost, net9, net10) {
+  if (row.p10 == null) return null;
+  const lowPrice = row.psa8 != null ? row.psa8 : row.raw * s.lowRecovery;
+  const netLow = netOf(lowPrice, s);
+  return row.p10 * net10 + row.p9 * net9 + row.p_low * netLow - cost;
+}
+
 function score(row, s) {
   const cost = allIn(row.raw, s);
   const net9 = netOf(row.psa9, s);
@@ -154,7 +171,8 @@ function score(row, s) {
   else if (upside > 0) verdict = "ten_or_bust";
   else verdict = "dead";
   return { ...row, cost, floor, upside, confident, verdict,
-           floorRoi: floor / cost, be: breakevenP10(cost, net9, net10) };
+           floorRoi: floor / cost, be: breakevenP10(cost, net9, net10),
+           ev: expectedValue(row, s, cost, net9, net10) };
 }
 
 const COLS = [
@@ -172,6 +190,12 @@ const COLS = [
   { k:"upside", t:"At 10",      fmt:r => signed(r.upside) },
   { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
       `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
+  { k:"gem_rate", t:"Gem %", fmt:r => r.gem_rate == null ? "—" :
+      `<span class="num" title="${r.mix_source === "population"
+        ? `PSA population, ${r.mix_sample} graded`
+        : `estimated from ${r.mix_sample} graded sales — weaker than a pop report`}">${
+        (r.gem_rate*100).toFixed(0)}%${r.mix_source === "sales" ? "*" : ""}</span>` },
+  { k:"ev",     t:"EV",         fmt:r => r.ev == null ? "—" : signed(r.ev) },
   { k:"sales_9",t:"Comps 9/10", fmt:r => `<span class="num">${r.sales_9}/${r.sales_10}</span>` },
   { k:"psa9_sale_age_days", t:"Last 9 sale", fmt:r => r.psa9_sale_age_days == null ? "—" :
       `<span class="num${r.psa9_sale_age_days > 90 ? " neg" : ""}">${
@@ -238,6 +262,7 @@ let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer",
 const S = () => ({
   fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
   out:+out.value, prem:+prem.value, comps:+comps.value, maxAge:+maxage.value,
+  lowRecovery:+lowrec.value / 100,
 });
 
 function render() {
@@ -246,6 +271,7 @@ function render() {
   vmkt.textContent = `${s.mkt}%`;   vout.textContent  = `$${s.out.toFixed(2)}`;
   vprem.textContent = `${s.prem}%`; vcomps.textContent = s.comps;
   vmaxage.textContent = `${s.maxAge}d`;
+  vlowrec.textContent = `${(s.lowRecovery*100).toFixed(0)}% of raw`;
 
   const needle = q.value.trim().toLowerCase();
   const wantSet = set.value;
@@ -288,6 +314,7 @@ function boot(data) {
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
   prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
   maxage.value = t.max_sale_age_days;
+  lowrec.value = (t.low_grade_recovery ?? 0.8) * 100;
 
   document.getElementById("coverage").innerHTML =
     `<span>Coverage <b>${c.scanned}/${c.universe}</b> cards</span>
@@ -312,7 +339,7 @@ function boot(data) {
   set.innerHTML = `<option value="">All sets</option>` +
     sets.map(([id, name]) => `<option value="${esc(id)}">${esc(name)}</option>`).join("");
 
-  ["fee","ship","mkt","out","prem","comps","maxage"].forEach(id =>
+  ["fee","ship","mkt","out","prem","comps","maxage","lowrec"].forEach(id =>
     document.getElementById(id).addEventListener("input", render));
   q.addEventListener("input", render);
   set.addEventListener("change", render);

@@ -369,6 +369,43 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_population(args, cfg: Config, store: Store) -> int:
+    """Check whether this plan can reach population data (2 credits to find out)."""
+    from gapscan.providers.ppt import (PopulationUnavailable, PPTProvider,
+                                       OutOfCredits)
+
+    universe = store.load_universe()
+    priced = [(cid, rec) for cid, rec in store.all_quotes()
+              if rec.get("quote", {}).get("tcgplayer_id")]
+    if not priced:
+        print("No scanned card has a tcgPlayerId yet -- run `daily` first.")
+        return 1
+    card_id, record = priced[0]
+    tcg_id = record["quote"]["tcgplayer_id"]
+    name = (universe.get(card_id) or {}).get("name", card_id)
+    print(f"Asking for population of {name} (tcgPlayerId {tcg_id}) -- costs 2 credits.\n")
+
+    provider = PPTProvider(credits_per_card=2, search_limit=1)
+    try:
+        pop = provider.fetch_population(tcg_id)
+    except PopulationUnavailable as exc:
+        print("Not available on this plan (that is the expected answer on free/API "
+              f"tiers):\n  {exc}")
+        print("\nGem rates will keep coming from the graded-sales mix instead.")
+        return 0
+    except OutOfCredits as exc:
+        print(f"Out of credits: {exc}")
+        return 1
+
+    if not pop:
+        print("Reachable, but no population recorded for this card.")
+        return 0
+    print(f"Available. grades={pop['grades']} total={pop['total']} "
+          f"gem_rate={pop['gem_rate']:.1%}")
+    print("\nSet  population: true  under \"budget\" in config.json to use it.")
+    return 0
+
+
 def cmd_status(args, cfg: Config, store: Store) -> int:
     """Where the project stands. Spends no credits."""
     import json as _json
@@ -595,6 +632,9 @@ def main() -> int:
     p.add_argument("--use-hint", action="store_true",
                    help="include set_hint in the search text")
     p.set_defaults(func=cmd_watchlist)
+
+    p = sub.add_parser("population", help="test population access (2 credits)")
+    p.set_defaults(func=cmd_population)
 
     p = sub.add_parser("status", help="where things stand; spends no credits")
     p.set_defaults(func=cmd_status)

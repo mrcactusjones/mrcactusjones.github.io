@@ -52,7 +52,7 @@ class MockProvider:
             raw=round(raw, 2),
             psa9=round(raw * mult9, 2),
             psa10=round(raw * mult10, 2),
-            psa8=round(raw * mult9 * 0.55, 2),
+            psa8=round(raw * mult9 * 0.55, 2) if rng.random() < 0.7 else None,
             sales_9=n9,
             sales_10=n10,
             psa9_confidence=confidence,
@@ -61,6 +61,8 @@ class MockProvider:
             psa10_last_sale=last10,
             cgc9=round(raw * mult9 * 0.8, 2) if rng.random() < 0.4 else None,
             cgc9_sales=rng.randint(0, 5),
+            psa_sales_mix={"8": rng.randint(0, 8), "9": n9, "10": n10} if n9 + n10 else None,
+            tcgplayer_id=str(rng.randint(10000, 99999)),
             as_of=iso(utcnow()),
             source="mock",
         )

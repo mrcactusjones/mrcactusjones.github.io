@@ -356,3 +356,116 @@ class TestCreditCost(unittest.TestCase):
         self.assertIn("19", msg)
         self.assertIn("2026-08-24", msg)
         self.assertIsNone(credits_from_error("not json"))
+
+
+class TestGradeMix(unittest.TestCase):
+    """EV is only as good as the grade mix, so the mix must refuse thin data."""
+
+    def setUp(self):
+        from gapscan.econ import mix_from_population, mix_from_sales
+        self.from_pop, self.from_sales = mix_from_population, mix_from_sales
+
+    def test_population_mix(self):
+        mix = self.from_pop({"grades": {"8": 100, "9": 300, "10": 100}})
+        self.assertAlmostEqual(mix.p10, 0.2)
+        self.assertAlmostEqual(mix.p9, 0.6)
+        self.assertAlmostEqual(mix.p_low, 0.2)
+        self.assertEqual(mix.source, "population")
+        self.assertEqual(mix.sample, 500)
+
+    def test_sales_mix_needs_a_sample(self):
+        # The Kingdra case: one sale per grade. A "33% gem rate" here is noise.
+        self.assertIsNone(self.from_sales({"8": 1, "9": 1, "10": 1}, min_sample=5))
+        mix = self.from_sales({"8": 4, "9": 10, "10": 6}, min_sample=5)
+        self.assertAlmostEqual(mix.p10, 0.3)
+        self.assertEqual(mix.source, "sales")
+
+    def test_probabilities_sum_to_one(self):
+        for mix in (self.from_pop({"grades": {"7": 5, "9": 3, "10": 2}}),
+                    self.from_sales({"6": 5, "9": 3, "10": 2}, min_sample=5)):
+            self.assertAlmostEqual(mix.p10 + mix.p9 + mix.p_low, 1.0)
+
+    def test_empty_inputs(self):
+        self.assertIsNone(self.from_pop(None))
+        self.assertIsNone(self.from_pop({"grades": {}}))
+        self.assertIsNone(self.from_sales(None))
+
+
+class TestExpectedValue(unittest.TestCase):
+    def setUp(self):
+        self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
+                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0)
+        self.th = Thresholds()
+
+    def test_ev_is_absent_without_a_mix(self):
+        v = evaluate(Quote(raw=50, psa9=200, psa10=600, sales_9=20, sales_10=10),
+                     self.econ, self.th)
+        self.assertIsNone(v.ev_profit)
+        self.assertIsNone(v.gem_rate)
+
+    def test_ev_is_weighted_by_the_mix(self):
+        from gapscan.econ import GradeMix
+        # all-in 75. net9 175, net10 535, net(psa8=100) 85.
+        quote = Quote(raw=50, psa9=200, psa10=600, psa8=100, sales_9=20, sales_10=10)
+        mix = GradeMix(p10=0.25, p9=0.5, p_low=0.25, source="population", sample=400)
+        v = evaluate(quote, self.econ, self.th, mix=mix)
+        expected = 0.25 * 535 + 0.5 * 175 + 0.25 * 85 - 75
+        self.assertAlmostEqual(v.ev_profit, round(expected, 2))
+        self.assertAlmostEqual(v.gem_rate, 0.25)
+        self.assertEqual(v.mix_source, "population")
+
+    def test_the_floor_verdict_ignores_the_mix(self):
+        """The whole point: ranking must not depend on gem-rate guesswork."""
+        from gapscan.econ import GradeMix
+        quote = Quote(raw=50, psa9=200, psa10=600, sales_9=20, sales_10=10,
+                      psa9_confidence="high")
+        bare = evaluate(quote, self.econ, self.th)
+        withmix = evaluate(quote, self.econ, self.th,
+                           mix=GradeMix(0.01, 0.5, 0.49, "sales", 40))
+        self.assertEqual(bare.verdict, withmix.verdict)
+        self.assertEqual(bare.floor_profit, withmix.floor_profit)
+
+
+class TestPopulationParsing(unittest.TestCase):
+    def test_nested_and_flat_shapes(self):
+        from gapscan.providers.ppt import parse_population
+        nested = {"data": {"populationByGrader": {"PSA": {
+            "grades": {"g8": 50, "g9": 200, "g10": 90}, "total": 340}}}}
+        got = parse_population(nested)
+        self.assertEqual(got["grades"]["10"], 90)
+        self.assertAlmostEqual(got["gem_rate"], 90 / 340)
+
+        flat = {"PSA": {"g9": 10, "g10": 10}}
+        self.assertAlmostEqual(parse_population(flat)["gem_rate"], 0.5)
+
+    def test_unusable_shapes_return_none(self):
+        from gapscan.providers.ppt import parse_population
+        self.assertIsNone(parse_population({}))
+        self.assertIsNone(parse_population({"data": {"note": "no population"}}))
+
+
+class TestSalesMixDownside(unittest.TestCase):
+    """Sales under-report low grades; an EV with no downside would mislead."""
+
+    def setUp(self):
+        from gapscan.econ import mix_from_sales
+        self.mix = mix_from_sales
+
+    def test_absent_low_grades_do_not_mean_zero_risk(self):
+        mix = self.mix({"9": 10, "10": 10}, min_sample=5, min_low=0.15)
+        self.assertAlmostEqual(mix.p_low, 0.15)
+        self.assertAlmostEqual(mix.p10 + mix.p9 + mix.p_low, 1.0)
+        self.assertAlmostEqual(mix.p10, 0.425, places=3)
+
+    def test_observed_low_grades_are_left_alone(self):
+        mix = self.mix({"7": 5, "8": 5, "9": 5, "10": 5}, min_sample=5, min_low=0.15)
+        self.assertAlmostEqual(mix.p_low, 0.5, msg="a measured 50% must not be reduced")
+
+    def test_ratio_between_nine_and_ten_is_preserved(self):
+        mix = self.mix({"9": 30, "10": 10}, min_sample=5, min_low=0.20)
+        self.assertAlmostEqual(mix.p9 / mix.p10, 3.0)
+
+    def test_population_mixes_are_untouched(self):
+        from gapscan.econ import mix_from_population
+        mix = mix_from_population({"grades": {"9": 10, "10": 10}})
+        self.assertAlmostEqual(mix.p_low, 0.0, msg="a real report needs no assumption")

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from .config import Config
-from .econ import Quote, days_since, evaluate
+from .econ import (Quote, days_since, evaluate, mix_from_population,
+                   mix_from_sales)
 from .scan import coverage
 from .store import Store, age_days, iso, utcnow
 
@@ -39,7 +40,11 @@ def build(universe: dict, store: Store, cfg: Config,
         if not cached or cached.get("miss") or not cached.get("quote"):
             continue
         quote = Quote(**cached["quote"])
-        verdict = evaluate(quote, cfg.econ, cfg.thresholds)
+        # A real population report if we have one, otherwise the free proxy.
+        mix = (mix_from_population(quote.population)
+               or mix_from_sales(quote.psa_sales_mix, cfg.thresholds.min_mix_sample,
+                                 cfg.thresholds.sales_mix_min_low))
+        verdict = evaluate(quote, cfg.econ, cfg.thresholds, mix=mix)
         if verdict is None:
             continue
 
@@ -74,6 +79,16 @@ def build(universe: dict, store: Store, cfg: Config,
             "upside_profit": verdict.upside_profit,
             "upside_roi": verdict.upside_roi,
             "breakeven_p10": verdict.breakeven_p10,
+            "ev_profit": verdict.ev_profit,
+            "gem_rate": verdict.gem_rate,
+            "mix_source": verdict.mix_source,
+            "mix_sample": verdict.mix_sample,
+            "psa8": quote.psa8,
+            # Full precision: the page recomputes EV from these, and rounding
+            # here put it a few cents out on high-priced cards.
+            "p10": mix.p10 if mix else None,
+            "p9": mix.p9 if mix else None,
+            "p_low": mix.p_low if mix else None,
             "confident": verdict.confident,
             "reasons": verdict.reasons,
             "scanned_days_ago": round(age_days(cached.get("fetched_at")), 1),

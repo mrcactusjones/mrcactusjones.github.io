@@ -120,6 +120,37 @@ Verdicts:
 The break-even figure assumes every non-10 comes back a 9, ignoring 8s and
 below. It's a *lower bound* on the gem rate you need, not a forecast.
 
+## Gem rates and EV
+
+Alongside the floor there's a probability-weighted EV, when a grade mix is
+known:
+
+```
+EV = P(10)×net(PSA 10) + P(9)×net(PSA 9) + P(<9)×net(downside) − all_in
+```
+
+The mix comes from one of two places, and the difference matters:
+
+- **population** — PSA's own report via `/api/v2/population`. The real thing,
+  but 2 credits/card and Business plan only. `run.py population` tests whether
+  your plan can reach it, for 2 credits.
+- **sales** — inferred from the counts in `ebay.salesByGrade`, which you get
+  free with every scan. Shown with a `*` in the dashboard.
+
+The sales mix is the weaker one, and biased in a specific direction: people
+list their 9s and 10s and sit on their 8s, so a card with no low-grade sales
+looks like it can never grade below a 9. `sales_mix_min_low` reserves a floor
+of probability (15% by default) for that outcome, taken proportionally from the
+grades that were observed. It is an assumption, not a measurement, which is why
+a population report supersedes it.
+
+Both sources overstate P(10) for a random raw copy, because submitters send
+their best copies. Treat either as a ceiling.
+
+**The floor-at-9 ranking never uses any of this.** Verdicts and ordering depend
+only on observed prices; the EV is an extra column, so gem-rate guesswork can
+never promote a card to `no_brainer`.
+
 ## Why it scans slowly
 
 PokemonPriceTracker's free tier is 100 credits/day and a card with PSA data

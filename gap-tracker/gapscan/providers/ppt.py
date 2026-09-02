@@ -123,6 +123,38 @@ def _pick_raw(pairs) -> float | None:
     return best[1] if best else None
 
 
+def parse_population(blob: dict) -> dict | None:
+    """PSA grade counts out of a /population response.
+
+    Shapes vary (populationByGrader.PSA.grades.g10, or flat g10 keys), so pull
+    anything that looks like a grade bucket.
+    """
+    node = blob
+    for key in ("data", "populationByGrader", "PSA", "psa"):
+        if isinstance(node, dict) and key in node:
+            node = node[key]
+    if isinstance(node, list) and node:
+        node = node[0]
+    if not isinstance(node, dict):
+        return None
+
+    source = node.get("grades") if isinstance(node.get("grades"), dict) else node
+    grades: dict[str, int] = {}
+    for key, value in (source or {}).items():
+        match = re.fullmatch(r"g?(\d{1,2})(?:\.\d)?", str(key).lower())
+        if match and isinstance(value, (int, float)):
+            grades[match.group(1)] = int(value)
+    if not grades:
+        return None
+    total = sum(grades.values())
+    return {"grades": grades, "total": total,
+            "gem_rate": (grades.get("10", 0) / total) if total else None}
+
+
+class PopulationUnavailable(Exception):
+    """The plan does not include population data."""
+
+
 class OutOfCredits(Exception):
     """The daily credit allowance is gone; stop, don't keep asking."""
 
@@ -232,6 +264,15 @@ def extract_graded(record: dict) -> Quote | None:
     cgc9, _, _, ncgc9 = _grade_block(grades.get("cgc9"))
     cgc10, _, _, ncgc10 = _grade_block(grades.get("cgc10"))
 
+    # Every PSA grade present, for inferring the grade mix.
+    mix: dict[str, int] = {}
+    for key, block in grades.items():
+        match = re.fullmatch(r"psa(\d{1,2})", str(key).lower())
+        if match and isinstance(block, dict):
+            count = int(_as_number(block.get("count")) or 0)
+            if count:
+                mix[match.group(1)] = count
+
     prices = record.get("prices") or {}
     raw = _as_number(prices.get("market")) or _as_number(prices.get("low"))
 
@@ -243,6 +284,8 @@ def extract_graded(record: dict) -> Quote | None:
         psa9_outlier=bool(outliers.get("psa9")),
         psa10_outlier=bool(outliers.get("psa10")),
         cgc9=cgc9, cgc10=cgc10, cgc9_sales=ncgc9, cgc10_sales=ncgc10,
+        psa_sales_mix=mix or None,
+        tcgplayer_id=str(record.get("tcgPlayerId")) if record.get("tcgPlayerId") else None,
         as_of=iso(utcnow()), source="ppt",
     )
 
@@ -422,6 +465,19 @@ class PPTProvider:
         cost = limit * (2 if self.include_graded else 1)
         self.credits_used += cost
         return results_of(blob), cost
+
+    def fetch_population(self, tcgplayer_id: str) -> dict | None:
+        """PSA population for one card. Premium data: 2 credits, higher plans only."""
+        try:
+            blob = self._request("population", {"tcgPlayerId": tcgplayer_id})
+        except PPTError as exc:
+            if exc.code in (401, 402, 403):
+                raise PopulationUnavailable(exc.detail) from None
+            if exc.code == 429:
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
+            return None
+        self.credits_used += 2
+        return parse_population(blob)
 
     def next_cost(self) -> int:
         """Credits the next narrow lookup will cost."""
