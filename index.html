@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rob's Toolkit</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/utif/3.1.0/UTIF.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/utif@3.1.0/UTIF.js';document.head.appendChild(s);"></script>
@@ -654,6 +655,105 @@
     transition:opacity .2s, transform .2s; z-index:9999;
   }
   #page-box .bx-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE 8: SIGNATURE CHESS SET
+     ═══════════════════════════════════════════════════════════════ */
+  #page-chess {
+    --cs-gold:#e0b25c; --cs-green:#00e5a0; --cs-rose:#c0503a; --cs-ink:#efe6d4; --cs-mute:#8d846f;
+    min-height:calc(100vh - 48px);
+    padding:24px 18px 60px;
+    background:
+      radial-gradient(circle at 50% -10%, #2a2010 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent 0 38px, #e0b25c0f 38px 39px),
+      repeating-linear-gradient(90deg, transparent 0 38px, #00e5a00c 38px 39px),
+      #0b0a08;
+    font-family:'IBM Plex Mono','JetBrains Mono',monospace;
+    color:var(--cs-ink);
+  }
+  #page-chess .cs-app { max-width:1180px; margin:0 auto; }
+  #page-chess .cs-titlebar {
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(90deg,var(--cs-gold),#b98a3a 55%,var(--cs-green));
+    padding:7px 14px; border-radius:8px 8px 0 0;
+    box-shadow:0 0 22px #e0b25c44, inset 0 1px 0 #ffffff55;
+  }
+  #page-chess .cs-titlebar .t { font-weight:700; font-size:13px; letter-spacing:3px; color:#141008; text-shadow:0 1px 0 #ffffff66; }
+  #page-chess .cs-titlebar .dots { display:flex; gap:7px; }
+  #page-chess .cs-titlebar .dots i { width:13px; height:13px; border-radius:50%; background:#141008; opacity:.55; }
+  #page-chess .cs-shell {
+    display:grid; grid-template-columns:330px 1fr; gap:0;
+    border:2px solid #e0b25c55; border-top:none; border-radius:0 0 10px 10px;
+    background:#100d08cc; backdrop-filter:blur(4px); overflow:hidden;
+  }
+  @media (max-width:840px){ #page-chess .cs-shell { grid-template-columns:1fr; } }
+
+  #page-chess .cs-panel { padding:20px 18px; border-right:2px solid #e0b25c33; }
+  #page-chess .cs-hero h1 {
+    font-family:'VT323',monospace; font-size:42px; line-height:.9; letter-spacing:1px;
+    color:var(--cs-gold); text-shadow:0 0 10px #e0b25c88, 3px 3px 0 #2c5a3a; margin-bottom:2px;
+  }
+  #page-chess .cs-hero p { font-size:11px; color:#b9d9c7; letter-spacing:1px; margin-bottom:14px; }
+  #page-chess .cs-label { display:block; font-size:10px; letter-spacing:2px; color:var(--cs-green); text-transform:uppercase; margin:18px 0 8px; }
+
+  #page-chess .cs-pieces { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  #page-chess .cs-pieces button {
+    font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:9px 4px;
+    background:#1a150c; color:var(--cs-gold); border:2px solid #e0b25c66; border-radius:7px; cursor:pointer; transition:all .12s;
+  }
+  #page-chess .cs-pieces button .g { display:block; font-size:22px; line-height:1; margin-bottom:3px; font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols2',sans-serif; }
+  #page-chess .cs-pieces button:hover { border-color:var(--cs-gold); background:#241c0f; }
+  #page-chess .cs-pieces button.active { background:var(--cs-gold); color:#141008; border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c66; }
+  #page-chess .cs-pieces button.set { grid-column:1 / -1; }
+
+  #page-chess .cs-seg { display:flex; gap:0; border:2px solid var(--cs-green); border-radius:7px; overflow:hidden; }
+  #page-chess .cs-seg button {
+    flex:1; font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:8px 4px;
+    background:transparent; color:var(--cs-green); border:none; cursor:pointer; transition:all .12s;
+  }
+  #page-chess .cs-seg button + button { border-left:2px solid var(--cs-green); }
+  #page-chess .cs-seg button.active { background:var(--cs-green); color:#06121a; }
+  #page-chess .cs-seg button:not(.active):hover { background:#00e5a022; }
+
+  #page-chess .cs-readout { margin-top:18px; padding:12px 14px; border:1px dashed #00e5a055; border-radius:8px; background:#041a1266; font-size:11px; line-height:1.85; color:#b9f0dc; }
+  #page-chess .cs-readout .row { display:flex; justify-content:space-between; gap:8px; }
+  #page-chess .cs-readout .row b { color:#fff; font-weight:600; text-align:right; }
+  #page-chess .cs-readout .hd { color:var(--cs-gold); letter-spacing:2px; font-size:9px; margin-bottom:4px; }
+
+  #page-chess .cs-dlbtn {
+    display:block; width:100%; margin-top:18px; font-family:'VT323',monospace; font-size:24px; letter-spacing:2px; padding:10px;
+    background:linear-gradient(90deg,var(--cs-gold),#b98a3a); color:#141008; border:none; border-radius:9px; text-align:center; text-decoration:none;
+    cursor:pointer; box-shadow:0 0 18px #e0b25c66; transition:transform .1s, box-shadow .15s;
+  }
+  #page-chess .cs-dlbtn:hover { transform:translateY(-2px); box-shadow:0 6px 26px #e0b25caa; }
+  #page-chess .cs-dlbtn.alt { margin-top:9px; font-size:20px; background:transparent; color:var(--cs-gold); border:2px solid #e0b25c88; box-shadow:none; }
+  #page-chess .cs-dlbtn.alt:hover { border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c55; }
+  #page-chess .cs-src { display:block; margin-top:10px; font-size:10px; letter-spacing:2px; padding:7px; color:var(--cs-mute); border:1px solid #8d846f55; border-radius:7px; text-align:center; text-decoration:none; }
+  #page-chess .cs-src:hover { color:var(--cs-green); border-color:var(--cs-green); }
+
+  #page-chess .cs-stage { position:relative; display:flex; flex-direction:column; background:repeating-linear-gradient(0deg,#0b0a08 0 26px,#141009 26px 27px); }
+  #page-chess .cs-viewport { position:relative; flex:1; min-height:540px; overflow:hidden; }
+  #page-chess .cs-viewport canvas { display:block; width:100%; height:100%; touch-action:none; }
+  #page-chess .cs-fallback { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:24px; }
+  #page-chess .cs-viewport.live .cs-fallback { display:none; }
+  #page-chess .cs-status {
+    position:absolute; left:0; right:0; bottom:0; padding:9px 12px; font-size:10px; letter-spacing:2px; text-align:center;
+    color:var(--cs-mute); background:linear-gradient(180deg,transparent,#0b0a08cc); pointer-events:none;
+  }
+  #page-chess .cs-status.loading { color:var(--cs-green); }
+  #page-chess .cs-status.err { color:var(--cs-rose); }
+
+  #page-chess .cs-info { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; }
+  @media (max-width:840px){ #page-chess .cs-info { grid-template-columns:1fr; } }
+  #page-chess .cs-card { border:2px solid #e0b25c44; border-radius:10px; background:#100d08cc; padding:14px 16px; font-size:11px; line-height:1.7; color:#d9cfb8; }
+  #page-chess .cs-card h3 { font-family:'VT323',monospace; font-size:24px; letter-spacing:1px; color:var(--cs-green); margin-bottom:6px; text-shadow:0 0 8px #00e5a055; }
+  #page-chess .cs-card table { width:100%; border-collapse:collapse; }
+  #page-chess .cs-card th, #page-chess .cs-card td { text-align:left; padding:3px 4px; border-bottom:1px solid #e0b25c22; white-space:nowrap; }
+  #page-chess .cs-card th { color:var(--cs-gold); font-size:9px; letter-spacing:2px; font-weight:600; }
+  #page-chess .cs-card td.n { text-align:right; color:#fff; font-variant-numeric:tabular-nums; }
+  #page-chess .cs-card ul { padding-left:16px; }
+  #page-chess .cs-card li { margin:3px 0; }
+  #page-chess .cs-card li b, #page-chess .cs-card p b { color:var(--cs-gold); font-weight:600; }
+  #page-chess .cs-card p + p { margin-top:8px; }
 </style>
 </head>
 <body>
@@ -669,6 +769,7 @@
   <button class="tab-btn" data-page="fastreader">&#9889; FastReader</button>
   <button class="tab-btn" data-page="tts">&#128264; TTS Reader</button>
   <button class="tab-btn" data-page="box">&#128230; Box Dieline</button>
+  <button class="tab-btn" data-page="chess">&#9822; Chess Set</button>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -745,10 +846,18 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <div class="home-card" data-goto="chess">
+          <div class="hc-icon">&#9822;</div>
+          <div>
+            <div class="hc-name">SIGNATURE CHESS SET</div>
+            <div class="hc-desc">A 3D-printable Staunton-style set with a 4.4&quot; king. Spin every piece in 3D, then download the STLs &mdash; one file per piece or the whole set zipped.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">7 PROGRAMS LOADED</span>
+      <span class="home-status-cell">8 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -1397,6 +1506,86 @@
   <div class="bx-toast" id="boxToast"></div>
 </div>
 
+<!-- ═══════════════════════════════════ PAGE 8: SIGNATURE CHESS SET ═══════════════════════════════════ -->
+<div id="page-chess" class="tool-page">
+  <div class="cs-app">
+    <div class="cs-titlebar">
+      <span class="t">&#9608; CHESS.EXE — SIGNATURE SET</span>
+      <span class="dots"><i></i><i></i><i></i></span>
+    </div>
+    <div class="cs-shell">
+      <div class="cs-panel">
+        <div class="cs-hero">
+          <h1>SIGNATURE<br>CHESS SET</h1>
+          <p>// 3D-PRINTABLE STAUNTON-STYLE SET &middot; KING 4.4 IN</p>
+        </div>
+
+        <label class="cs-label">Piece</label>
+        <div class="cs-pieces" id="csPieces">
+          <button class="set active" data-piece="set"><span class="g">&#9812;&#9813;&#9815;&#9816;&#9814;&#9817;</span>FULL SET</button>
+          <button data-piece="king"><span class="g">&#9812;</span>KING</button>
+          <button data-piece="queen"><span class="g">&#9813;</span>QUEEN</button>
+          <button data-piece="bishop"><span class="g">&#9815;</span>BISHOP</button>
+          <button data-piece="knight"><span class="g">&#9816;</span>KNIGHT</button>
+          <button data-piece="rook"><span class="g">&#9814;</span>ROOK</button>
+          <button data-piece="pawn"><span class="g">&#9817;</span>PAWN</button>
+        </div>
+
+        <label class="cs-label">Finish (preview only)</label>
+        <div class="cs-seg" id="csFinish">
+          <button data-finish="boxwood" class="active">BOXWOOD</button>
+          <button data-finish="rosewood">ROSEWOOD</button>
+          <button data-finish="ebony">EBONY</button>
+        </div>
+
+        <div class="cs-readout" id="csReadout"></div>
+
+        <a class="cs-dlbtn" id="csDownload" href="chess/stl/signature-chess-set-stl.zip" download>&#11015; DOWNLOAD ALL STL (ZIP)</a>
+        <a class="cs-dlbtn alt" id="csDownloadZip" href="chess/stl/signature-chess-set-stl.zip" download style="display:none">&#11015; DOWNLOAD ALL STL (ZIP)</a>
+        <a class="cs-src" href="https://github.com/mrcactusjones/mrcactusjones.github.io/tree/main/chess" target="_blank" rel="noopener">&#9881; GENERATOR SOURCE &amp; PRINT NOTES</a>
+      </div>
+
+      <div class="cs-stage">
+        <div class="cs-viewport" id="csViewport">
+          <img class="cs-fallback" id="csFallback" src="chess/img/lineup.png" alt="The six chess pieces: pawn, rook, king, queen, bishop and knight">
+          <div class="cs-status" id="csStatus">LOADING 3D PREVIEW&hellip;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs-info">
+      <div class="cs-card">
+        <h3>DIMENSIONS</h3>
+        <table>
+          <tr><th>PIECE</th><th>HEIGHT</th><th>BASE &Oslash;</th></tr>
+          <tr><td>King</td><td class="n">4.40 in &middot; 111.8 mm</td><td class="n">1.80 in &middot; 45.7 mm</td></tr>
+          <tr><td>Queen</td><td class="n">3.66 in &middot; 93.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
+          <tr><td>Bishop</td><td class="n">3.27 in &middot; 83.0 mm</td><td class="n">1.50 in &middot; 38.0 mm</td></tr>
+          <tr><td>Knight</td><td class="n">3.07 in &middot; 78.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
+          <tr><td>Rook</td><td class="n">2.76 in &middot; 70.0 mm</td><td class="n">1.54 in &middot; 39.0 mm</td></tr>
+          <tr><td>Pawn</td><td class="n">2.44 in &middot; 62.0 mm</td><td class="n">1.18 in &middot; 30.0 mm</td></tr>
+        </table>
+        <p style="margin-top:8px">Full set = 32 pieces: 2&times; king, 2&times; queen, 4&times; bishop, 4&times; knight, 4&times; rook, 16&times; pawn. A 1.8 in king base suits <b>2.25&ndash;2.375 in squares</b>.</p>
+      </div>
+      <div class="cs-card">
+        <h3>PRINT GUIDE</h3>
+        <ul>
+          <li><b>Scale 100%</b> &mdash; files are in millimetres, standing upright on Z=0. Print as exported.</li>
+          <li><b>FDM</b> (0.4 mm nozzle): 0.12&ndash;0.16 mm layers, 3 walls, 15&ndash;25% gyroid. Two contrasting filaments for the two armies.</li>
+          <li><b>Supports:</b> tree / organic. Needed under the collar discs, inside the bishop's slit and beneath the knight's mane. Trees peel cleanly off the turned surfaces.</li>
+          <li><b>Resin:</b> same support spots. Solid prints have the best hand feel; or hollow, fill with steel shot and seal.</li>
+          <li><b>Finish:</b> a felt disc on each base. Sand the seam under the king's ball if supports touched it.</li>
+        </ul>
+      </div>
+      <div class="cs-card">
+        <h3>THE SET</h3>
+        <p>Every piece shares one turned <b>family body</b>: a bull-nosed stepped foot, a squat belly bulb, stacked beads and a pair of shoulder collars. Only the crown changes &mdash; the king's ball and twisted flame finial, the queen's eight-petal coronet, the bishop's slit onion mitre, the rook's dished six-notch tower, the pawn's ball, and a sculpted knight with a wind-blown mane.</p>
+        <p>Generated parametrically in Python: lathe profiles, boolean cuts, and a signed-distance-field sculpt for the horse. Change one number in the script and the whole set rescales while keeping its proportions.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -1413,7 +1602,7 @@ tabBtns.forEach(btn => {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.page === target));
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f' };
+    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -3567,6 +3756,210 @@ try {
   document.getElementById('boxReset').addEventListener('click',()=>{ dim={...DEFAULT_MM}; refresh(); showToast('Reset to 4.5 × 3 × 1 in'); });
 
   refresh();
+})();
+// ═══════════════════════════════════════════════════════════════
+// PAGE 8: SIGNATURE CHESS SET — 3D viewer + downloads
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const PIECES = {
+    king:   { file:'king.stl',   h:111.76, base:45.72 },
+    queen:  { file:'queen.stl',  h:93,     base:41 },
+    bishop: { file:'bishop.stl', h:83,     base:38 },
+    knight: { file:'knight.stl', h:78,     base:41 },
+    rook:   { file:'rook.stl',   h:70,     base:39 },
+    pawn:   { file:'pawn.stl',   h:62,     base:30 },
+  };
+  const SET_ORDER = ['pawn','rook','king','queen','bishop','knight'];
+  const FINISH = {
+    boxwood:  { color:0xd8b06a, roughness:0.38, clearcoat:0.55 },
+    rosewood: { color:0x7e2f22, roughness:0.32, clearcoat:0.7 },
+    ebony:    { color:0x1e1b19, roughness:0.30, clearcoat:0.8 },
+  };
+  const STL_DIR = 'chess/stl/';
+  const page = document.getElementById('page-chess');
+  if (!page) return;
+  const viewport = document.getElementById('csViewport');
+  const status = document.getElementById('csStatus');
+  const readout = document.getElementById('csReadout');
+  const dl = document.getElementById('csDownload');
+  const dlZip = document.getElementById('csDownloadZip');
+  const pieceBtns = document.querySelectorAll('#csPieces button');
+  const finishBtns = document.querySelectorAll('#csFinish button');
+  const inch = mm => (mm / 25.4).toFixed(2);
+  const sizes = {};
+  let piece = 'set', finish = 'boxwood';
+
+  function setStatus(msg, cls){ status.textContent = msg; status.className = 'cs-status' + (cls ? ' ' + cls : ''); }
+
+  function renderReadout(){
+    let rows;
+    if (piece === 'set') {
+      rows = `<div class="hd">FULL SET · 6 UNIQUE PIECES</div>
+        <div class="row"><span>King height</span><b>4.40 in · 111.8 mm</b></div>
+        <div class="row"><span>King base Ø</span><b>1.80 in · 45.7 mm</b></div>
+        <div class="row"><span>Pawn height</span><b>2.44 in · 62.0 mm</b></div>
+        <div class="row"><span>Download</span><b>${sizes.zip ? sizes.zip : '6 × STL, zipped'}</b></div>`;
+    } else {
+      const p = PIECES[piece];
+      rows = `<div class="hd">${piece.toUpperCase()} · ${p.file}</div>
+        <div class="row"><span>Height</span><b>${inch(p.h)} in · ${p.h.toFixed(1)} mm</b></div>
+        <div class="row"><span>Base Ø</span><b>${inch(p.base)} in · ${p.base.toFixed(1)} mm</b></div>
+        <div class="row"><span>Per set</span><b>${{king:2,queen:2,bishop:4,knight:4,rook:4,pawn:16}[piece]} × (both colours)</b></div>
+        <div class="row"><span>File</span><b>${sizes[piece] ? sizes[piece] : 'binary STL, mm'}</b></div>`;
+    }
+    readout.innerHTML = rows;
+    if (piece === 'set') {
+      dl.href = STL_DIR + 'signature-chess-set-stl.zip'; dl.textContent = '⬇ DOWNLOAD ALL STL (ZIP)'; dl.removeAttribute('download');
+      dl.setAttribute('download', 'signature-chess-set-stl.zip');
+      dlZip.style.display = 'none';
+    } else {
+      dl.href = STL_DIR + PIECES[piece].file; dl.textContent = '⬇ DOWNLOAD ' + PIECES[piece].file.toUpperCase();
+      dl.setAttribute('download', PIECES[piece].file);
+      dlZip.style.display = '';
+    }
+  }
+
+  async function fetchSizes(){
+    const fmt = n => n > 1e6 ? (n/1e6).toFixed(1) + ' MB' : Math.round(n/1e3) + ' KB';
+    const targets = Object.assign({ zip:'signature-chess-set-stl.zip' }, Object.fromEntries(Object.entries(PIECES).map(([k,v]) => [k, v.file])));
+    await Promise.all(Object.entries(targets).map(async ([k,f]) => {
+      try { const r = await fetch(STL_DIR + f, { method:'HEAD' }); const n = +r.headers.get('content-length'); if (n) sizes[k] = fmt(n); } catch(e){}
+    }));
+    renderReadout();
+  }
+
+  pieceBtns.forEach(b => b.addEventListener('click', () => {
+    piece = b.dataset.piece;
+    pieceBtns.forEach(x => x.classList.toggle('active', x === b));
+    renderReadout();
+    if (viewer) viewer.show(piece);
+  }));
+  finishBtns.forEach(b => b.addEventListener('click', () => {
+    finish = b.dataset.finish;
+    finishBtns.forEach(x => x.classList.toggle('active', x === b));
+    if (viewer) viewer.setFinish(finish);
+  }));
+  renderReadout();
+  fetchSizes();
+
+  // ---- three.js viewer (lazy: starts the first time the tab is shown) ----
+  let viewer = null, starting = false;
+  async function start(){
+    if (viewer || starting) return;
+    starting = true;
+    try {
+      const THREE = await import('three');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      const { STLLoader } = await import('three/addons/loaders/STLLoader.js');
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+      const { mergeVertices } = await import('three/addons/utils/BufferGeometryUtils.js');
+      viewer = buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices);
+      viewer.setFinish(finish);
+      await viewer.show(piece);
+    } catch (e) {
+      console.error('chess viewer', e);
+      setStatus('3D PREVIEW UNAVAILABLE — DOWNLOADS STILL WORK', 'err');
+      starting = false;
+    }
+  }
+  const mo = new MutationObserver(() => { if (page.classList.contains('active')) start(); });
+  mo.observe(page, { attributes:true, attributeFilter:['class'] });
+  if (page.classList.contains('active')) start();
+
+  function buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices){
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    viewport.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(28, 1, 1, 3000);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
+    controls.maxPolarAngle = Math.PI * 0.52;
+    let idleTimer = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
+    controls.addEventListener('end', () => { idleTimer = setTimeout(() => controls.autoRotate = true, 5000); });
+
+    const key = new THREE.DirectionalLight(0xfff1dc, 2.4);
+    key.position.set(-140, 220, 180); key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
+    Object.assign(key.shadow.camera, { left:-220, right:220, top:220, bottom:-220, near:10, far:900 });
+    scene.add(key);
+    scene.add(new THREE.HemisphereLight(0xfff4e6, 0x3a2e1c, 0.55));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.ShadowMaterial({ opacity:0.45 }));
+    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+    const material = new THREE.MeshPhysicalMaterial({ color:0xd8b06a, roughness:0.38, metalness:0, clearcoat:0.55, clearcoatRoughness:0.3 });
+    const group = new THREE.Group(); scene.add(group);
+    const loader = new STLLoader();
+    const cache = new Map();
+    async function geom(name){
+      if (!cache.has(name)) {
+        cache.set(name, loader.loadAsync(STL_DIR + PIECES[name].file).then(g => {
+          g = mergeVertices(g, 1e-4); g.computeVertexNormals(); g.computeBoundingBox(); return g;
+        }));
+      }
+      return cache.get(name);
+    }
+
+    function resize(){
+      const w = viewport.clientWidth || 800, h = viewport.clientHeight || 540;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resize).observe(viewport);
+    resize();
+
+    function frame(){
+      const box = new THREE.Box3().setFromObject(group);
+      if (box.isEmpty()) return;
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const fovV = camera.fov * Math.PI / 180;
+      const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+      const dist = Math.max(size.y / (2 * Math.tan(fovV / 2)), size.x / (2 * Math.tan(fovH / 2))) * 1.25 + size.z * 0.6;
+      controls.target.copy(center);
+      camera.position.set(center.x + dist * 0.25, center.y + dist * 0.28, center.z + dist * 0.93);
+      camera.near = dist / 50; camera.far = dist * 20; camera.updateProjectionMatrix();
+      controls.update();
+    }
+
+    let token = 0;
+    async function show(which){
+      const my = ++token;
+      const names = which === 'set' ? SET_ORDER : [which];
+      setStatus('LOADING ' + (which === 'set' ? 'FULL SET' : PIECES[which].file.toUpperCase()) + '…', 'loading');
+      let geos;
+      try { geos = await Promise.all(names.map(geom)); }
+      catch (e) { console.error(e); setStatus('COULD NOT LOAD STL — USE THE DOWNLOAD BUTTON', 'err'); return; }
+      if (my !== token) return;
+      group.clear();
+      const gap = 12; let x = 0; const widths = geos.map(g => g.boundingBox.max.x - g.boundingBox.min.x);
+      const total = widths.reduce((a, b) => a + b, 0) + gap * (geos.length - 1);
+      geos.forEach((g, i) => {
+        const m = new THREE.Mesh(g, material);
+        m.castShadow = true; m.receiveShadow = true;
+        m.rotation.x = -Math.PI / 2;                               // STL is Z-up
+        m.position.x = x - g.boundingBox.min.x - total / 2;
+        group.add(m); x += widths[i] + gap;
+      });
+      frame();
+      viewport.classList.add('live');
+      setStatus('DRAG TO ORBIT · SCROLL TO ZOOM · ' + (which === 'set' ? 'PAWN · ROOK · KING · QUEEN · BISHOP · KNIGHT' : which.toUpperCase()));
+    }
+    function setFinish(f){ const s = FINISH[f]; material.color.setHex(s.color); material.roughness = s.roughness; material.clearcoat = s.clearcoat; }
+
+    (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+    return { show, setFinish };
+  }
 })();
 </script>
 </body>
