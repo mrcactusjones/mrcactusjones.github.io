@@ -634,3 +634,58 @@ class TestRealHistoryShape(unittest.TestCase):
     def test_an_empty_history_block_yields_nothing(self):
         self.assertEqual(self.parse({"priceHistory": {"conditions": {}},
                                      "ebay": {"priceHistory": {"psa9": {}}}}), {})
+
+
+class TestGradedHistoryShape(unittest.TestCase):
+    """Graded history is a {date: {average, ...}} map -- a different shape from
+    the raw series, and in the same response."""
+
+    RECORD = {
+        "prices": {"market": 202.58, "primaryPrinting": "Normal"},
+        "variants": {"Normal": {"printing": "Normal", "conditionUsed": "Near Mint"}},
+        "priceHistory": {"conditions": {
+            "Lightly Played": {"history": [
+                {"date": "2026-03-09", "market": 83.59, "volume": 1},
+                {"date": "2026-03-10", "market": 81.44, "volume": None},
+                {"date": "2026-03-11", "market": 83.59, "volume": None}]},
+            "Near Mint": {"history": [
+                {"date": "2026-03-09", "market": 198.10},
+                {"date": "2026-03-10", "market": 202.58}]}}},
+        "ebay": {"priceHistory": {
+            "psa9": {"2026-05-14": {"average": 325, "count": 1, "totalValue": 325},
+                     "2026-08-30": {"average": 760, "count": 1, "totalValue": 760}},
+            "psa10": {"2026-06-01": {"average": 1100, "count": 2}}}},
+    }
+
+    def setUp(self):
+        from gapscan.providers.ppt import parse_history, spot_condition
+        self.parse, self.spot = parse_history, spot_condition
+
+    def test_graded_history_is_read(self):
+        """Without this every card shows a one-point floor series."""
+        got = self.parse(self.RECORD)
+        self.assertEqual(len(got["psa9"]), 2)
+        self.assertEqual(len(got["psa10"]), 1)
+        self.assertAlmostEqual(dict(got["psa9"])["2026-08-30"], 760.0)
+
+    def test_raw_history_matches_the_condition_the_spot_price_came_from(self):
+        """A Lightly Played series against a Near Mint spot price prices two
+        different cards and invents a gap."""
+        self.assertEqual(self.spot(self.RECORD), "Near Mint")
+        got = self.parse(self.RECORD)
+        self.assertAlmostEqual(got["raw"][0][1], 198.10)
+
+    def test_printing_suffix_is_stripped_from_the_condition(self):
+        record = dict(self.RECORD, variants={
+            "Holofoil": {"printing": "Holofoil", "conditionUsed": "Near Mint Holofoil"}},
+            prices={"market": 55.0, "primaryPrinting": "Holofoil"})
+        self.assertEqual(self.spot(record), "Near Mint")
+
+    def test_falls_back_when_the_spot_condition_has_no_history(self):
+        record = dict(self.RECORD, variants={
+            "Normal": {"printing": "Normal", "conditionUsed": "Heavily Played"}})
+        self.assertEqual(len(self.parse(record)["raw"]), 2, "falls back to Near Mint")
+
+    def test_a_scalar_date_map_still_parses(self):
+        got = self.parse({"ebay": {"priceHistory": {"psa9": {"2026-06-01": 500.0}}}})
+        self.assertEqual(got["psa9"], [("2026-06-01", 500.0)])

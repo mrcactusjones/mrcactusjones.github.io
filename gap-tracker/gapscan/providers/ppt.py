@@ -244,6 +244,12 @@ def _grade_block(block) -> tuple[float | None, str | None, str | None, int]:
     return price, confidence, block.get("lastSaleDate"), count
 
 
+# Raw history calls the day's price "market"; graded history calls it
+# "average". Both shapes appear in one response.
+HISTORY_PRICE_KEYS = ("price", "market", "marketPrice", "average", "value",
+                      "averagePrice", "medianPrice")
+
+
 def _history_points(node) -> list[tuple[str, float]]:
     """Normalise one history block into (date, price) pairs.
 
@@ -260,18 +266,24 @@ def _history_points(node) -> list[tuple[str, float]]:
                 continue
             stamp = item.get("date") or item.get("day") or item.get("timestamp")
             price = None
-            for key in ("price", "market", "marketPrice", "value", "averagePrice",
-                        "medianPrice"):
+            for key in HISTORY_PRICE_KEYS:
                 price = _as_number(item.get(key))
                 if price is not None:
                     break
             if stamp and price is not None and price > 0:
                 points.append((str(stamp)[:10], price))
     elif isinstance(node, dict):
+        # The graded series is a {date: {average, count, ...}} map, so the
+        # per-day price lives under a different key than the raw series uses.
         for stamp, value in node.items():
-            price = _as_number(value if not isinstance(value, dict)
-                               else value.get("price") or value.get("market"))
-            if re.match(r"\d{4}-\d{2}-\d{2}", str(stamp)) and price and price > 0:
+            if not re.match(r"\d{4}-\d{2}-\d{2}", str(stamp)):
+                continue
+            if isinstance(value, dict):
+                price = next((n for n in (_as_number(value.get(k))
+                                          for k in HISTORY_PRICE_KEYS) if n), None)
+            else:
+                price = _as_number(value)
+            if price and price > 0:
                 points.append((str(stamp)[:10], price))
 
     # One price per day; later duplicates win.
@@ -284,7 +296,27 @@ def _history_points(node) -> list[tuple[str, float]]:
 GRADEABLE_CONDITIONS = ("Near Mint", "Lightly Played", "Moderately Played")
 
 
-def _condition_series(node: dict) -> list[tuple[str, float]]:
+def spot_condition(record: dict) -> str | None:
+    """The condition `prices.market` was taken from, e.g. "Near Mint".
+
+    Without this the history can be Lightly Played while the spot price is
+    Near Mint -- a floor series computed from an $83 raw against a $202 one.
+    """
+    prices = record.get("prices") or {}
+    printing = prices.get("primaryPrinting")
+    variants = record.get("variants") or {}
+    used = ((variants.get(printing) or {}).get("conditionUsed")
+            if printing else None)
+    if not used:
+        return None
+    # "Near Mint Holofoil" -> "Near Mint"
+    for known in GRADEABLE_CONDITIONS + ("Heavily Played", "Damaged"):
+        if str(used).lower().startswith(known.lower()):
+            return known
+    return str(used)
+
+
+def _condition_series(node: dict, prefer: str | None = None) -> list[tuple[str, float]]:
     """Pick the best condition's history out of a priceHistory block.
 
     The real shape is priceHistory.conditions["Near Mint"].history -- a list of
@@ -295,7 +327,7 @@ def _condition_series(node: dict) -> list[tuple[str, float]]:
     if not isinstance(conditions, dict):
         return []
 
-    for wanted in GRADEABLE_CONDITIONS:
+    for wanted in ((prefer,) if prefer else ()) + GRADEABLE_CONDITIONS:
         for name, block in conditions.items():
             if str(name).strip().lower() == wanted.lower():
                 points = _history_points(block)
@@ -321,7 +353,8 @@ def parse_history(record: dict) -> dict[str, list[tuple[str, float]]]:
             out["raw"] = points
     elif isinstance(raw_hist, dict):
         # A bare history, then the per-condition shape the API actually returns.
-        points = _history_points(raw_hist) or _condition_series(raw_hist)
+        points = (_history_points(raw_hist)
+                  or _condition_series(raw_hist, spot_condition(record)))
         if points:
             out["raw"] = points
 
