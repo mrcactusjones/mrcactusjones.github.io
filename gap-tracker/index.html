@@ -201,9 +201,17 @@ const COLS = [
       `<span class="num${r.psa9_sale_age_days > 90 ? " neg" : ""}">${
         Math.round(r.psa9_sale_age_days)}d</span>` },
   { k:"cgc9",   t:"CGC 9",       fmt:r => money(r.cgc9) },
+  { k:"floor_days_held_90d", t:"Held 90d", fmt:r =>
+      r.floor_days_held_90d == null ? "—" :
+      `<span class="num" title="Observations clearing the threshold, out of those available">${
+        r.floor_days_held_90d}/${r.floor_observations_90d ?? "?"}</span>` },
   { k:"floor_streak", t:"Streak", fmt:r =>
-      `<span class="num" title="Consecutive days clearing the profit threshold">${r.floor_streak}d</span>` },
-  { k:"history",t:"Trend",      fmt:r => spark(r.history) },
+      `<span class="num" title="Calendar days the gap has held unbroken">${r.floor_streak}d</span>` },
+  { k:"psa9_30d", t:"PSA 9 30d", fmt:r => pct(r.psa9_30d) },
+  { k:"divergence_30d", t:"Diverge", fmt:r => r.divergence_30d == null ? "—" :
+      `<span class="num ${r.divergence_30d >= 0 ? "pos" : "neg"}" title="PSA 9 momentum minus raw momentum: positive means the gap is widening on its own">${
+        (r.divergence_30d * 100).toFixed(0)}%</span>` },
+  { k:"history",t:"Trend",      fmt:r => spark(r.floor_history || r.history) },
   { k:"scanned_days_ago", t:"Age", fmt:r => `<span class="num">${r.scanned_days_ago}d</span>` },
 ];
 
@@ -211,7 +219,8 @@ const VERDICT_ORDER = ["no_brainer","floor_positive","ten_or_bust","dead"];
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 const money  = v => v == null ? "—" : `<span class="num">$${v.toFixed(2)}</span>`;
-const pct    = v => v == null ? "—" : `<span class="num ${v>=0?"pos":"neg"}">${(v*100).toFixed(0)}%</span>`;
+const pct    = v => v == null ? "—" :
+  `<span class="num ${v>=0?"pos":"neg"}">${(v*100).toFixed(0)}%</span>`;
 const signed = v => v == null ? "—" :
   `<span class="num ${v>=0?"pos":"neg"}">${v<0?"-":""}$${Math.abs(v).toFixed(2)}</span>`;
 
@@ -321,7 +330,8 @@ function boot(data) {
      <span>Oldest scan <b>${c.oldest_scan_days}d</b></span>
      <span>Stale <b>${c.stale}</b></span>
      <span>Full sweep in <b>~${c.days_to_full_coverage}d</b></span>
-     <span>Updated <b>${(data.generated_at || "").replace("T", " ").slice(0, 16)}</b></span>`;
+     <span>Updated <b>${(data.generated_at || "").replace("T", " ").slice(0, 16)}</b></span>
+     ${data.trend_coverage ? `<span>History on <b>${data.trend_coverage}</b> cards</span>` : ""}`;
 
   const counts = data.verdict_counts || {};
   document.getElementById("verdicts").innerHTML = VERDICT_ORDER.map(v =>

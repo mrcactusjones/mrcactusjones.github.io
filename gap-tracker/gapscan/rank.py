@@ -23,6 +23,31 @@ def _streak(series: list[dict], threshold: float) -> int:
     return count
 
 
+def _attach_trends(rows: list[dict], cfg: Config) -> int:
+    """Fold price-history analytics onto the ranked rows.
+
+    Silently does nothing when there is no database yet, so the free-tier
+    workflow is unaffected.
+    """
+    from . import db, trends
+    if not db.PATH.exists():
+        return 0
+    enriched = 0
+    with db.session() as conn:
+        for row in rows:
+            raw = db.series(conn, row["id"], "raw")
+            psa9 = db.series(conn, row["id"], "psa9")
+            if len(raw) < 2 and len(psa9) < 2:
+                continue
+            psa10 = db.series(conn, row["id"], "psa10")
+            floor = trends.gap_series(raw, psa9, cfg.econ.all_in, cfg.econ.net_proceeds)
+            row.update(trends.summarise(raw, psa9, psa10, floor,
+                                        cfg.thresholds.min_floor_profit))
+            row["floor_history"] = [round(v, 2) for _, v in floor][-180:]
+            enriched += 1
+    return enriched
+
+
 def build(universe: dict, store: Store, cfg: Config,
           quotes: dict | None = None, history: dict | None = None) -> dict:
     """Rank every priced card.
@@ -101,6 +126,8 @@ def build(universe: dict, store: Store, cfg: Config,
     # whole tool exists to answer.
     rows.sort(key=lambda r: (r["confident"], r["floor_profit"]), reverse=True)
 
+    with_trends = _attach_trends(rows, cfg)
+
     counts: dict[str, int] = {}
     for row in rows:
         counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
@@ -110,6 +137,7 @@ def build(universe: dict, store: Store, cfg: Config,
         "config": cfg.to_dict(),
         "coverage": coverage(universe, store, cfg, quotes=quotes),
         "verdict_counts": counts,
+        "trend_coverage": with_trends,
         "rows": rows,
     }
 

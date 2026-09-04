@@ -19,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from gapscan import ingest
 from gapscan import rank as rank_mod
 from gapscan import watchlist as watchlist_mod
 from gapscan import scan as scan_mod
@@ -369,6 +370,129 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_backfill(args, cfg: Config, store: Store) -> int:
+    """Sweep whole sets, storing months of price history in the database.
+
+    This is what the paid tier buys: history arrives in one pass instead of
+    accruing a day at a time.
+    """
+    from gapscan import db, ingest
+    from gapscan.providers.ppt import OutOfCredits, PPTError
+
+    universe = store.load_universe()
+    if not universe:
+        print("No universe yet -- run `catalog` first.")
+        return 1
+
+    wanted = [s.strip() for s in args.sets.split(",")] if args.sets else None
+    sets: list[str] = []
+    for entry in sorted(universe.values(), key=lambda e: -e.get("priority", 0)):
+        name = entry.get("set_name")
+        if name and name not in sets and (not wanted or name in wanted):
+            sets.append(name)
+    if not sets:
+        print("No matching sets in the universe.")
+        return 1
+
+    budget = args.budget or cfg.budget.daily_credits
+    per_page = args.limit * 3
+    provider = get_provider(args, cfg)
+    print(f"{len(sets)} set(s), {args.limit} cards/page, {args.days} days of history")
+    print(f"budget {budget} credits; each page costs {per_page}\n")
+
+    cards = points = discovered = 0
+    with db.session() as conn:
+        for set_name in sets:
+            page = 1
+            while True:
+                if provider.credits_used + per_page > budget:
+                    print(f"  budget reached ({provider.credits_used}/{budget})")
+                    set_name = None
+                    break
+                try:
+                    records, _ = provider.fetch_batch(set_name, days=args.days,
+                                                      limit=args.limit, page=page)
+                except OutOfCredits as exc:
+                    print(f"  stopping: {exc}")
+                    set_name = None
+                    break
+                except PPTError as exc:
+                    print(f"  ! {set_name} p{page}: {exc}")
+                    break
+                if not records:
+                    break
+
+                for record in records:
+                    card_id, added = ingest.ingest_record(conn, record, universe)
+                    cards += 1
+                    points += added
+                    # A set sweep returns cards the seed list never chose. They
+                    # are paid for either way, so fold them into the universe
+                    # rather than leaving them invisible to ranking.
+                    if card_id not in universe:
+                        entry = ingest.card_from_record(record, universe)
+                        universe[card_id] = {
+                            "id": card_id, "name": entry["name"],
+                            "number": entry["number"], "set_id": "sweep",
+                            "set_name": entry["set_name"], "rarity": entry["rarity"],
+                            "raw_hint": None, "priority": 0,
+                            "seed_reason": f"found sweeping {set_name}",
+                            "image": None, "tier": "candidate", "source": "sweep",
+                        }
+                        discovered += 1
+                    # Keep the JSON cache in step so ranking works unchanged.
+                    quote = ingest.extract_quote(record)
+                    if quote.psa9 is not None or quote.psa10 is not None:
+                        store.save_quote(card_id, {
+                            "id": card_id, "fetched_at": store_now(), "miss": False,
+                            "quote": quote.__dict__, "provider": provider.name})
+                print(f"  {set_name} p{page}: {len(records)} cards, "
+                      f"{provider.credits_used} credits used")
+                if len(records) < args.limit:
+                    break
+                page += 1
+            if set_name is None:
+                break
+        stats = db.stats(conn)
+
+    store.save_universe(universe)
+    print(f"\nstored {cards} card(s), {points} price points "
+          f"({provider.credits_used} credits)")
+    if discovered:
+        print(f"universe grew by {discovered} card(s) found while sweeping")
+    print(f"database: {stats['cards']} cards, {stats['price_points']} points, "
+          f"{stats['earliest']} to {stats['latest']}")
+    print("Next: run.py rank")
+    return 0
+
+
+def cmd_trends(args, cfg: Config, store: Store) -> int:
+    """Rank by how well a gap has held, not just how big it is today."""
+    import json as _json
+    path = store.root / "rankings.json"
+    if not path.exists():
+        print("No rankings yet -- run `rank` first.")
+        return 1
+    rows = _json.loads(path.read_text()).get("rows", [])
+    scored = [r for r in rows if r.get("floor_days_held_90d") is not None]
+    if not scored:
+        print("No trend data yet -- run `backfill` to load price history.")
+        return 1
+
+    scored.sort(key=lambda r: (r.get("floor_days_held_90d", 0),
+                               r.get("floor_profit", 0)), reverse=True)
+    print(f"{'held':>5} {'streak':>7} {'floor':>10} {'psa9 30d':>9} "
+          f"{'diverge':>8}  card")
+    for row in scored[:args.top]:
+        def pct(value):
+            return f"{value * 100:+.0f}%" if value is not None else "    -"
+        print(f"{row['floor_days_held_90d']:>5} {row.get('floor_streak', 0):>7} "
+              f"${row['floor_profit']:>9.2f} {pct(row.get('psa9_30d')):>9} "
+              f"{pct(row.get('divergence_30d')):>8}  "
+              f"{row['name']} ({row['set_name']} {row['number']})")
+    return 0
+
+
 def cmd_population(args, cfg: Config, store: Store) -> int:
     """Check whether this plan can reach population data (2 credits to find out)."""
     from gapscan.providers.ppt import (PopulationUnavailable, PPTProvider,
@@ -632,6 +756,19 @@ def main() -> int:
     p.add_argument("--use-hint", action="store_true",
                    help="include set_hint in the search text")
     p.set_defaults(func=cmd_watchlist)
+
+    p = sub.add_parser("backfill", help="sweep sets and store price history")
+    add_provider(p)
+    p.add_argument("--days", type=int, default=180, help="history depth to request")
+    p.add_argument("--limit", type=int, default=100, help="cards per page (max 100)")
+    p.add_argument("--sets", help="comma-separated set names, default all")
+    p.add_argument("--budget", type=int, help="credit ceiling for this run")
+    add_log(p)
+    p.set_defaults(func=cmd_backfill)
+
+    p = sub.add_parser("trends", help="rank by how long the gap has held")
+    p.add_argument("--top", type=int, default=20)
+    p.set_defaults(func=cmd_trends)
 
     p = sub.add_parser("population", help="test population access (2 credits)")
     p.set_defaults(func=cmd_population)

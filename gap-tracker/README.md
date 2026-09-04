@@ -70,6 +70,56 @@ accepted automatically; several are listed for you to choose between; none
 prints what it did see, so you can correct the number or set hint. Nothing is
 guessed.
 
+## Price history (paid tier)
+
+The $9.99 API tier returns up to a year of daily price history per card, and
+20,000 credits a day. That changes the shape of the project: history arrives in
+one pass instead of accruing a day at a time, so it goes into SQLite rather
+than daily JSON snapshots.
+
+```bash
+python3 run.py backfill --provider ppt --days 180   # sweep sets, store history
+python3 run.py rank                                 # trends attach automatically
+python3 run.py trends --top 20                      # rank by how long a gap held
+```
+
+Costs, at 3 credits a card (base + graded + history):
+
+| | credits | notes |
+|---|---|---|
+| one card | 3 | |
+| a 100-card page | 300 | one request against the 60/min ceiling, not 100 |
+| a 443-card universe | ~1,329 | a single run, inside one day's budget |
+| daily refresh of 6,000 cards | 18,000 | still fits |
+
+Sweeping by set returns cards the seed list never chose. They are paid for
+either way, so they are folded into the universe -- the set list, not the
+rarity filter, becomes what bounds the project.
+
+### What the history buys
+
+`gapscan/trends.py` computes, per card:
+
+- **held / observations** — how often the floor cleared the threshold in the
+  last 90 days, with the denominator, so sparse data can't masquerade as
+  persistence.
+- **streak** — calendar days the gap has held unbroken. Days, not
+  observations: an irregularly sampled series must not claim more.
+- **PSA 9 30d** — momentum of the graded price.
+- **divergence** — PSA 9 momentum minus raw momentum. Positive means the
+  graded price is pulling away on its own; negative means raw is catching up
+  and the trade is closing.
+- **volatility** — standard deviation of daily moves, to separate a real gap
+  from a noisy one.
+
+Trend ends are compared by median of the first and last few points, so a single
+odd sale cannot create a trend.
+
+### Schema
+
+`data/gaps.sqlite3`: `cards`, `price_points` (card, date, grade -- so
+re-ingesting overlapping windows is idempotent), `daily_metrics`, `runs`.
+
 ## Running it daily
 
 Missing a day costs a day of price history, so schedule it.

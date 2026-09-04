@@ -19,6 +19,7 @@ class MockProvider:
 
     def __init__(self, drift_seed: str = ""):
         self.drift_seed = drift_seed
+        self.credits_used = 0
 
     def _rng(self, card_id: str) -> random.Random:
         digest = hashlib.sha256(f"{card_id}|{self.drift_seed}".encode()).hexdigest()
@@ -66,3 +67,60 @@ class MockProvider:
             as_of=iso(utcnow()),
             source="mock",
         )
+
+    def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
+                    page: int = 1) -> tuple[list[dict], int]:
+        """Fake set page, shaped like the real response including history."""
+        from datetime import timedelta
+
+        from ..store import utcnow
+        if page > 1:
+            return [], 0
+        rng = self._rng(f"{set_name}|batch")
+        records = []
+        for index in range(1, min(limit, 12) + 1):
+            base = rng.uniform(10, 300)
+            mult9, mult10 = rng.uniform(1.3, 3.5), rng.uniform(3, 9)
+            def walk(start, points=days // 3):
+                series, value = {}, start
+                for step in range(points):
+                    value *= 1 + rng.uniform(-0.03, 0.035)
+                    stamp = (utcnow() - timedelta(days=(points - step) * 3)).date()
+                    series[stamp.isoformat()] = round(value, 2)
+                return series
+            records.append({
+                "id": f"mock{index}", "externalCatalogId": f"{set_name}-{index}",
+                "setName": set_name, "cardNumber": str(index),
+                "name": f"Mock {index}", "rarity": "Rare Holo",
+                "tcgPlayerId": str(10000 + index),
+                "prices": {"market": round(base, 2)},
+                "priceHistory": walk(base),
+                "ebay": {
+                    "salesByGrade": {
+                        "psa9": {"count": rng.randint(3, 30),
+                                 "smartMarketPrice": {"price": round(base * mult9, 2),
+                                                      "confidence": "medium"},
+                                 "lastSaleDate": self._recent(rng)},
+                        "psa10": {"count": rng.randint(1, 20),
+                                  "smartMarketPrice": {"price": round(base * mult10, 2),
+                                                       "confidence": "medium"},
+                                  "lastSaleDate": self._recent(rng)},
+                        "psa8": {"count": rng.randint(0, 6),
+                                 "medianPrice": round(base * mult9 * 0.5, 2)},
+                    },
+                    "priceHistory": {
+                        "psa9": walk(base * mult9),
+                        "psa10": walk(base * mult10),
+                    },
+                },
+            })
+        cost = limit * 3
+        self.credits_used += cost
+        return records, cost
+
+    @staticmethod
+    def _recent(rng) -> str:
+        from datetime import timedelta
+
+        from ..store import iso, utcnow
+        return iso(utcnow() - timedelta(days=rng.randint(1, 60)))

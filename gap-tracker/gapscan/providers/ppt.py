@@ -244,6 +244,75 @@ def _grade_block(block) -> tuple[float | None, str | None, str | None, int]:
     return price, confidence, block.get("lastSaleDate"), count
 
 
+def _history_points(node) -> list[tuple[str, float]]:
+    """Normalise one history block into (date, price) pairs.
+
+    Seen as a list of {date, price}, a {date: price} map, or wrapped in a
+    "history" key -- so accept all three rather than betting on one.
+    """
+    if isinstance(node, dict) and "history" in node:
+        node = node["history"]
+
+    points: list[tuple[str, float]] = []
+    if isinstance(node, list):
+        for item in node:
+            if not isinstance(item, dict):
+                continue
+            stamp = item.get("date") or item.get("day") or item.get("timestamp")
+            price = None
+            for key in ("price", "market", "marketPrice", "value", "averagePrice",
+                        "medianPrice"):
+                price = _as_number(item.get(key))
+                if price is not None:
+                    break
+            if stamp and price is not None and price > 0:
+                points.append((str(stamp)[:10], price))
+    elif isinstance(node, dict):
+        for stamp, value in node.items():
+            price = _as_number(value if not isinstance(value, dict)
+                               else value.get("price") or value.get("market"))
+            if re.match(r"\d{4}-\d{2}-\d{2}", str(stamp)) and price and price > 0:
+                points.append((str(stamp)[:10], price))
+
+    # One price per day; later duplicates win.
+    return sorted({d: v for d, v in points}.items())
+
+
+def parse_history(record: dict) -> dict[str, list[tuple[str, float]]]:
+    """Per-grade price history: {"raw": [...], "psa9": [...], "psa10": [...]}."""
+    out: dict[str, list[tuple[str, float]]] = {}
+
+    raw_hist = record.get("priceHistory")
+    if isinstance(raw_hist, dict):
+        # Either keyed by condition (Near Mint, Holofoil...) or a bare history.
+        best: list[tuple[str, float]] = []
+        direct = _history_points(raw_hist)
+        if direct:
+            best = direct
+        else:
+            for value in raw_hist.values():
+                points = _history_points(value)
+                if len(points) > len(best):
+                    best = points
+        if best:
+            out["raw"] = best
+    elif isinstance(raw_hist, list):
+        points = _history_points(raw_hist)
+        if points:
+            out["raw"] = points
+
+    graded = ((record.get("ebay") or {}).get("priceHistory")) or {}
+    if isinstance(graded, dict):
+        for key, node in graded.items():
+            grade = str(key).lower()
+            if not re.fullmatch(r"(psa|cgc|bgs|sgc)\d{1,2}", grade):
+                continue
+            points = _history_points(node)
+            if points:
+                out[grade] = points
+    return out
+
+
 def extract_graded(record: dict) -> Quote | None:
     """Read the documented ebay.salesByGrade shape.
 
@@ -478,6 +547,29 @@ class PPTProvider:
             return None
         self.credits_used += 2
         return parse_population(blob)
+
+    def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
+                    page: int = 1) -> tuple[list[dict], int]:
+        """A page of a whole set, with graded prices and history.
+
+        Billed on the requested limit, so one 100-card page costs the same as
+        100 single lookups -- but it is one request against the per-minute
+        ceiling instead of a hundred, and it returns cards the seed list never
+        knew about.
+        """
+        params = {
+            "set": set_name,
+            "limit": limit,
+            "page": page,
+            "fetchAllInSet": "true",
+            "includeEbay": "true",
+            "includeHistory": "true",
+            "days": days,
+        }
+        blob = self._request("cards", params)
+        cost = limit * 3  # base + graded + history, per card
+        self.credits_used += cost
+        return results_of(blob), cost
 
     def next_cost(self) -> int:
         """Credits the next narrow lookup will cost."""
