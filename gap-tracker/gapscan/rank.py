@@ -193,6 +193,11 @@ def build(universe: dict, store: Store, cfg: Config,
     # whole tool exists to answer.
     rows.sort(key=lambda r: (r["confident"], r["floor_profit"]), reverse=True)
 
+    # Cards cached before variant detection existed carry no printings at all,
+    # so the check silently cannot fire on them. Say so rather than leaving it
+    # to be inferred from an unchanged ranking.
+    stale_variants = sum(1 for _, quote in priced if quote.printings is None)
+
     with_trends = _attach_trends(rows, cfg)
 
     # Scored last: conviction reads the trend fields, so it has to run after
@@ -214,6 +219,7 @@ def build(universe: dict, store: Store, cfg: Config,
         "coverage": coverage(universe, store, cfg, quotes=quotes),
         "verdict_counts": counts,
         "trend_coverage": with_trends,
+        "stale_variant_data": stale_variants,
         "scoring": {"weights": cfg.scoring.weights,
                     "roi_full": cfg.scoring.roi_full,
                     "depth_full": cfg.scoring.depth_full,

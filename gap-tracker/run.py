@@ -152,6 +152,11 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
           f"{cov['universe']} (oldest {cov['oldest_scan_days']}d, "
           f"~{cov['days_to_full_coverage']}d to full) | watchlist changes: {moved}")
     print(f"verdicts: {rankings['verdict_counts']}")
+    stale = rankings.get("stale_variant_data", 0)
+    if stale:
+        print(f"note: {stale} card(s) were fetched before printing data was "
+              f"captured, so the variant check cannot run on them yet.\n"
+              f"      re-run `backfill` to populate it.")
     for row in rankings["rows"][:args.top]:
         flag = " " if row["confident"] else "?"
         print(f" {flag} {row.get('conviction', 0):>5.0f}  ${row['floor_profit']:>8.2f} floor  "
