@@ -10,6 +10,13 @@ from dataclasses import dataclass, asdict, field, fields
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _scoring_default():
+    # Imported lazily: scoring imports nothing from config, and this keeps it
+    # that way rather than creating a cycle.
+    from .scoring import Scoring
+    return Scoring()
 DATA = ROOT / "data"
 SEEDS = ROOT / "seeds"
 FIXTURES = ROOT / "fixtures"
@@ -120,6 +127,7 @@ class Config:
     econ: Economics = field(default_factory=Economics)
     thresholds: Thresholds = field(default_factory=Thresholds)
     budget: ScanBudget = field(default_factory=ScanBudget)
+    scoring: "Scoring" = field(default_factory=lambda: _scoring_default())
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Config":
@@ -128,7 +136,7 @@ class Config:
         if not path.exists():
             return cfg
         blob = json.loads(path.read_text())
-        for section in ("econ", "thresholds", "budget"):
+        for section in ("econ", "thresholds", "budget", "scoring"):
             overrides = blob.get(section) or {}
             target = getattr(cfg, section)
             known = {f.name for f in fields(target)}
@@ -141,4 +149,4 @@ class Config:
 
     def to_dict(self) -> dict:
         return {"econ": asdict(self.econ), "thresholds": asdict(self.thresholds),
-                "budget": asdict(self.budget)}
+                "budget": asdict(self.budget), "scoring": asdict(self.scoring)}

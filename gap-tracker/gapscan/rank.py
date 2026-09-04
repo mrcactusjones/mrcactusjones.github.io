@@ -149,6 +149,15 @@ def build(universe: dict, store: Store, cfg: Config,
 
     with_trends = _attach_trends(rows, cfg)
 
+    # Scored last: conviction reads the trend fields, so it has to run after
+    # the history is folded in.
+    from .scoring import score as conviction_score
+    for row in rows:
+        result = conviction_score(row, cfg.scoring)
+        row["conviction"] = result["conviction"]
+        row["conviction_parts"] = result["parts"]
+        row["conviction_coverage"] = result["coverage"]
+
     counts: dict[str, int] = {}
     for row in rows:
         counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
@@ -159,6 +168,13 @@ def build(universe: dict, store: Store, cfg: Config,
         "coverage": coverage(universe, store, cfg, quotes=quotes),
         "verdict_counts": counts,
         "trend_coverage": with_trends,
+        "scoring": {"weights": cfg.scoring.weights,
+                    "roi_full": cfg.scoring.roi_full,
+                    "depth_full": cfg.scoring.depth_full,
+                    "liquidity_full": cfg.scoring.liquidity_full,
+                    "direction_span": cfg.scoring.direction_span,
+                    "max_sale_age_days": cfg.scoring.max_sale_age_days,
+                    "unconfident_multiplier": cfg.scoring.unconfident_multiplier},
         "rows": rows,
     }
 

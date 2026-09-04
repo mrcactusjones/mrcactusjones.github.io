@@ -160,7 +160,7 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
     print(f"verdicts: {rankings['verdict_counts']}")
     for row in rankings["rows"][:args.top]:
         flag = " " if row["confident"] else "?"
-        print(f" {flag} ${row['floor_profit']:>8.2f} floor  "
+        print(f" {flag} {row.get('conviction', 0):>5.0f}  ${row['floor_profit']:>8.2f} floor  "
               f"${row['upside_profit']:>8.2f} at 10  "
               f"{row['name']} ({row['set_name']} {row['number']})")
     return 0

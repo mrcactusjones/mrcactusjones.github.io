@@ -71,6 +71,8 @@
   .v-ten_or_bust { color:var(--warn); }
   .v-dead { color:var(--muted); }
   .flag { color:var(--warn); cursor:help; }
+  .scorebar { height:3px; background:var(--chip); border-radius:2px; margin-top:3px; }
+  .scorebar i { display:block; height:100%; background:var(--accent); border-radius:2px; }
   .empty { padding:2.5rem 1.2rem; text-align:center; color:var(--muted); }
   code { background:var(--chip); padding:.1rem .35rem; border-radius:.25rem; font-size:.9em; }
   .bar { display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; align-items:baseline;
@@ -82,7 +84,7 @@
 <header>
   <div>
     <h1>Grade Gap Tracker</h1>
-    <div class="sub">Ranked by what clears at a <strong>PSA 9</strong> — the downside case, not the PSA 10 lottery.</div>
+    <div class="sub">Ranked by conviction in what clears at a <strong>PSA 9</strong> — the downside case, not the PSA 10 lottery. Click any column to re-sort.</div>
   </div>
   <div class="sizer">
     <span>Text</span>
@@ -177,6 +179,36 @@ function worstFloor(series) {
   return series && series.length ? Math.min(...series) : null;
 }
 
+// Mirrors gapscan/scoring.py. Recomputed here because conviction depends on
+// the floor, and the floor follows the cost sliders.
+function convictionOf(row, s, floor, cost) {
+  const k = SCORING;
+  if (!k || floor == null || floor <= 0) return { value: 0, parts: {}, coverage: 0 };
+  const clamp = v => Math.max(0, Math.min(1, v));
+
+  const parts = {};
+  if (cost > 0) parts.size = clamp((floor / cost) / k.roi_full);
+  if (row.floor_durability != null) parts.durability = row.floor_durability;
+  if (row.sales_9 != null)
+    parts.depth = clamp(Math.log1p(row.sales_9) / Math.log1p(k.depth_full));
+  if (row.psa9_sale_age_days != null)
+    parts.freshness = clamp(1 - row.psa9_sale_age_days / k.max_sale_age_days);
+  if (row.sales_per_month != null)
+    parts.liquidity = clamp(row.sales_per_month / k.liquidity_full);
+  if (row.divergence_30d != null)
+    parts.direction = clamp((row.divergence_30d + k.direction_span) / (2 * k.direction_span));
+
+  const names = Object.keys(parts);
+  const weight = names.reduce((sum, n) => sum + (k.weights[n] || 0), 0);
+  if (weight <= 0) return { value: 0, parts: {}, coverage: 0 };
+
+  // Renormalise over measurable components, so thin history isn't punished.
+  let value = names.reduce((sum, n) => sum + parts[n] * (k.weights[n] || 0), 0) / weight;
+  if (!row.confident) value *= k.unconfident_multiplier;
+  const total = Object.values(k.weights).reduce((a, b) => a + b, 0);
+  return { value: value * 100, parts, coverage: weight / total };
+}
+
 function score(row, s) {
   const cost = allIn(row.raw, s, row.psa9);
   const net9 = netOf(row.psa9, s);
@@ -200,12 +232,24 @@ function score(row, s) {
            floorRoi: floor / cost, be: breakevenP10(cost, net9, net10),
            ev: expectedValue(row, s, cost, net9, net10),
            worst: worstFloor(floorSeries),
+           conv: convictionOf(row, s, floor, cost),
            perMonth: row.capital_months ? floor / row.capital_months : null };
 }
 
 const COLS = [
   { k:"name",   t:"Card",       cls:"l", fmt:r => `<span class="name">${esc(r.name)}</span>
       <div class="meta">${esc(r.set_name || "")} ${esc(r.number || "")}</div>` },
+  { k:"convScore", t:"Score", fmt:r => {
+      const c = r.conv || { value: 0, parts: {}, coverage: 0 };
+      // Rounded to 5: 85 vs 81 is noise, and a precise-looking number invites
+      // reading a difference that isn't there.
+      const shown = Math.round(c.value / 5) * 5;
+      const detail = Object.entries(c.parts)
+        .map(([k, v]) => `${k} ${(v * 100).toFixed(0)}`).join("  ") || "no components";
+      const title = `${detail}\nmeasured on ${(c.coverage * 100).toFixed(0)}% of the weights`;
+      return `<span class="num" title="${esc(title)}">${shown}</span>
+        <div class="scorebar"><i style="width:${Math.max(2, c.value)}%"></i></div>`;
+    } },
   { k:"verdict",t:"Verdict",    cls:"l", fmt:r =>
       `<span class="v v-${r.verdict}">${r.verdict.replace(/_/g," ")}</span>` +
       (r.confident ? "" : ` <span class="flag" title="Thin, stale or low-confidence comps — provisional">⚠</span>`) },
@@ -304,8 +348,8 @@ function currentSize() {
   document.getElementById("resetsize").onclick = () => applySize(SIZE_DEFAULT);
 })();
 
-let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02;
-let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
+let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02, SCORING = null;
+let DATA = null, SORT = { key:"convScore", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
 const S = () => ({
   fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
@@ -336,8 +380,9 @@ function render() {
       (r.name || "").toLowerCase().includes(needle) ||
       (r.set_name || "").toLowerCase().includes(needle));
 
+  const sortValue = (r, key) => key === "convScore" ? (r.conv ? r.conv.value : 0) : r[key];
   rows.sort((a, b) => {
-    const x = a[SORT.key], y = b[SORT.key];
+    const x = sortValue(a, SORT.key), y = sortValue(b, SORT.key);
     if (x == null) return 1;
     if (y == null) return -1;
     return (typeof x === "string" ? x.localeCompare(y) : x - y) * SORT.dir;
@@ -369,6 +414,7 @@ function boot(data) {
   usetiers.checked = !!e.use_fee_tiers && !!TIERS;
   INS_THRESHOLD = e.insurance_threshold ?? 499;
   INS_PCT = e.insurance_pct ?? 0.02;
+  SCORING = data.scoring || null;
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
   prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
   maxage.value = t.max_sale_age_days;

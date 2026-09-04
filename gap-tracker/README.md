@@ -96,6 +96,43 @@ Sweeping by set returns cards the seed list never chose. They are paid for
 either way, so they are folded into the universe -- the set list, not the
 rarity filter, becomes what bounds the project.
 
+## Conviction score
+
+One 0-100 number for "how much do I believe this trade", so the top of the
+table can be read without weighing six columns by eye. It is the default sort.
+
+| component | weight | scale |
+|---|---|---|
+| size | 20% | floor ROI, full marks at 50% |
+| durability | 25% | worst 90-day floor ÷ current floor |
+| depth | 15% | PSA 9 comps, log-scaled, full at 20 |
+| freshness | 15% | days since the last PSA 9 sale, zero at 90 |
+| liquidity | 15% | PSA 9 sales/month, full at 4 |
+| direction | 10% | divergence, centred on no movement |
+
+Three rules keep it from becoming a black box:
+
+- **The floor is a gate, not an input.** A card whose PSA 9 doesn't clear costs
+  scores zero no matter how good everything else looks. The score reorders
+  within your framing; it can never overrule it.
+- **Missing components are dropped, not zeroed**, and the remaining weights are
+  renormalised. Otherwise the score would rank cards by how much history we
+  happen to hold. `conviction_coverage` reports how much of the weight was
+  actually measurable; the tooltip shows every component.
+- **Thin comps multiply, they don't veto.** An unconfident card keeps 60% of
+  its score, so something exceptional can still surface — it just has to clear
+  a higher bar.
+
+Displayed rounded to the nearest 5, because 85 against 81 is noise and a
+precise-looking number invites reading a difference that isn't there.
+
+Weights and scales live under `scoring` in `config.json`. Note that `size`
+saturates for most cards that pass the floor test — that is deliberate. Past
+about a 50% return, a bigger gap doesn't make a card more of a *no-brainer*,
+and letting size run would just rediscover "sort by biggest gap", which is the
+ranking this tool exists to improve on. The discrimination comes from the
+reliability components.
+
 ### Worst case and liquidity
 
 Two columns matter more than the headline floor:
