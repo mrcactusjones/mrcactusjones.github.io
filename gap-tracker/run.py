@@ -412,21 +412,23 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
     cards = points = discovered = 0
     with db.session() as conn:
         for set_name in sets:
-            page = 1
+            offset = 0
             while True:
                 if provider.credits_used + per_page > budget:
                     print(f"  budget reached ({provider.credits_used}/{budget})")
                     set_name = None
                     break
                 try:
-                    records, _ = provider.fetch_batch(set_name, days=args.days,
-                                                      limit=args.limit, page=page)
+                    records, _ = provider.fetch_batch(
+                        set_name, days=args.days, limit=args.limit, offset=offset,
+                        min_price=None if args.all_prices else cfg.thresholds.raw_price_min,
+                        max_price=None if args.all_prices else cfg.thresholds.raw_price_max)
                 except OutOfCredits as exc:
                     print(f"  stopping: {exc}")
                     set_name = None
                     break
                 except PPTError as exc:
-                    print(f"  ! {set_name} p{page}: {exc}")
+                    print(f"  ! {set_name} @{offset}: {exc}")
                     break
                 if not records:
                     break
@@ -455,11 +457,11 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                         store.save_quote(card_id, {
                             "id": card_id, "fetched_at": store_now(), "miss": False,
                             "quote": quote.__dict__, "provider": provider.name})
-                print(f"  {set_name} p{page}: {len(records)} cards, "
+                print(f"  {set_name} @{offset}: {len(records)} cards, "
                       f"{provider.credits_used} credits used")
                 if len(records) < args.limit:
                     break
-                page += 1
+                offset += args.limit
             if set_name is None:
                 break
         stats = db.stats(conn)
@@ -772,6 +774,8 @@ def main() -> int:
     p.add_argument("--limit", type=int, default=100, help="cards per page (max 100)")
     p.add_argument("--sets", help="comma-separated set names, default all")
     p.add_argument("--budget", type=int, help="credit ceiling for this run")
+    p.add_argument("--all-prices", action="store_true",
+                   help="don't filter to the raw price band server-side")
     add_log(p)
     p.set_defaults(func=cmd_backfill)
 

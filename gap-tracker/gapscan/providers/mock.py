@@ -71,12 +71,13 @@ class MockProvider:
         )
 
     def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
-                    page: int = 1) -> tuple[list[dict], int]:
+                    offset: int = 0, min_price: float | None = None,
+                    max_price: float | None = None) -> tuple[list[dict], int]:
         """Fake set page, shaped like the real response including history."""
         from datetime import timedelta
 
         from ..store import utcnow
-        if page > 1:
+        if offset:
             return [], 0
         rng = self._rng(f"{set_name}|batch")
         records = []

@@ -552,24 +552,33 @@ class PPTProvider:
         self.credits_used += 2
         return parse_population(blob)
 
+    # The API's own 400 lists what it accepts:
+    #   tcgPlayerId cardId setId setName set search rarity cardType artist
+    #   minPrice maxPrice sortBy sortOrder limit offset includeHistory
+    #   includeEbay includeBoth days limitDays fetchAllInSet language
+    #   lightweight printing condition maxDataPoints includeCardmarket
+    # Notably there is no `page` -- pagination is by offset.
     def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
-                    page: int = 1) -> tuple[list[dict], int]:
-        """A page of a whole set, with graded prices and history.
+                    offset: int = 0, min_price: float | None = None,
+                    max_price: float | None = None) -> tuple[list[dict], int]:
+        """A page of a set, with graded prices and history.
 
-        Billed on the requested limit, so one 100-card page costs the same as
-        100 single lookups -- but it is one request against the per-minute
-        ceiling instead of a hundred, and it returns cards the seed list never
-        knew about.
+        Billing is per card requested, so narrowing to the price band we would
+        keep anyway means far fewer pages to cover the cards worth having --
+        the filtering is a cost saving, not just a convenience.
         """
         params = {
             "set": set_name,
             "limit": limit,
-            "page": page,
-            "fetchAllInSet": "true",
+            "offset": offset,
             "includeEbay": "true",
             "includeHistory": "true",
             "days": days,
         }
+        if min_price is not None:
+            params["minPrice"] = min_price
+        if max_price is not None:
+            params["maxPrice"] = max_price
         blob = self._request("cards", params)
         cost = limit * 3  # base + graded + history, per card
         self.credits_used += cost

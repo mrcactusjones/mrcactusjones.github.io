@@ -167,3 +167,54 @@ class TestCreditAccounting(unittest.TestCase):
         self.assertEqual(params["set"], "Aquapolis")
         self.assertEqual(params["search"], "Kingdra")
         self.assertEqual(params["limit"], 1)
+
+
+class TestBatchParameters(unittest.TestCase):
+    """The API rejects unknown parameters outright, so only send documented ones."""
+
+    def _provider(self):
+        from gapscan.providers import ppt
+        p = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        ppt.PPTProvider.__init__(p, api_key="k", search_limit=1)
+        return p
+
+    def test_pagination_is_by_offset_not_page(self):
+        provider = self._provider()
+        with mock.patch.object(provider, "_request", return_value={"data": []}) as req:
+            provider.fetch_batch("Base Set", limit=50, offset=100)
+        params = req.call_args[0][1]
+        self.assertEqual(params["offset"], 100)
+        self.assertNotIn("page", params, "the API 400s on an unknown parameter")
+
+    def test_price_band_is_pushed_to_the_server(self):
+        provider = self._provider()
+        with mock.patch.object(provider, "_request", return_value={"data": []}) as req:
+            provider.fetch_batch("Base Set", min_price=8, max_price=400)
+        params = req.call_args[0][1]
+        self.assertEqual((params["minPrice"], params["maxPrice"]), (8, 400))
+
+    def test_price_band_is_omitted_when_not_wanted(self):
+        provider = self._provider()
+        with mock.patch.object(provider, "_request", return_value={"data": []}) as req:
+            provider.fetch_batch("Base Set")
+        self.assertNotIn("minPrice", req.call_args[0][1])
+
+    def test_only_documented_parameters_are_sent(self):
+        allowed = {"tcgPlayerId", "cardId", "setId", "setName", "set", "search",
+                   "rarity", "cardType", "artist", "minPrice", "maxPrice", "sortBy",
+                   "sortOrder", "limit", "offset", "includeHistory", "includeEbay",
+                   "includeBoth", "days", "limitDays", "fetchAllInSet", "language",
+                   "lightweight", "printing", "condition", "maxDataPoints",
+                   "includeCardmarket"}
+        provider = self._provider()
+        with mock.patch.object(provider, "_request", return_value={"data": []}) as req:
+            provider.fetch_batch("Base Set", min_price=8, max_price=400)
+        self.assertTrue(set(req.call_args[0][1]) <= allowed,
+                        set(req.call_args[0][1]) - allowed)
+
+    def test_cost_is_still_the_requested_limit(self):
+        provider = self._provider()
+        with mock.patch.object(provider, "_request", return_value={"data": []}):
+            _, cost = provider.fetch_batch("Base Set", limit=20)
+        self.assertEqual(cost, 60)
+        self.assertEqual(provider.credits_used, 60)
