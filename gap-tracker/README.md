@@ -312,6 +312,27 @@ index.html              dashboard; recomputes client-side as you move the slider
 data/                   git-ignored: cache, rankings, daily history, logs
 ```
 
+## Tests
+
+```bash
+python3 -m unittest discover -s tests -t .        # 131 tests, no dependencies
+node tests/js/check_page_matches_model.js         # page vs model agreement
+```
+
+The second one matters more than its size suggests. The dashboard reimplements
+the entire cost model in JavaScript so the sliders respond instantly, and that
+duplication is the project's biggest correctness risk: the two can drift apart
+and nothing would say so. The check runs the page's own script against the
+current rankings and asserts they agree on all-in, floor, upside, break-even,
+EV, worst case and conviction, row by row.
+
+It has caught five real bugs so far: probabilities rounded in the payload but
+not in the maths; the historical floor priced at a cheaper PSA tier than the
+present (Python disagreeing with itself); a downsampled series that hid the dip
+the model saw; capital months stored rounded but divided at full precision; and
+a fee slider that silently did nothing. Run it after any change to `econ.py`,
+`scoring.py` or `index.html`.
+
 ## Configuration
 
 Drop a `config.json` next to `run.py` to override any default:
