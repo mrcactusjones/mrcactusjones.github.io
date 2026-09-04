@@ -205,13 +205,21 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
 
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_call,
                            search_limit=cfg.budget.search_limit)
-    query = args.search or provider.search_text(card)
-    print(f"GET {provider.base}/cards?search={query}&limit=10")
+    query = args.search or card.get("name") or provider.search_text(card)
+    print(f"GET {provider.base}/cards?search={query}"
+          + (f"&set={card.get('set_name')}" if card.get("set_name") else "")
+          + f"&limit={provider.search_limit}"
+          + (f"&includeHistory=true&days={args.history}" if args.history else ""))
     print(f"  looking for: {card.get('name')} ({card.get('set_name')} "
           f"#{card.get('number')})\n")
     try:
-        blob = provider.raw_response(card, search=args.search,
-                                     history_days=args.history)
+        # Same set filter fetch() uses -- without it the probe is not
+        # reproducing the scanner, and a search for "Alakazam Base" comes
+        # back with Base Set 2's copy.
+        blob = provider.raw_response(
+            card, search=args.search or card.get("name"),
+            filters={"set": card["set_name"]} if card.get("set_name") else None,
+            history_days=args.history)
     except PPTError as exc:
         print(f"Request failed: {exc}")
         print("\nTry a different search term:  run.py probe --search \"Kingdra\"")

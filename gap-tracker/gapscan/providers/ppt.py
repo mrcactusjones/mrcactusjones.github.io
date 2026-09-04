@@ -278,26 +278,50 @@ def _history_points(node) -> list[tuple[str, float]]:
     return sorted({d: v for d, v in points}.items())
 
 
+# What you would actually submit for grading. History is reported per
+# condition, and a Damaged copy's price series says nothing about a gradeable
+# one, so the condition is chosen rather than taken by luck.
+GRADEABLE_CONDITIONS = ("Near Mint", "Lightly Played", "Moderately Played")
+
+
+def _condition_series(node: dict) -> list[tuple[str, float]]:
+    """Pick the best condition's history out of a priceHistory block.
+
+    The real shape is priceHistory.conditions["Near Mint"].history -- a list of
+    {date, market, volume}. Prefer the condition someone would submit; fall
+    back to the longest series only if none of them are present.
+    """
+    conditions = node.get("conditions") if isinstance(node.get("conditions"), dict) else node
+    if not isinstance(conditions, dict):
+        return []
+
+    for wanted in GRADEABLE_CONDITIONS:
+        for name, block in conditions.items():
+            if str(name).strip().lower() == wanted.lower():
+                points = _history_points(block)
+                if points:
+                    return points
+
+    best: list[tuple[str, float]] = []
+    for block in conditions.values():
+        points = _history_points(block)
+        if len(points) > len(best):
+            best = points
+    return best
+
+
 def parse_history(record: dict) -> dict[str, list[tuple[str, float]]]:
     """Per-grade price history: {"raw": [...], "psa9": [...], "psa10": [...]}."""
     out: dict[str, list[tuple[str, float]]] = {}
 
     raw_hist = record.get("priceHistory")
-    if isinstance(raw_hist, dict):
-        # Either keyed by condition (Near Mint, Holofoil...) or a bare history.
-        best: list[tuple[str, float]] = []
-        direct = _history_points(raw_hist)
-        if direct:
-            best = direct
-        else:
-            for value in raw_hist.values():
-                points = _history_points(value)
-                if len(points) > len(best):
-                    best = points
-        if best:
-            out["raw"] = best
-    elif isinstance(raw_hist, list):
+    if isinstance(raw_hist, list):
         points = _history_points(raw_hist)
+        if points:
+            out["raw"] = points
+    elif isinstance(raw_hist, dict):
+        # A bare history, then the per-condition shape the API actually returns.
+        points = _history_points(raw_hist) or _condition_series(raw_hist)
         if points:
             out["raw"] = points
 
@@ -307,7 +331,8 @@ def parse_history(record: dict) -> dict[str, list[tuple[str, float]]]:
             grade = str(key).lower()
             if not re.fullmatch(r"(psa|cgc|bgs|sgc)\d{1,2}", grade):
                 continue
-            points = _history_points(node)
+            points = _history_points(node) or (
+                _condition_series(node) if isinstance(node, dict) else [])
             if points:
                 out[grade] = points
     return out

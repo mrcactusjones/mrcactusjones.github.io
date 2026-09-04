@@ -584,3 +584,53 @@ class TestLiquidity(unittest.TestCase):
                         self.econ, self.th)
         self.assertGreater(slow.floor_profit, fast.floor_profit)
         self.assertGreater(fast.floor_per_month, slow.floor_per_month)
+
+
+class TestRealHistoryShape(unittest.TestCase):
+    """Built from the live response: history is nested per condition."""
+
+    RECORD = {
+        "priceHistory": {"conditions": {
+            "Moderately Played": {"history": [
+                {"date": "2026-03-09T00:00:00.000Z", "market": 20.11, "volume": 3},
+                {"date": "2026-03-10T00:00:00.000Z", "market": 19.90, "volume": 6},
+                {"date": "2026-03-11T00:00:00.000Z", "market": 20.19, "volume": 2}]},
+            "Near Mint": {"history": [
+                {"date": "2026-03-09T00:00:00.000Z", "market": 55.10, "volume": 2},
+                {"date": "2026-03-10T00:00:00.000Z", "market": 55.51, "volume": 1}]},
+            "Damaged": {"history": [
+                {"date": "2026-03-09T00:00:00.000Z", "market": 11.16, "volume": 1}]}}},
+        "ebay": {"priceHistory": {
+            "psa9": {"history": [{"date": "2026-03-09T00:00:00.000Z", "market": 320.0}]},
+            "psa10": [{"date": "2026-03-09T00:00:00.000Z", "price": 2400.0}]}},
+    }
+
+    def setUp(self):
+        from gapscan.providers.ppt import parse_history
+        self.parse = parse_history
+
+    def test_the_nested_condition_shape_is_read(self):
+        got = self.parse(self.RECORD)
+        self.assertEqual(len(got["raw"]), 2)
+        self.assertEqual(len(got["psa9"]), 1)
+        self.assertEqual(len(got["psa10"]), 1)
+
+    def test_the_gradeable_condition_is_chosen_not_the_longest(self):
+        """Moderately Played has more points; a Damaged series is not a raw price."""
+        got = self.parse(self.RECORD)
+        self.assertAlmostEqual(got["raw"][0][1], 55.10, msg="should be Near Mint")
+
+    def test_falls_back_to_the_longest_when_no_gradeable_condition_exists(self):
+        odd = {"priceHistory": {"conditions": {
+            "Damaged": {"history": [{"date": "2026-03-09", "market": 1.0}]},
+            "Poor": {"history": [{"date": "2026-03-09", "market": 2.0},
+                                 {"date": "2026-03-10", "market": 2.1}]}}}}
+        self.assertEqual(len(self.parse(odd)["raw"]), 2)
+
+    def test_the_market_key_is_read_as_the_price(self):
+        got = self.parse(self.RECORD)
+        self.assertAlmostEqual(dict(got["raw"])["2026-03-10"], 55.51)
+
+    def test_an_empty_history_block_yields_nothing(self):
+        self.assertEqual(self.parse({"priceHistory": {"conditions": {}},
+                                     "ebay": {"priceHistory": {"psa9": {}}}}), {})
