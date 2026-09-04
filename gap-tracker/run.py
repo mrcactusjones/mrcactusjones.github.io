@@ -396,6 +396,15 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
 
     budget = args.budget or cfg.budget.daily_credits
     per_page = args.limit * 3
+    if per_page > budget:
+        # Silently storing nothing is the worst possible outcome here.
+        print(f"One page of {args.limit} cards costs {per_page} credits, but the "
+              f"budget is {budget}. Nothing would be fetched.\n")
+        print("Either lower the page size:")
+        print(f"  run.py backfill --provider ppt --limit {max(1, budget // 3)}")
+        print("or raise the budget for the paid tier, in config.json next to run.py:")
+        print('  { "budget": { "daily_credits": 20000 } }')
+        return 1
     provider = get_provider(args, cfg)
     print(f"{len(sets)} set(s), {args.limit} cards/page, {args.days} days of history")
     print(f"budget {budget} credits; each page costs {per_page}\n")
