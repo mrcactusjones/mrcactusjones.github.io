@@ -23,6 +23,36 @@ def _streak(series: list[dict], threshold: float) -> int:
     return count
 
 
+def _set_multiples(priced: list, min_sample: int) -> dict[str, float]:
+    """Median PSA 9 / raw multiple per set.
+
+    A card whose multiple is wildly out of step with the rest of its set is
+    usually carrying another card's comps -- the graded sales are matched from
+    listing titles, and a set like Aquapolis holds several cards of the same
+    name. Needs enough cards in the set for a median to mean anything.
+    """
+    import statistics
+    by_set: dict[str, list[float]] = {}
+    for entry, quote in priced:
+        if quote.raw and quote.psa9 and quote.raw > 0:
+            by_set.setdefault(entry.get("set_name") or "?", []).append(quote.psa9 / quote.raw)
+    return {name: statistics.median(values)
+            for name, values in by_set.items() if len(values) >= min_sample}
+
+
+def _multiple_reasons(entry: dict, quote: Quote, medians: dict,
+                      thresholds) -> list[str]:
+    """Flag a graded/raw multiple far out of step with the card's set."""
+    median = medians.get(entry.get("set_name") or "?")
+    if not median or not quote.raw or not quote.psa9 or quote.raw <= 0:
+        return []
+    multiple = quote.psa9 / quote.raw
+    if multiple > median * thresholds.set_multiple_factor:
+        return [f"PSA 9 is {multiple:.1f}x raw, against {median:.1f}x "
+                f"typical for {entry.get('set_name')}"]
+    return []
+
+
 def _gap_pairs(raw: list, psa9: list, days: int = 90) -> list[list]:
     """[[raw, psa9], ...] for every priced day in the window, oldest first.
 
@@ -77,16 +107,27 @@ def build(universe: dict, store: Store, cfg: Config,
         history = store.load_history()
     rows = []
 
+    # Read every quote once: the set-level comparison below needs the whole set
+    # before any single card can be judged against it.
+    priced: list[tuple[dict, Quote]] = []
     for entry in universe.values():
         cached = quotes[entry["id"]] if quotes is not None else store.load_quote(entry["id"])
         if not cached or cached.get("miss") or not cached.get("quote"):
             continue
-        quote = Quote(**cached["quote"])
+        priced.append((dict(entry, _fetched_at=cached.get("fetched_at")),
+                       Quote(**cached["quote"])))
+
+    set_medians = _set_multiples(priced, cfg.thresholds.min_set_sample)
+
+    for entry, quote in priced:
+        cached = {"fetched_at": entry.get("_fetched_at")}
         # A real population report if we have one, otherwise the free proxy.
         mix = (mix_from_population(quote.population)
                or mix_from_sales(quote.psa_sales_mix, cfg.thresholds.min_mix_sample,
                                  cfg.thresholds.sales_mix_min_low))
-        verdict = evaluate(quote, cfg.econ, cfg.thresholds, mix=mix)
+        multiple_reasons = _multiple_reasons(entry, quote, set_medians, cfg.thresholds)
+        verdict = evaluate(quote, cfg.econ, cfg.thresholds, mix=mix,
+                           extra_reasons=multiple_reasons)
         if verdict is None:
             continue
 
@@ -109,6 +150,8 @@ def build(universe: dict, store: Store, cfg: Config,
             "cgc10": quote.cgc10,
             "psa9_confidence": quote.psa9_confidence,
             "psa9_outlier": quote.psa9_outlier,
+            # The page cannot compute this: it needs the whole set.
+            "multiple_outlier": bool(multiple_reasons),
             "psa9_sale_age_days": (round(age, 1)
                                    if (age := days_since(quote.psa9_last_sale)) is not None
                                    else None),

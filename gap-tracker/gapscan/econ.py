@@ -205,14 +205,31 @@ def breakeven_probability(all_in: float, net9: float, net10: float) -> Optional[
     return p if p <= 1 else None  # >1 means even 100% tens lose money
 
 
+def graded_sales(quote: Quote) -> int:
+    """Total graded sales behind this card, across every PSA grade."""
+    if quote.psa_sales_mix:
+        return sum(int(count or 0) for count in quote.psa_sales_mix.values())
+    return int(quote.sales_9 or 0) + int(quote.sales_10 or 0)
+
+
 def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
-             mix: GradeMix | None = None) -> Optional[Verdict]:
+             mix: GradeMix | None = None,
+             extra_reasons: list[str] | None = None) -> Optional[Verdict]:
     """Score one card. Returns None when there isn't enough data to judge.
 
     `mix` is optional: the floor-at-9 ranking never depends on it. It only adds
     a probability-weighted EV alongside, for cards where the 9 doesn't pay.
+
+    `extra_reasons` carries findings the caller can see and this function
+    cannot -- how a card compares with the rest of its set, for instance.
     """
     if quote.raw is None or quote.psa9 is None:
+        return None
+
+    # A card nobody grades has no graded market, and a deeply negative floor
+    # for it is not a finding -- it is the absence of one. Unjudgeable, the
+    # same as a missing price, rather than ranked as a terrible trade.
+    if graded_sales(quote) < thresholds.min_graded_sales:
         return None
 
     all_in = econ.all_in(quote.raw, declared_value=quote.psa9)
@@ -225,7 +242,13 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
     floor_profit = net9 - all_in
     upside_profit = net10 - all_in
 
-    reasons: list[str] = []
+    reasons: list[str] = list(extra_reasons or [])
+    # A 9 worth more than a 10 cannot happen in a market that grades honestly;
+    # it means sales from different cards landed in one bucket.
+    if (quote.psa10 is not None
+            and quote.psa9 > quote.psa10 * thresholds.grade_inversion_slack):
+        reasons.append(
+            f"PSA 9 (${quote.psa9:,.0f}) priced above PSA 10 (${quote.psa10:,.0f})")
     if quote.sales_9 < thresholds.min_sales_9:
         reasons.append(f"only {quote.sales_9} PSA 9 comps (want {thresholds.min_sales_9}+)")
     if quote.psa10 is not None and quote.sales_10 < thresholds.min_sales_10:

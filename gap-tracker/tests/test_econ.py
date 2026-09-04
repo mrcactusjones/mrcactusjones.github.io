@@ -39,7 +39,9 @@ class TestEconomics(unittest.TestCase):
         self.assertTrue(v.confident)
 
     def test_thin_comps_downgrade_the_verdict(self):
-        thin = Quote(raw=50, psa9=200, psa10=600, sales_9=1, sales_10=0)
+        # Thin but real: enough graded sales to have a market, too few to trust.
+        thin = Quote(raw=50, psa9=200, psa10=600, sales_9=3, sales_10=1,
+                     psa_sales_mix={"9": 3, "10": 1})
         v = evaluate(thin, self.econ, self.th)
         self.assertEqual(v.verdict, "floor_positive")  # same money, less trust
         self.assertFalse(v.confident)
@@ -689,3 +691,74 @@ class TestGradedHistoryShape(unittest.TestCase):
     def test_a_scalar_date_map_still_parses(self):
         got = self.parse({"ebay": {"priceHistory": {"psa9": {"2026-06-01": 500.0}}}})
         self.assertEqual(got["psa9"], [("2026-06-01", 500.0)])
+
+
+class TestNoGradedMarket(unittest.TestCase):
+    """A card nobody grades has no market; a big negative floor for it is not a
+    finding, it is the absence of one."""
+
+    def setUp(self):
+        self.econ = Economics()
+        self.th = Thresholds()
+
+    def test_a_card_with_no_graded_sales_is_unjudgeable(self):
+        # Mega Dragonite ex: a PSA 10 at $0.60 and essentially no sales.
+        v = evaluate(Quote(raw=40, psa9=5, psa10=0.60, sales_9=1, sales_10=1,
+                           psa_sales_mix={"9": 1, "10": 1}), self.econ, self.th)
+        self.assertIsNone(v, "ranked at -$94 before; it should not be ranked at all")
+
+    def test_the_threshold_counts_every_grade_not_just_nine_and_ten(self):
+        """Sales at 6, 7 and 8 are still evidence of a graded market."""
+        quote = Quote(raw=40, psa9=200, psa10=400, sales_9=1, sales_10=1,
+                      psa_sales_mix={"6": 4, "7": 3, "8": 2, "9": 1, "10": 1})
+        self.assertIsNotNone(evaluate(quote, self.econ, self.th))
+
+    def test_it_falls_back_to_the_nine_and_ten_counts(self):
+        from gapscan.econ import graded_sales
+        self.assertEqual(graded_sales(Quote(sales_9=4, sales_10=2)), 6)
+        self.assertEqual(graded_sales(Quote(psa_sales_mix={"8": 2, "9": 5})), 7)
+
+    def test_a_real_market_still_ranks(self):
+        # Psyduck: 79 graded sales across seven grades.
+        quote = Quote(raw=202.58, psa9=757.5, psa10=1232.5, sales_9=37, sales_10=12,
+                      psa_sales_mix={"4": 2, "5": 1, "6": 5, "7": 10,
+                                     "8": 12, "9": 37, "10": 12})
+        self.assertIsNotNone(evaluate(quote, self.econ, self.th))
+
+    def test_the_threshold_is_configurable(self):
+        quote = Quote(raw=40, psa9=200, psa10=400, psa_sales_mix={"9": 4})
+        self.assertIsNone(evaluate(quote, self.econ, Thresholds(min_graded_sales=10)))
+        self.assertIsNotNone(evaluate(quote, self.econ, Thresholds(min_graded_sales=2)))
+
+
+class TestGradeInversion(unittest.TestCase):
+    """A 9 worth more than a 10 means sales from different cards were pooled."""
+
+    def setUp(self):
+        self.econ = Economics()
+        self.th = Thresholds()
+
+    def _quote(self, psa9, psa10):
+        from gapscan.store import iso, utcnow
+        return Quote(raw=100, psa9=psa9, psa10=psa10, sales_9=20, sales_10=10,
+                     psa9_confidence="high", psa9_last_sale=iso(utcnow()),
+                     psa_sales_mix={"9": 20, "10": 10})
+
+    def test_an_inverted_pair_loses_confidence(self):
+        v = evaluate(self._quote(900, 600), self.econ, self.th)
+        self.assertFalse(v.confident)
+        self.assertTrue(any("above PSA 10" in r for r in v.reasons), v.reasons)
+
+    def test_a_normal_pair_is_untouched(self):
+        v = evaluate(self._quote(600, 900), self.econ, self.th)
+        self.assertTrue(v.confident)
+
+    def test_a_missing_psa10_is_not_an_inversion(self):
+        v = evaluate(self._quote(600, None), self.econ, self.th)
+        self.assertTrue(v.confident, "no PSA 10 price is unknown, not inverted")
+
+    def test_extra_reasons_from_the_caller_are_carried(self):
+        v = evaluate(self._quote(600, 900), self.econ, self.th,
+                     extra_reasons=["graded/raw multiple 9x the set median"])
+        self.assertFalse(v.confident)
+        self.assertIn("graded/raw multiple 9x the set median", v.reasons)

@@ -88,6 +88,11 @@ class Thresholds:
     low_grade_recovery: float = 0.80  # fraction of raw recovered on a sub-9 grade
     grading_turnaround_days: float = 35.0  # PSA Regular: ~25 business days
     min_window_days: float = 21.0    # shorter sale windows can't imply a rate
+    min_graded_sales: int = 3        # below this there is no graded market to price
+    grade_inversion_slack: float = 1.0   # PSA 9 above PSA 10 x this is contamination
+    min_set_sample: int = 8          # cards needed before a set median means anything
+    set_multiple_factor: float = 4.0 # graded/raw multiple this far past the set's
+                                     # median marks comps from another card
     min_mix_sample: int = 5          # graded sales needed before inferring a grade mix
     sales_mix_min_low: float = 0.15  # assumed floor on grading below a 9, when
                                      # the mix comes from sales rather than a

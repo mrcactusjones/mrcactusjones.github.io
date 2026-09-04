@@ -325,3 +325,48 @@ class TestPopulationHandlesMisses(unittest.TestCase):
         priced = [(cid, rec) for cid, rec in records
                   if (rec.get("quote") or {}).get("tcgplayer_id")]
         self.assertEqual([cid for cid, _ in priced], ["b"])
+
+
+class TestSetMultipleOutlier(unittest.TestCase):
+    """A card carrying another card's comps shows up as a multiple far out of
+    step with its own set."""
+
+    def setUp(self):
+        from gapscan.config import Thresholds
+        from gapscan.econ import Quote
+        from gapscan.rank import _multiple_reasons, _set_multiples
+        self.multiples, self.reasons = _set_multiples, _multiple_reasons
+        self.Quote, self.Thresholds = Quote, Thresholds
+
+    def _set(self, multiples, set_name="Aquapolis"):
+        return [({"set_name": set_name, "id": f"c{i}"},
+                 self.Quote(raw=100.0, psa9=100.0 * m))
+                for i, m in enumerate(multiples)]
+
+    def test_median_needs_enough_cards_to_mean_anything(self):
+        self.assertEqual(self.multiples(self._set([3, 3, 3]), min_sample=8), {})
+        self.assertIn("Aquapolis", self.multiples(self._set([3] * 8), min_sample=8))
+
+    def test_a_wild_multiple_is_flagged_against_its_own_set(self):
+        priced = self._set([3, 3, 3, 3, 3, 3, 3, 3])
+        medians = self.multiples(priced, min_sample=8)
+        th = self.Thresholds(set_multiple_factor=4.0)
+        # 3x is typical here, so 40x is carrying someone else's sales.
+        wild = ({"set_name": "Aquapolis"}, self.Quote(raw=10.0, psa9=400.0))
+        self.assertTrue(self.reasons(wild[0], wild[1], medians, th))
+        self.assertFalse(self.reasons(priced[0][0], priced[0][1], medians, th))
+
+    def test_sets_are_judged_against_themselves(self):
+        """A 20x set and a 3x set must not police each other."""
+        priced = self._set([3] * 8) + self._set([20] * 8, set_name="Skyridge")
+        medians = self.multiples(priced, min_sample=8)
+        th = self.Thresholds(set_multiple_factor=4.0)
+        card = ({"set_name": "Skyridge"}, self.Quote(raw=100.0, psa9=2000.0))
+        self.assertFalse(self.reasons(card[0], card[1], medians, th),
+                         "20x is normal in this set")
+
+    def test_a_set_with_no_median_flags_nothing(self):
+        th = self.Thresholds()
+        self.assertEqual(
+            self.reasons({"set_name": "Unknown"}, self.Quote(raw=1.0, psa9=999.0), {}, th),
+            [])

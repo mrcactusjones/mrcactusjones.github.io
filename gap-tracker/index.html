@@ -221,6 +221,10 @@ function score(row, s) {
                     fresh &&
                     (row.psa9_confidence || "").toLowerCase() !== "low" &&
                     !row.psa9_outlier &&
+                    // A 9 above a 10 means pooled comps, not an opportunity.
+                    !(row.psa10 != null && row.psa9 > row.psa10 * T.grade_inversion_slack) &&
+                    // Computed server-side: it needs the whole set.
+                    !row.multiple_outlier &&
                     row.raw >= T.raw_price_min && row.raw <= T.raw_price_max;
   let verdict;
   // Thresholds come from the config, not from constants baked in here: a
@@ -358,7 +362,7 @@ function currentSize() {
 let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02, SCORING = null;
 // Thresholds, mirrored from the config on load.
 let T = { min_floor_profit: 25, min_floor_roi: 0.25, min_sales_10: 3,
-          raw_price_min: 0, raw_price_max: Infinity };
+          raw_price_min: 0, raw_price_max: Infinity, grade_inversion_slack: 1.0 };
 let DATA = null, SORT = { key:"convScore", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
 const S = () => ({

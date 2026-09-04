@@ -220,6 +220,30 @@ upside      = net(PSA 10) − all_in
 breakeven   = share of 10s needed for EV = 0, when the 9 loses money
 ```
 
+### When a card is not judged at all
+
+Three checks sit ahead of the verdict, because the failure they catch looks
+like an opportunity rather than an error.
+
+**No graded market.** A card with fewer than `min_graded_sales` sales across
+every PSA grade returns no verdict at all, the same as one with a missing
+price. `Mega Dragonite ex` sat at −$94 with a PSA 10 at $0.60; that is not a
+bad trade, it is the absence of a market, and ranking it as a terrible trade
+implies a precision that isn't there.
+
+**A 9 priced above a 10.** Impossible in a market that grades honestly, so it
+means sales from different cards landed in one bucket. Costs the card its
+confident status.
+
+**A graded/raw multiple far out of step with its own set.** Computed per set
+from the cards already priced (median, needing `min_set_sample` cards), because
+sets differ enormously — 3× is normal in one and 20× in another. Aquapolis
+holds several cards of the same name, and grades are parsed from eBay listing
+titles, so this is where pooled comps surface.
+
+All three come from the same root cause: the provider matches graded sales by
+reading listing titles. The checks don't fix that; they mark where it shows.
+
 ### Grading fees
 
 PSA paused all four Value tiers on 2026-06-02 under a 14-million-card backlog,
