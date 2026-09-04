@@ -354,6 +354,10 @@ def extract_graded(record: dict) -> Quote | None:
         psa10_outlier=bool(outliers.get("psa10")),
         cgc9=cgc9, cgc10=cgc10, cgc9_sales=ncgc9, cgc10_sales=ncgc10,
         psa_sales_mix=mix or None,
+        sales_window_start=ebay.get("dateRangeStart"),
+        sales_window_end=ebay.get("dateRangeEnd"),
+        sales_velocity_month=_as_number(
+            (ebay.get("salesVelocity") or {}).get("monthlyTotal")),
         tcgplayer_id=str(record.get("tcgPlayerId")) if record.get("tcgPlayerId") else None,
         as_of=iso(utcnow()), source="ppt",
     )

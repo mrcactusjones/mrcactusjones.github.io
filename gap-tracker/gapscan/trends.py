@@ -66,6 +66,11 @@ def gap_series(raw: Sequence[Point], graded: Sequence[Point],
                all_in_fn, net_fn) -> list[Point]:
     """Floor profit per day, on days where both a raw and a graded price exist.
 
+    `all_in_fn` is called as (raw, declared) with the graded price as the
+    declared value, matching how a live floor is costed -- PSA prices the
+    service tier off the slabbed value, so pricing history any other way makes
+    the past look cheaper than the present.
+
     Prices are only carried forward from the most recent earlier observation --
     never interpolated backwards, which would invent a gap before the market
     showed one.
@@ -79,7 +84,32 @@ def gap_series(raw: Sequence[Point], graded: Sequence[Point],
         graded_now = dict(graded).get(stamp)
         if last_raw is None or graded_now is None:
             continue
-        out.append((stamp, net_fn(graded_now) - all_in_fn(last_raw)))
+        out.append((stamp, net_fn(graded_now) - all_in_fn(last_raw, graded_now)))
+    return out
+
+
+def gap_inputs(raw: Sequence[Point], graded: Sequence[Point], days: int | None = None,
+               today: date | None = None) -> list[tuple[str, float, float]]:
+    """The (date, raw, graded) pairs that gap_series would price.
+
+    Exposed so the page can be handed exactly the observations the model used.
+    Sampling them differently on either side makes the two disagree about the
+    worst case, and the worst case is the number the tool exists to report.
+    """
+    raw_by_date = dict(raw)
+    graded_by_date = dict(graded)
+    out: list[tuple[str, float, float]] = []
+    last_raw: float | None = None
+    for stamp in sorted(set(raw_by_date) | set(graded_by_date)):
+        if stamp in raw_by_date:
+            last_raw = raw_by_date[stamp]
+        graded_now = graded_by_date.get(stamp)
+        if last_raw is None or graded_now is None:
+            continue
+        out.append((stamp, last_raw, graded_now))
+    if days is not None:
+        keep = {d for d, _ in window([(d, 0.0) for d, _, _ in out], days, today)}
+        out = [row for row in out if row[0] in keep]
     return out
 
 
@@ -117,6 +147,44 @@ def current_streak(points: Sequence[Point], threshold: float) -> int:
     return (last - first).days + 1
 
 
+def worst(points: Sequence[Point], days: int = 90,
+          today: date | None = None) -> Optional[float]:
+    """The lowest value in the window -- the bad day you have to survive."""
+    recent = window(points, days, today)
+    return min(v for _, v in recent) if recent else None
+
+
+def percentile(points: Sequence[Point], pct: float, days: int = 90,
+               today: date | None = None) -> Optional[float]:
+    """Value at a percentile of the window.
+
+    The outright minimum can be a single bad print. The 10th percentile is the
+    floor you would actually have lived with, so both are reported.
+    """
+    values = sorted(v for _, v in window(points, days, today))
+    if not values:
+        return None
+    index = min(len(values) - 1, max(0, int(round(pct * (len(values) - 1)))))
+    return values[index]
+
+
+def durability(points: Sequence[Point], days: int = 90,
+               today: date | None = None) -> Optional[float]:
+    """How much of the current floor survived the worst of the window, 0-1.
+
+    1.0 means the floor never dipped; 0.2 means four fifths of it vanished at
+    some point. Negative worst values clamp to 0 -- a floor that went negative
+    has no durability at all.
+    """
+    recent = window(points, days, today)
+    if len(recent) < 3:
+        return None
+    current = recent[-1][1]
+    if current <= 0:
+        return 0.0
+    return max(0.0, min(1.0, min(v for _, v in recent) / current))
+
+
 def divergence(raw: Sequence[Point], graded: Sequence[Point], days: int = 30,
                today: date | None = None) -> Optional[float]:
     """Graded momentum minus raw momentum.
@@ -143,6 +211,10 @@ def summarise(raw: Sequence[Point], psa9: Sequence[Point], psa10: Sequence[Point
         "psa10_30d": change_pct(psa10, 30, today),
         "divergence_30d": divergence(raw, psa9, 30, today),
         "psa9_volatility": volatility(psa9, 90, today),
+        "floor_worst_90d": worst(floor, 90, today),
+        "floor_p10_90d": percentile(floor, 0.10, 90, today),
+        "floor_median_90d": percentile(floor, 0.50, 90, today),
+        "floor_durability": durability(floor, 90, today),
         "floor_days_held_90d": held_days(floor, threshold, 90, today),
         "floor_observations_90d": observations(floor, 90, today),
         "floor_streak": current_streak(floor, threshold),

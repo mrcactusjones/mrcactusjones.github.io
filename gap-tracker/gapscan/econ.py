@@ -42,6 +42,9 @@ class Quote:
     cgc9_sales: int = 0
     cgc10_sales: int = 0
     psa_sales_mix: Optional[dict] = None   # {"8": 3, "9": 11, "10": 4}
+    sales_window_start: Optional[str] = None   # span the sale counts cover
+    sales_window_end: Optional[str] = None
+    sales_velocity_month: Optional[float] = None  # provider's own figure
     tcgplayer_id: Optional[str] = None     # needed for a population lookup
     population: Optional[dict] = None      # {"grades": {...}, "gem_rate": ...}
 
@@ -57,6 +60,41 @@ def days_since(stamp: Optional[str]) -> Optional[float]:
     if when.tzinfo is None:
         when = when.replace(tzinfo=timezone.utc)
     return (datetime.now(timezone.utc) - when).total_seconds() / 86400.0
+
+
+DAYS_PER_MONTH = 30.44
+
+
+def sales_per_month(quote: "Quote", min_window_days: float = 21.0) -> Optional[float]:
+    """PSA 9 sales per month, from the counts and the window they cover.
+
+    A count is meaningless without knowing how long it took to accumulate: 12
+    sales over three months and 12 over three weeks are different markets.
+    """
+    if quote.sales_velocity_month:
+        return float(quote.sales_velocity_month)
+    if not quote.sales_9:
+        return 0.0
+    span = None
+    start, end = days_since(quote.sales_window_start), days_since(quote.sales_window_end)
+    if start is not None and end is not None:
+        span = start - end
+    if span is None or span < min_window_days:
+        return None
+    return quote.sales_9 / (span / DAYS_PER_MONTH)
+
+
+def months_to_sell(rate_per_month: Optional[float]) -> Optional[float]:
+    """Expected wait for one sale at that rate.
+
+    Optimistic: it assumes yours is the next copy to sell, when in reality you
+    queue behind other listings. Treat it as a lower bound on the wait.
+    """
+    if rate_per_month is None:
+        return None
+    if rate_per_month <= 0:
+        return float("inf")
+    return 1 / rate_per_month
 
 
 @dataclass
@@ -143,6 +181,10 @@ class Verdict:
     confident: bool
     reasons: list[str]
     ev_profit: Optional[float] = None    # probability-weighted, when a mix is known
+    sales_per_month: Optional[float] = None
+    months_to_sell: Optional[float] = None
+    capital_months: Optional[float] = None   # grading turnaround plus time to sell
+    floor_per_month: Optional[float] = None  # the floor, per month of tied-up capital
     gem_rate: Optional[float] = None
     mix_source: Optional[str] = None
     mix_sample: Optional[int] = None
@@ -211,6 +253,13 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
     else:
         verdict = "dead"
 
+    rate = sales_per_month(quote, thresholds.min_window_days)
+    wait = months_to_sell(rate)
+    capital = per_month = None
+    if wait is not None and wait != float("inf"):
+        capital = thresholds.grading_turnaround_days / DAYS_PER_MONTH + wait
+        per_month = round(floor_profit / capital, 2) if capital > 0 else None
+
     ev_profit = gem_rate = mix_source = mix_sample = None
     if mix is not None:
         # What a lower grade recovers: the PSA 8 price if we have one, else a
@@ -222,6 +271,13 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         mix_source, mix_sample = mix.source, mix.sample
 
     return Verdict(
+        sales_per_month=round(rate, 2) if rate is not None else None,
+        months_to_sell=(round(wait, 2) if wait is not None and wait != float("inf")
+                        else None),
+        # Full precision: the page divides by this to recompute the monthly
+        # return, and a rounded divisor puts it a few cents out.
+        capital_months=capital,
+        floor_per_month=per_month,
         ev_profit=ev_profit, gem_rate=gem_rate,
         mix_source=mix_source, mix_sample=mix_sample,
         verdict=verdict,

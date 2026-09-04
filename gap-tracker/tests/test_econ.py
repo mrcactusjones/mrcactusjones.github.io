@@ -518,3 +518,69 @@ class TestFeeTiers(unittest.TestCase):
         self.assertGreater(cheap.floor_profit, 50)
         self.assertLess(real.floor_profit, 10)
         self.assertEqual(real.verdict, "floor_positive")
+
+
+class TestLiquidity(unittest.TestCase):
+    """A floor you wait a year to collect is not the same as one you collect monthly."""
+
+    def setUp(self):
+        from gapscan.econ import months_to_sell, sales_per_month
+        self.rate, self.wait = sales_per_month, months_to_sell
+        self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0, sale_fee_pct=0.10,
+                              ship_out=5.0, raw_premium_pct=0.0, use_fee_tiers=False)
+        self.th = Thresholds()
+
+    def _quote(self, **over):
+        from datetime import timedelta
+        from gapscan.store import iso, utcnow
+        base = dict(raw=50, psa9=200, psa10=600, sales_9=12, sales_10=4,
+                    psa9_confidence="high", psa9_last_sale=iso(utcnow()),
+                    sales_window_start=iso(utcnow() - timedelta(days=91)),
+                    sales_window_end=iso(utcnow()))
+        base.update(over)
+        return Quote(**base)
+
+    def test_rate_uses_the_window_the_counts_cover(self):
+        # 12 sales over ~3 months is ~4 a month.
+        self.assertAlmostEqual(self.rate(self._quote()), 4.0, places=1)
+
+    def test_same_count_shorter_window_is_a_faster_market(self):
+        from datetime import timedelta
+        from gapscan.store import iso, utcnow
+        fast = self._quote(sales_window_start=iso(utcnow() - timedelta(days=30)))
+        self.assertGreater(self.rate(fast), self.rate(self._quote()))
+
+    def test_a_window_too_short_to_imply_a_rate(self):
+        from datetime import timedelta
+        from gapscan.store import iso, utcnow
+        brief = self._quote(sales_window_start=iso(utcnow() - timedelta(days=5)))
+        self.assertIsNone(self.rate(brief), "five days of sales imply no monthly rate")
+
+    def test_providers_own_velocity_wins_when_present(self):
+        self.assertAlmostEqual(self.rate(self._quote(sales_velocity_month=9.5)), 9.5)
+
+    def test_no_sales_means_an_infinite_wait(self):
+        self.assertEqual(self.wait(self.rate(self._quote(sales_9=0))), float("inf"))
+
+    def test_floor_per_month_accounts_for_grading_turnaround(self):
+        v = evaluate(self._quote(), self.econ, self.th)
+        # ~1.15 months at PSA plus ~0.25 waiting to sell.
+        self.assertAlmostEqual(v.capital_months, 35 / 30.44 + 0.25, places=1)
+        self.assertNotEqual(v.capital_months, round(v.capital_months, 2),
+                            "kept unrounded so the page can recompute exactly")
+        self.assertAlmostEqual(v.floor_per_month, round(v.floor_profit / v.capital_months, 2))
+
+    def test_illiquid_card_reports_no_monthly_return(self):
+        v = evaluate(self._quote(sales_9=0), self.econ, self.th)
+        self.assertIsNone(v.floor_per_month)
+        self.assertIsNone(v.months_to_sell)
+
+    def test_a_smaller_faster_floor_can_beat_a_bigger_slower_one(self):
+        from datetime import timedelta
+        from gapscan.store import iso, utcnow
+        slow = evaluate(self._quote(psa9=400, sales_9=1), self.econ, self.th)
+        fast = evaluate(self._quote(psa9=200, sales_9=30,
+                                    sales_window_start=iso(utcnow() - timedelta(days=30))),
+                        self.econ, self.th)
+        self.assertGreater(slow.floor_profit, fast.floor_profit)
+        self.assertGreater(fast.floor_per_month, slow.floor_per_month)

@@ -79,6 +79,8 @@ class Thresholds:
     raw_price_max: float = 400.0     # above this you can't buy volume anyway
     max_sale_age_days: float = 90.0  # a comp older than this isn't a live market
     low_grade_recovery: float = 0.80  # fraction of raw recovered on a sub-9 grade
+    grading_turnaround_days: float = 35.0  # PSA Regular: ~25 business days
+    min_window_days: float = 21.0    # shorter sale windows can't imply a rate
     min_mix_sample: int = 5          # graded sales needed before inferring a grade mix
     sales_mix_min_low: float = 0.15  # assumed floor on grading below a 9, when
                                      # the mix comes from sales rather than a

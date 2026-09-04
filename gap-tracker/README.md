@@ -96,6 +96,31 @@ Sweeping by set returns cards the seed list never chose. They are paid for
 either way, so they are folded into the universe -- the set list, not the
 rarity filter, becomes what bounds the project.
 
+### Worst case and liquidity
+
+Two columns matter more than the headline floor:
+
+- **Worst 90d** — the lowest the floor went in the last 90 days, costed under
+  your current settings. A card showing a $175 floor today that touched −$97
+  in May is not a floor, it is a snapshot of a good day. `floor_durability`
+  expresses the same thing as a ratio (worst ÷ current), and `floor_p10_90d`
+  gives the 10th percentile for cards where the outright minimum is one bad
+  print.
+- **$/month** — the floor divided by months of capital: PSA's turnaround plus
+  the expected wait to sell, derived from PSA 9 sales per month. A $400 floor
+  you collect after eight months is worse than a $120 floor you collect twice
+  over in the same time.
+
+Sales rate comes from the counts and the window they cover
+(`ebay.dateRangeStart/End`), because a count without a window means nothing --
+12 sales over three months and 12 over three weeks are different markets. The
+wait is a lower bound: it assumes yours is the next copy to sell, when you
+actually queue behind other listings.
+
+The page recomputes both from the same per-day observations the model used
+(`gap_points`), so the worst case, the sparkline and the table can never
+disagree, and all three follow the cost sliders.
+
 ### What the history buys
 
 `gapscan/trends.py` computes, per card:

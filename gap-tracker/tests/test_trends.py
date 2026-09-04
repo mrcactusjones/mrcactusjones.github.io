@@ -58,7 +58,8 @@ class TestVolatility(unittest.TestCase):
 
 class TestGapSeries(unittest.TestCase):
     def setUp(self):
-        self.all_in = lambda raw: raw + 25
+        # Signature mirrors Economics.all_in(raw, declared_value).
+        self.all_in = lambda raw, declared=None: raw + 25
         self.net = lambda price: price * 0.9
 
     def test_only_days_with_both_prices_count(self):
@@ -68,6 +69,15 @@ class TestGapSeries(unittest.TestCase):
         # Raw carries forward to the graded days, but nothing before the first raw.
         self.assertEqual(len(gaps), 2)
         self.assertAlmostEqual(gaps[0][1], 300 * 0.9 - 125)
+
+    def test_declared_value_is_the_graded_price(self):
+        """History must be costed the way a live floor is, or the past looks cheap."""
+        seen = []
+        def all_in(raw, declared=None):
+            seen.append((raw, declared))
+            return raw + 25
+        trends.gap_series(line([100, 100]), line([300, 300]), all_in, self.net)
+        self.assertTrue(all(d == 300 for _, d in seen), seen)
 
     def test_graded_before_any_raw_is_skipped(self):
         graded = line([300, 300], end=TODAY - timedelta(days=10))
@@ -129,3 +139,33 @@ class TestSummary(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestWorstCaseFloor(unittest.TestCase):
+    """The point of the tool is the bad case, so the bad case must be measured."""
+
+    def test_worst_finds_the_dip(self):
+        self.assertAlmostEqual(trends.worst(line([120, 40, 130, 125]), 90, TODAY), 40)
+
+    def test_percentile_ignores_a_lone_bad_print(self):
+        pts = line([100, 100, 100, 100, 100, 100, 100, 100, 100, 5])
+        self.assertAlmostEqual(trends.worst(pts, 90, TODAY), 5)
+        self.assertAlmostEqual(trends.percentile(pts, 0.10, 90, TODAY), 100)
+
+    def test_durability_is_worst_over_current(self):
+        # Current 100, worst 80 -> four fifths of the floor survived.
+        self.assertAlmostEqual(trends.durability(line([100, 80, 90, 100]), 90, TODAY), 0.8)
+
+    def test_a_floor_that_went_negative_has_no_durability(self):
+        self.assertAlmostEqual(trends.durability(line([100, -20, 50, 100]), 90, TODAY), 0.0)
+
+    def test_durability_of_a_flat_floor_is_one(self):
+        self.assertAlmostEqual(trends.durability(line([100] * 5), 90, TODAY), 1.0)
+
+    def test_too_few_points_is_unknown_not_perfect(self):
+        self.assertIsNone(trends.durability(line([100, 100]), 90, TODAY))
+
+    def test_window_bounds_the_worst_case(self):
+        old_crash = line([-500], end=TODAY - timedelta(days=200))
+        recent = line([100, 100, 100])
+        self.assertAlmostEqual(trends.worst(old_crash + recent, 90, TODAY), 100)

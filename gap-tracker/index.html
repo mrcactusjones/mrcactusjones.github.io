@@ -96,9 +96,12 @@
 
   <div class="panel">
     <div class="grid">
-      <div title="Flat fallback. With PSA tiers on, the fee is set by the card's slabbed value.">
-           <label>Grading fee <span class="val" id="vfee"></span></label>
-           <input type="range" id="fee" min="0" max="60" step="1"></div>
+      <div>
+        <label><input type="checkbox" id="usetiers" style="accent-color:var(--accent)">
+          PSA fee tiers <span class="val" id="vtiers"></span></label>
+        <label style="margin-top:.5rem">Flat grading fee <span class="val" id="vfee"></span></label>
+        <input type="range" id="fee" min="0" max="200" step="1">
+      </div>
       <div><label>Sub shipping / card <span class="val" id="vship"></span></label>
            <input type="range" id="ship" min="0" max="20" step="0.5"></div>
       <div><label>Marketplace fee <span class="val" id="vmkt"></span></label>
@@ -168,6 +171,12 @@ function expectedValue(row, s, cost, net9, net10) {
   return row.p10 * net10 + row.p9 * net9 + row.p_low * netLow - cost;
 }
 
+// The worst floor in 90 days, recomputed under the current cost settings so
+// it moves with the sliders exactly as the headline floor does.
+function worstFloor(series) {
+  return series && series.length ? Math.min(...series) : null;
+}
+
 function score(row, s) {
   const cost = allIn(row.raw, s, row.psa9);
   const net9 = netOf(row.psa9, s);
@@ -183,9 +192,15 @@ function score(row, s) {
   else if (floor > 0) verdict = "floor_positive";
   else if (upside > 0) verdict = "ten_or_bust";
   else verdict = "dead";
-  return { ...row, cost, floor, upside, confident, verdict,
+  // One pass over the observations: the sparkline, the worst case and the
+  // table all read the same costed series.
+  const floorSeries = (row.gap_points || []).map(
+    ([raw, psa9]) => netOf(psa9, s) - allIn(raw, s, psa9));
+  return { ...row, cost, floor, upside, confident, verdict, floorSeries,
            floorRoi: floor / cost, be: breakevenP10(cost, net9, net10),
-           ev: expectedValue(row, s, cost, net9, net10) };
+           ev: expectedValue(row, s, cost, net9, net10),
+           worst: worstFloor(floorSeries),
+           perMonth: row.capital_months ? floor / row.capital_months : null };
 }
 
 const COLS = [
@@ -200,6 +215,16 @@ const COLS = [
   { k:"cost",   t:"All-in",     fmt:r => money(r.cost) },
   { k:"floor",  t:"Floor @ 9",  fmt:r => signed(r.floor) },
   { k:"floorRoi",t:"Floor ROI", fmt:r => pct(r.floorRoi) },
+  { k:"worst",  t:"Worst 90d",  fmt:r => r.worst == null ? "—" :
+      `<span class="num ${r.worst >= 0 ? "pos" : "neg"}" title="Lowest floor in the last 90 days, at your current cost settings">${
+        r.worst < 0 ? "-" : ""}$${Math.abs(r.worst).toFixed(2)}</span>` },
+  { k:"perMonth", t:"$/month",  fmt:r => r.perMonth == null ? "—" :
+      `<span class="num ${r.perMonth >= 0 ? "pos" : "neg"}" title="Floor divided by months of capital: ${
+        (r.capital_months || 0).toFixed(1)}mo (grading + expected wait to sell)">${
+        r.perMonth < 0 ? "-" : ""}$${Math.abs(r.perMonth).toFixed(2)}</span>` },
+  { k:"sales_per_month", t:"Sales/mo", fmt:r => r.sales_per_month == null ? "—" :
+      `<span class="num" title="PSA 9 sales per month, from the counts and the window they cover">${
+        r.sales_per_month.toFixed(1)}</span>` },
   { k:"upside", t:"At 10",      fmt:r => signed(r.upside) },
   { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
       `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
@@ -224,7 +249,7 @@ const COLS = [
   { k:"divergence_30d", t:"Diverge", fmt:r => r.divergence_30d == null ? "—" :
       `<span class="num ${r.divergence_30d >= 0 ? "pos" : "neg"}" title="PSA 9 momentum minus raw momentum: positive means the gap is widening on its own">${
         (r.divergence_30d * 100).toFixed(0)}%</span>` },
-  { k:"history",t:"Trend",      fmt:r => spark(r.floor_history || r.history) },
+  { k:"history",t:"Trend",      fmt:r => spark(r.floorSeries || r.history) },
   { k:"scanned_days_ago", t:"Age", fmt:r => `<span class="num">${r.scanned_days_ago}d</span>` },
 ];
 
@@ -286,7 +311,8 @@ const S = () => ({
   fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
   out:+out.value, prem:+prem.value, comps:+comps.value, maxAge:+maxage.value,
   lowRecovery:+lowrec.value / 100,
-  tiers: TIERS, insThreshold: INS_THRESHOLD, insPct: INS_PCT,
+  tiers: usetiers.checked ? TIERS : null,
+  insThreshold: INS_THRESHOLD, insPct: INS_PCT,
 });
 
 function render() {
@@ -295,6 +321,10 @@ function render() {
   vmkt.textContent = `${s.mkt}%`;   vout.textContent  = `$${s.out.toFixed(2)}`;
   vprem.textContent = `${s.prem}%`; vcomps.textContent = s.comps;
   vmaxage.textContent = `${s.maxAge}d`;
+  // Say plainly which fee is in force, so an inert slider can't mislead.
+  vtiers.textContent = usetiers.checked ? "on — fee set by slabbed value" : "off";
+  fee.disabled = usetiers.checked;
+  fee.style.opacity = usetiers.checked ? 0.4 : 1;
   vlowrec.textContent = `${(s.lowRecovery*100).toFixed(0)}% of raw`;
 
   const needle = q.value.trim().toLowerCase();
@@ -335,7 +365,8 @@ function boot(data) {
   DATA = data;
   const e = data.config.econ, t = data.config.thresholds, c = data.coverage;
   fee.value = e.grading_fee; ship.value = e.sub_ship_per_card;
-  TIERS = e.use_fee_tiers ? e.fee_tiers : null;
+  TIERS = e.fee_tiers || null;
+  usetiers.checked = !!e.use_fee_tiers && !!TIERS;
   INS_THRESHOLD = e.insurance_threshold ?? 499;
   INS_PCT = e.insurance_pct ?? 0.02;
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
@@ -369,6 +400,7 @@ function boot(data) {
 
   ["fee","ship","mkt","out","prem","comps","maxage","lowrec"].forEach(id =>
     document.getElementById(id).addEventListener("input", render));
+  usetiers.addEventListener("change", render);
   q.addEventListener("input", render);
   set.addEventListener("change", render);
   render();

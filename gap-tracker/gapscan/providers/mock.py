@@ -42,7 +42,7 @@ class MockProvider:
         # Mirror the real feed's thin-and-sometimes-stale character, so the
         # demo exercises the confidence and staleness paths rather than
         # showing a rosier picture than production.
-        from datetime import timedelta
+        from datetime import timedelta  # noqa: F401  (used below too)
         n9, n10 = rng.randint(0, 40), rng.randint(0, 25)
         age9 = rng.choice([2, 9, 20, 45, 95, 140])
         confidence = "low" if n9 <= 2 else rng.choice(["medium", "high", "high"])
@@ -63,6 +63,8 @@ class MockProvider:
             cgc9=round(raw * mult9 * 0.8, 2) if rng.random() < 0.4 else None,
             cgc9_sales=rng.randint(0, 5),
             psa_sales_mix={"8": rng.randint(0, 8), "9": n9, "10": n10} if n9 + n10 else None,
+            sales_window_start=iso(utcnow() - timedelta(days=rng.choice([30, 90, 180]))),
+            sales_window_end=iso(utcnow()),
             tcgplayer_id=str(rng.randint(10000, 99999)),
             as_of=iso(utcnow()),
             source="mock",
@@ -112,6 +114,9 @@ class MockProvider:
                         "psa9": walk(base * mult9),
                         "psa10": walk(base * mult10),
                     },
+                    "dateRangeStart": (utcnow() - timedelta(
+                        days=rng.choice([45, 90, 180]))).isoformat(),
+                    "dateRangeEnd": utcnow().isoformat(),
                 },
             })
         cost = limit * 3

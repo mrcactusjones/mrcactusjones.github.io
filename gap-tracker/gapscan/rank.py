@@ -23,6 +23,17 @@ def _streak(series: list[dict], threshold: float) -> int:
     return count
 
 
+def _gap_pairs(raw: list, psa9: list, days: int = 90) -> list[list]:
+    """[[raw, psa9], ...] for every priced day in the window, oldest first.
+
+    Not downsampled: the page recomputes the worst case from these, and a
+    sampled series would quietly miss the dip that makes a card risky.
+    """
+    from . import trends
+    return [[round(r, 2), round(g, 2)]
+            for _, r, g in trends.gap_inputs(raw, psa9, days=days)]
+
+
 def _attach_trends(rows: list[dict], cfg: Config) -> int:
     """Fold price-history analytics onto the ranked rows.
 
@@ -43,7 +54,13 @@ def _attach_trends(rows: list[dict], cfg: Config) -> int:
             floor = trends.gap_series(raw, psa9, cfg.econ.all_in, cfg.econ.net_proceeds)
             row.update(trends.summarise(raw, psa9, psa10, floor,
                                         cfg.thresholds.min_floor_profit))
-            row["floor_history"] = [round(v, 2) for _, v in floor][-180:]
+            # No separate floor history: gap_points carries the same shape and
+            # lets the page cost it under the user's own settings, so the
+            # sparkline and the worst case can never disagree with the table.
+            # Weekly (raw, psa9) pairs for the last 90 days, so the page can
+            # recompute the worst-case floor under the user's own cost
+            # assumptions instead of trusting a number baked at rank time.
+            row["gap_points"] = _gap_pairs(raw, psa9, days=90)
             enriched += 1
     return enriched
 
@@ -105,6 +122,10 @@ def build(universe: dict, store: Store, cfg: Config,
             "upside_roi": verdict.upside_roi,
             "breakeven_p10": verdict.breakeven_p10,
             "ev_profit": verdict.ev_profit,
+            "sales_per_month": verdict.sales_per_month,
+            "months_to_sell": verdict.months_to_sell,
+            "capital_months": verdict.capital_months,
+            "floor_per_month": verdict.floor_per_month,
             "gem_rate": verdict.gem_rate,
             "mix_source": verdict.mix_source,
             "mix_sample": verdict.mix_sample,
