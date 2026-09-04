@@ -24,6 +24,7 @@ from gapscan import rank as rank_mod
 from gapscan import watchlist as watchlist_mod
 from gapscan import scan as scan_mod
 from gapscan.catalog import build as build_catalog
+from gapscan.catalog import merge_universe
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
 from gapscan.providers.mock import MockProvider
 from gapscan.store import Store
@@ -105,14 +106,7 @@ def cmd_catalog(args, cfg: Config, store: Store) -> int:
     source = "fixture" if fixture else "api"
     existing = store.load_universe()
     # Never mix demo cards into a live universe, or vice versa.
-    # Hand-picked cards are never touched by a catalog rebuild.
-    same_source = {k: v for k, v in existing.items()
-                   if v.get("source", "api") == source or v.get("source") == "manual"}
-    # A partial build (--sets, or sets that failed) must leave the rest intact:
-    # replace only the sets actually rebuilt this run.
-    rebuilt = {v["set_id"] for v in universe.values()}
-    merged = {k: v for k, v in same_source.items() if v.get("set_id") not in rebuilt}
-    merged.update(universe)
+    merged = merge_universe(existing, universe, source)
     for card_id, entry in existing.items():
         if card_id in merged and entry.get("tier"):
             merged[card_id]["tier"] = entry["tier"]
@@ -510,8 +504,9 @@ def cmd_population(args, cfg: Config, store: Store) -> int:
                                        OutOfCredits)
 
     universe = store.load_universe()
+    # scan.py records a miss as {"quote": None}, so .get("quote", {}) is None.
     priced = [(cid, rec) for cid, rec in store.all_quotes()
-              if rec.get("quote", {}).get("tcgplayer_id")]
+              if (rec.get("quote") or {}).get("tcgplayer_id")]
     if not priced:
         print("No scanned card has a tcgPlayerId yet -- run `daily` first.")
         return 1
@@ -537,7 +532,8 @@ def cmd_population(args, cfg: Config, store: Store) -> int:
         return 0
     print(f"Available. grades={pop['grades']} total={pop['total']} "
           f"gem_rate={pop['gem_rate']:.1%}")
-    print("\nSet  population: true  under \"budget\" in config.json to use it.")
+    print("\nPopulation data is reachable. Gem rates will use it in preference "
+          "to the sales-mix estimate.")
     return 0
 
 

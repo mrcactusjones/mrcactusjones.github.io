@@ -69,7 +69,12 @@ def run(universe: dict, store: Store, cfg: Config, provider, dry_run: bool = Fal
         # stop while there is still room rather than triggering a 429.
         used = getattr(provider, "credits_used", 0)
         upcoming = getattr(provider, "next_cost", lambda: per_card)()
-        if used + upcoming > spend_cap:
+        # A miss widens the search, so the worst case for this card is the
+        # narrow lookup plus the wide one. Reserve that, or the guard lets a
+        # card start it cannot afford to finish -- the 429 it exists to avoid.
+        wide = getattr(provider, "wide_limit", 0) * (
+            2 if getattr(provider, "include_graded", True) else 1)
+        if used + upcoming + wide > spend_cap:
             print(f"  budget reached: {used}/{spend_cap} credits used")
             break
         try:

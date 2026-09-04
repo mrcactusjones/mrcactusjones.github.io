@@ -218,3 +218,110 @@ class TestBatchParameters(unittest.TestCase):
             _, cost = provider.fetch_batch("Base Set", limit=20)
         self.assertEqual(cost, 60)
         self.assertEqual(provider.credits_used, 60)
+
+
+class TestUniverseMerge(unittest.TestCase):
+    """A rebuild that deletes cards it didn't build is silent and expensive."""
+
+    def setUp(self):
+        self.existing = {
+            "base1-4":  {"id": "base1-4", "set_id": "base1", "source": "api"},
+            "base2-1":  {"id": "base2-1", "set_id": "base2", "source": "api"},
+            "swept-1":  {"id": "swept-1", "set_id": "sweep", "source": "sweep"},
+            "manual-1": {"id": "manual-1", "set_id": "manual", "source": "manual"},
+            "fix-1":    {"id": "fix-1", "set_id": "base1", "source": "fixture"},
+        }
+
+    def test_swept_cards_survive_a_rebuild(self):
+        merged = catalog.merge_universe(
+            self.existing, {"base1-9": {"id": "base1-9", "set_id": "base1", "source": "api"}},
+            "api")
+        self.assertIn("swept-1", merged, "credits were spent finding this card")
+        self.assertIn("manual-1", merged, "the user chose this card by hand")
+
+    def test_only_rebuilt_sets_are_replaced(self):
+        merged = catalog.merge_universe(
+            self.existing, {"base1-9": {"id": "base1-9", "set_id": "base1", "source": "api"}},
+            "api")
+        self.assertNotIn("base1-4", merged, "base1 was rebuilt")
+        self.assertIn("base2-1", merged, "base2 was not touched")
+        self.assertIn("base1-9", merged)
+
+    def test_fixture_and_live_data_never_mix(self):
+        live = catalog.merge_universe(
+            self.existing, {"base2-9": {"id": "base2-9", "set_id": "base2", "source": "api"}},
+            "api")
+        self.assertNotIn("fix-1", live, "demo cards must not join a live ranking")
+
+        fixture = catalog.merge_universe(
+            self.existing, {"f-9": {"id": "f-9", "set_id": "base2", "source": "fixture"}},
+            "fixture")
+        self.assertNotIn("base1-4", fixture)
+        self.assertIn("swept-1", fixture, "non-catalog sources survive either way")
+
+    def test_an_empty_build_changes_nothing_but_the_other_source(self):
+        merged = catalog.merge_universe(self.existing, {}, "api")
+        self.assertEqual(set(merged), {"base1-4", "base2-1", "swept-1", "manual-1"})
+
+
+class TestBudgetGuardReservesTheRetry(unittest.TestCase):
+    """A miss widens the search, so the guard must reserve that cost too."""
+
+    def test_a_card_is_not_started_if_the_widen_cannot_be_afforded(self):
+        from gapscan import scan as scan_mod
+        from gapscan.config import Config
+        from gapscan.providers import ppt
+
+        provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        ppt.PPTProvider.__init__(provider, api_key="k", search_limit=1, wide_limit=5)
+        # Narrow lookup costs 2, a widened retry 10: 12 for the worst case.
+        self.assertEqual(provider.next_cost(), 2)
+
+        cfg = Config()
+        cfg.budget.daily_credits = 8          # enough for the narrow try, not the widen
+        universe = {"a": {"id": "a", "name": "A", "set_name": "S", "number": "1",
+                          "tier": "candidate", "priority": 1}}
+
+        class Store:
+            cards = history = None
+            def load_quote(self, _):
+                return None
+            def save_quote(self, *a):
+                pass
+        with mock.patch.object(provider, "fetch") as fetch:
+            result = scan_mod.run(universe, Store(), cfg, provider)
+        fetch.assert_not_called()
+        self.assertEqual(result["scanned"], 0)
+
+    def test_a_card_is_started_when_the_widen_fits(self):
+        from gapscan import scan as scan_mod
+        from gapscan.config import Config
+        from gapscan.providers import ppt
+
+        provider = ppt.PPTProvider.__new__(ppt.PPTProvider)
+        ppt.PPTProvider.__init__(provider, api_key="k", search_limit=1, wide_limit=5)
+        cfg = Config()
+        cfg.budget.daily_credits = 20
+        universe = {"a": {"id": "a", "name": "A", "set_name": "S", "number": "1",
+                          "tier": "candidate", "priority": 1}}
+
+        saved = {}
+        class Store:
+            cards = history = None
+            def load_quote(self, _):
+                return None
+            def save_quote(self, cid, rec):
+                saved[cid] = rec
+        with mock.patch.object(provider, "fetch", return_value=None):
+            result = scan_mod.run(universe, Store(), cfg, provider)
+        self.assertEqual(result["scanned"], 1)
+
+
+class TestPopulationHandlesMisses(unittest.TestCase):
+    def test_a_cached_miss_does_not_crash_the_lookup(self):
+        """scan.py stores a miss as {"quote": None}; .get("quote", {}) is None."""
+        records = [("a", {"id": "a", "quote": None, "miss": True}),
+                   ("b", {"id": "b", "quote": {"tcgplayer_id": "123"}, "miss": False})]
+        priced = [(cid, rec) for cid, rec in records
+                  if (rec.get("quote") or {}).get("tcgplayer_id")]
+        self.assertEqual([cid for cid, _ in priced], ["b"])

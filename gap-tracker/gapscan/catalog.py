@@ -193,3 +193,30 @@ def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
               f"Retry just those with:  run.py catalog --sets "
               + ",".join(failed_sets))
     return universe, meta
+
+
+# Sources a catalog build owns. Anything else in the universe -- cards found by
+# sweeping, cards picked by hand -- was paid for or chosen elsewhere.
+CATALOG_SOURCES = frozenset({"api", "fixture"})
+
+
+def merge_universe(existing: dict, built: dict, source: str) -> dict:
+    """Fold a freshly built catalog into the universe already on disk.
+
+    Three rules, in order of how much damage getting them wrong does:
+
+    * Cards from a non-catalog source always survive. A rebuild deleting the
+      results of a paid sweep is silent and expensive.
+    * A card from the *other* catalog source is dropped, so fixture and live
+      data never mix in one ranking.
+    * A card from this source survives only if its set wasn't rebuilt, which
+      is what makes a partial build (--sets, or sets that failed) additive.
+    """
+    rebuilt = {entry.get("set_id") for entry in built.values()}
+    merged = {
+        card_id: entry for card_id, entry in existing.items()
+        if entry.get("source", "api") not in CATALOG_SOURCES
+        or (entry.get("source", "api") == source and entry.get("set_id") not in rebuilt)
+    }
+    merged.update(built)
+    return merged

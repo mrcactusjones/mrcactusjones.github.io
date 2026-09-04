@@ -47,8 +47,12 @@ vm.createContext(ctx);
 vm.runInContext(script, ctx);
 // SCORING is a `let` inside the script, so assign it inside the VM the way
 // boot() does; setting it on the context object would not rebind it.
-const scoringCfg = JSON.parse(fs.readFileSync(RANKINGS, "utf8")).scoring;
-vm.runInContext("SCORING = " + JSON.stringify(scoringCfg), ctx);
+const cfgBlob = JSON.parse(fs.readFileSync(RANKINGS, "utf8"));
+vm.runInContext("SCORING = " + JSON.stringify(cfgBlob.scoring), ctx);
+// Thresholds too: boot() mirrors them into T, and without that the check
+// compares the page's defaults against Python's configured values.
+vm.runInContext("T = Object.assign({}, T, " +
+                JSON.stringify(cfgBlob.config.thresholds) + ")", ctx);
 
 const data = JSON.parse(fs.readFileSync(RANKINGS, "utf8"));
 const e = data.config.econ, t = data.config.thresholds;

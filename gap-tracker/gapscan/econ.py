@@ -270,6 +270,9 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         gem_rate = round(mix.p10, 4)
         mix_source, mix_sample = mix.source, mix.sample
 
+    # Floor and all-in are left unrounded: the conviction score divides them,
+    # and the page does the same at full precision. Rounding here made the two
+    # disagree by a hair -- enough to fail the parity check. Display rounds.
     return Verdict(
         sales_per_month=round(rate, 2) if rate is not None else None,
         months_to_sell=(round(wait, 2) if wait is not None and wait != float("inf")
@@ -281,11 +284,11 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         ev_profit=ev_profit, gem_rate=gem_rate,
         mix_source=mix_source, mix_sample=mix_sample,
         verdict=verdict,
-        all_in=round(all_in, 2),
-        floor_profit=round(floor_profit, 2),
-        floor_roi=round(floor_roi, 4),
-        upside_profit=round(upside_profit, 2),
-        upside_roi=round(upside_profit / all_in, 4),
+        all_in=all_in,
+        floor_profit=floor_profit,
+        floor_roi=floor_roi,
+        upside_profit=upside_profit,
+        upside_roi=upside_profit / all_in,
         breakeven_p10=breakeven_probability(all_in, net9, net10),
         confident=confident,
         reasons=reasons,

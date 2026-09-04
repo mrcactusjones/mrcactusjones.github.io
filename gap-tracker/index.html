@@ -214,13 +214,19 @@ function score(row, s) {
   const net9 = netOf(row.psa9, s);
   const net10 = row.psa10 != null ? netOf(row.psa10, s) : net9;
   const floor = net9 - cost, upside = net10 - cost;
+  // Every reason Python withholds confidence for, in the same order.
   const fresh = row.psa9_sale_age_days == null || row.psa9_sale_age_days <= s.maxAge;
   const confident = row.sales_9 >= s.comps &&
-                    (row.psa10 == null || row.sales_10 >= Math.ceil(s.comps * 0.6)) &&
+                    (row.psa10 == null || row.sales_10 >= T.min_sales_10) &&
                     fresh &&
-                    (row.psa9_confidence || "").toLowerCase() !== "low";
+                    (row.psa9_confidence || "").toLowerCase() !== "low" &&
+                    !row.psa9_outlier &&
+                    row.raw >= T.raw_price_min && row.raw <= T.raw_price_max;
   let verdict;
-  if (floor >= 25 && floor / cost >= 0.25) verdict = confident ? "no_brainer" : "floor_positive";
+  // Thresholds come from the config, not from constants baked in here: a
+  // hardcoded copy silently disagrees the moment config.json changes.
+  if (floor >= T.min_floor_profit && floor / cost >= T.min_floor_roi)
+    verdict = confident ? "no_brainer" : "floor_positive";
   else if (floor > 0) verdict = "floor_positive";
   else if (upside > 0) verdict = "ten_or_bust";
   else verdict = "dead";
@@ -293,7 +299,8 @@ const COLS = [
   { k:"divergence_30d", t:"Diverge", fmt:r => r.divergence_30d == null ? "—" :
       `<span class="num ${r.divergence_30d >= 0 ? "pos" : "neg"}" title="PSA 9 momentum minus raw momentum: positive means the gap is widening on its own">${
         (r.divergence_30d * 100).toFixed(0)}%</span>` },
-  { k:"history",t:"Trend",      fmt:r => spark(r.floorSeries || r.history) },
+  { k:"history",t:"Trend",      fmt:r => spark(r.floorSeries && r.floorSeries.length
+      ? r.floorSeries : r.history) },
   { k:"scanned_days_ago", t:"Age", fmt:r => `<span class="num">${r.scanned_days_ago}d</span>` },
 ];
 
@@ -349,6 +356,9 @@ function currentSize() {
 })();
 
 let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02, SCORING = null;
+// Thresholds, mirrored from the config on load.
+let T = { min_floor_profit: 25, min_floor_roi: 0.25, min_sales_10: 3,
+          raw_price_min: 0, raw_price_max: Infinity };
 let DATA = null, SORT = { key:"convScore", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
 const S = () => ({
@@ -415,6 +425,7 @@ function boot(data) {
   INS_THRESHOLD = e.insurance_threshold ?? 499;
   INS_PCT = e.insurance_pct ?? 0.02;
   SCORING = data.scoring || null;
+  T = { ...T, ...(t || {}) };
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
   prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
   maxage.value = t.max_sale_age_days;

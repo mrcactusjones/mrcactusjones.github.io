@@ -108,6 +108,7 @@ def build(universe: dict, store: Store, cfg: Config,
             "cgc9": quote.cgc9,
             "cgc10": quote.cgc10,
             "psa9_confidence": quote.psa9_confidence,
+            "psa9_outlier": quote.psa9_outlier,
             "psa9_sale_age_days": (round(age, 1)
                                    if (age := days_since(quote.psa9_last_sale)) is not None
                                    else None),
