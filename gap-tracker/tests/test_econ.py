@@ -762,3 +762,52 @@ class TestGradeInversion(unittest.TestCase):
                      extra_reasons=["graded/raw multiple 9x the set median"])
         self.assertFalse(v.confident)
         self.assertIn("graded/raw multiple 9x the set median", v.reasons)
+
+
+class TestVariantContamination(unittest.TestCase):
+    """Graded sales carry no printing, so a card whose printings are worth very
+    different amounts cannot have its graded price trusted against any one of
+    them."""
+
+    def setUp(self):
+        from gapscan.providers.ppt import variant_spread
+        self.spread = variant_spread
+        self.econ = Economics()
+        self.th = Thresholds()
+
+    def _quote(self, spread, printings=("Normal", "Reverse Holofoil")):
+        from gapscan.store import iso, utcnow
+        return Quote(raw=202.58, psa9=757.5, psa10=1232.5, sales_9=37, sales_10=12,
+                     psa_sales_mix={"9": 37, "10": 12}, psa9_confidence="high",
+                     psa9_last_sale=iso(utcnow()),
+                     printings=list(printings), variant_spread=spread)
+
+    def test_the_psyduck_case_is_measured(self):
+        printings, spread = self.spread({"variants": {
+            "Normal": {"marketPrice": 202.58},
+            "Reverse Holofoil": {"marketPrice": 700.0}}})
+        self.assertEqual(sorted(printings), ["Normal", "Reverse Holofoil"])
+        self.assertAlmostEqual(spread, 700.0 / 202.58, places=3)
+
+    def test_a_single_printing_has_no_spread(self):
+        _, spread = self.spread({"variants": {"Holofoil": {"marketPrice": 55.0}}})
+        self.assertIsNone(spread, "one printing cannot be contaminated by another")
+
+    def test_a_wide_spread_costs_confidence(self):
+        v = evaluate(self._quote(3.46), self.econ, self.th)
+        self.assertFalse(v.confident)
+        self.assertTrue(any("printings differ" in r for r in v.reasons), v.reasons)
+
+    def test_a_narrow_spread_is_left_alone(self):
+        v = evaluate(self._quote(1.2), self.econ, self.th)
+        self.assertTrue(v.confident)
+
+    def test_the_floor_itself_is_unchanged(self):
+        """It is a trust signal, not a price adjustment -- we cannot know which
+        printing the graded sales were."""
+        flagged = evaluate(self._quote(9.0), self.econ, self.th)
+        clean = evaluate(self._quote(1.0), self.econ, self.th)
+        self.assertAlmostEqual(flagged.floor_profit, clean.floor_profit)
+
+    def test_missing_variant_data_flags_nothing(self):
+        self.assertTrue(evaluate(self._quote(None), self.econ, self.th).confident)

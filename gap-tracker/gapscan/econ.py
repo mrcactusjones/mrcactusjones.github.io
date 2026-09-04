@@ -46,6 +46,8 @@ class Quote:
     sales_window_end: Optional[str] = None
     sales_velocity_month: Optional[float] = None  # provider's own figure
     tcgplayer_id: Optional[str] = None     # needed for a population lookup
+    printings: Optional[list] = None       # e.g. ["Normal", "Reverse Holofoil"]
+    variant_spread: Optional[float] = None # dearest printing / cheapest
     population: Optional[dict] = None      # {"grades": {...}, "gem_rate": ...}
 
 
@@ -260,6 +262,14 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         reasons.append("provider rates the PSA 9 price low-confidence")
     if quote.psa9_outlier:
         reasons.append("PSA 9 price flagged as an outlier")
+    # Graded sales are pooled across printings -- the eBay block carries no
+    # printing at all -- so when a card's printings are worth very different
+    # amounts, the graded price cannot be trusted against any one raw price.
+    if (quote.variant_spread
+            and quote.variant_spread > thresholds.variant_spread_factor):
+        reasons.append(
+            f"printings differ {quote.variant_spread:.1f}x "
+            f"({', '.join(quote.printings or [])}); graded comps pool them")
     if quote.raw < thresholds.raw_price_min:
         reasons.append(f"raw ${quote.raw:.2f} below floor of ${thresholds.raw_price_min:.0f}")
     if quote.raw > thresholds.raw_price_max:

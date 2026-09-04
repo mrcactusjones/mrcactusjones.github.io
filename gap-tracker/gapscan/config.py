@@ -90,6 +90,8 @@ class Thresholds:
     min_window_days: float = 21.0    # shorter sale windows can't imply a rate
     min_graded_sales: int = 3        # below this there is no graded market to price
     grade_inversion_slack: float = 1.0   # PSA 9 above PSA 10 x this is contamination
+    variant_spread_factor: float = 2.5   # printings differing by more than this
+                                     # make a pooled graded price untrustworthy
     min_set_sample: int = 8          # cards needed before a set median means anything
     set_multiple_factor: float = 4.0 # graded/raw multiple this far past the set's
                                      # median marks comps from another card

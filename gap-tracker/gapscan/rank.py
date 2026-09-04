@@ -152,6 +152,8 @@ def build(universe: dict, store: Store, cfg: Config,
             "psa9_outlier": quote.psa9_outlier,
             # The page cannot compute this: it needs the whole set.
             "multiple_outlier": bool(multiple_reasons),
+            "variant_spread": quote.variant_spread,
+            "printings": quote.printings,
             "psa9_sale_age_days": (round(age, 1)
                                    if (age := days_since(quote.psa9_last_sale)) is not None
                                    else None),

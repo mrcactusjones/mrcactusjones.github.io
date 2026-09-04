@@ -371,6 +371,26 @@ def parse_history(record: dict) -> dict[str, list[tuple[str, float]]]:
     return out
 
 
+def variant_spread(record: dict) -> tuple[list[str] | None, float | None]:
+    """(printings, dearest/cheapest market price).
+
+    A wide spread means the card's printings are effectively different goods,
+    while its graded sales are reported as one pool -- so a graded price paired
+    with any single printing's raw price is comparing two different cards.
+    """
+    variants = record.get("variants")
+    if not isinstance(variants, dict) or len(variants) < 2:
+        return (list(variants) if isinstance(variants, dict) else None), None
+    prices = []
+    for block in variants.values():
+        price = _as_number((block or {}).get("marketPrice"))
+        if price and price > 0:
+            prices.append(price)
+    if len(prices) < 2:
+        return list(variants), None
+    return list(variants), max(prices) / min(prices)
+
+
 def extract_graded(record: dict) -> Quote | None:
     """Read the documented ebay.salesByGrade shape.
 
@@ -402,6 +422,7 @@ def extract_graded(record: dict) -> Quote | None:
 
     prices = record.get("prices") or {}
     raw = _as_number(prices.get("market")) or _as_number(prices.get("low"))
+    printings, spread = variant_spread(record)
 
     return Quote(
         raw=raw, psa9=psa9, psa10=psa10, psa8=psa8,
@@ -417,6 +438,7 @@ def extract_graded(record: dict) -> Quote | None:
         sales_velocity_month=_as_number(
             (ebay.get("salesVelocity") or {}).get("monthlyTotal")),
         tcgplayer_id=str(record.get("tcgPlayerId")) if record.get("tcgPlayerId") else None,
+        printings=printings, variant_spread=spread,
         as_of=iso(utcnow()), source="ppt",
     )
 

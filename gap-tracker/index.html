@@ -225,6 +225,8 @@ function score(row, s) {
                     !(row.psa10 != null && row.psa9 > row.psa10 * T.grade_inversion_slack) &&
                     // Computed server-side: it needs the whole set.
                     !row.multiple_outlier &&
+                    // Printings worth very different amounts, graded as one pool.
+                    !(row.variant_spread && row.variant_spread > T.variant_spread_factor) &&
                     row.raw >= T.raw_price_min && row.raw <= T.raw_price_max;
   let verdict;
   // Thresholds come from the config, not from constants baked in here: a
@@ -289,6 +291,10 @@ const COLS = [
         (r.gem_rate*100).toFixed(0)}%${r.mix_source === "sales" ? "*" : ""}</span>` },
   { k:"ev",     t:"EV",         fmt:r => r.ev == null ? "—" : signed(r.ev) },
   { k:"sales_9",t:"Comps 9/10", fmt:r => `<span class="num">${r.sales_9}/${r.sales_10}</span>` },
+  { k:"variant_spread", t:"Printings", fmt:r => !r.variant_spread ? "—" :
+      `<span class="num ${r.variant_spread > (T.variant_spread_factor || Infinity)
+        ? "neg" : ""}" title="${esc((r.printings || []).join(" / "))} — graded sales are pooled across printings">${
+        r.variant_spread.toFixed(1)}x</span>` },
   { k:"psa9_sale_age_days", t:"Last 9 sale", fmt:r => r.psa9_sale_age_days == null ? "—" :
       `<span class="num${r.psa9_sale_age_days > 90 ? " neg" : ""}">${
         Math.round(r.psa9_sale_age_days)}d</span>` },
@@ -362,7 +368,8 @@ function currentSize() {
 let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02, SCORING = null;
 // Thresholds, mirrored from the config on load.
 let T = { min_floor_profit: 25, min_floor_roi: 0.25, min_sales_10: 3,
-          raw_price_min: 0, raw_price_max: Infinity, grade_inversion_slack: 1.0 };
+          raw_price_min: 0, raw_price_max: Infinity, grade_inversion_slack: 1.0,
+          variant_spread_factor: Infinity };
 let DATA = null, SORT = { key:"convScore", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
 const S = () => ({

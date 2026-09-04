@@ -241,7 +241,20 @@ sets differ enormously — 3× is normal in one and 20× in another. Aquapolis
 holds several cards of the same name, and grades are parsed from eBay listing
 titles, so this is where pooled comps surface.
 
-All three come from the same root cause: the provider matches graded sales by
+**Printings worth very different amounts.** A card's `variants` can differ
+several-fold — your Psyduck is $202 as a Normal and $700 as a Reverse Holofoil
+— while its graded sales come back as a single pool. There is one `ebay` block
+per card and no printing dimension anywhere inside it, so a graded price paired
+with any one printing's raw price is comparing two different goods.
+
+This one cannot be fixed at the source. The API's `printing` parameter changes
+which *raw* price is returned; it has no effect on the graded sales, because
+those carry no printing to filter on. So the spread is measured and flagged,
+and the floor is left alone: we genuinely do not know which printing those
+sales were, and adjusting the number would be inventing an answer rather than
+reporting the uncertainty.
+
+All four come from the same root cause: the provider matches graded sales by
 reading listing titles. The checks don't fix that; they mark where it shows.
 
 ### Grading fees
