@@ -158,6 +158,19 @@ upside      = net(PSA 10) − all_in
 breakeven   = share of 10s needed for EV = 0, when the 9 loses money
 ```
 
+### Grading fees
+
+PSA paused all four Value tiers on 2026-06-02 under a 14-million-card backlog,
+so the cheapest service is Regular at $79.99 rather than the ~$20 bulk rate
+most ROI calculators still assume. `Economics.fee_tiers` prices a submission
+off the card's **slabbed** value (its PSA 9 price where known), because that is
+what PSA charges the tier and the 2% insurance surcharge on. Set
+`use_fee_tiers: false` to go back to a flat `grading_fee` if the Value tiers
+reopen.
+
+The difference is not cosmetic: a card with a $35 raw and a $149 PSA 9 cleared
+$61 at the old bulk rate and clears $0.02 at the real one.
+
 Verdicts:
 
 | verdict | meaning |

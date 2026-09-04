@@ -96,7 +96,8 @@
 
   <div class="panel">
     <div class="grid">
-      <div><label>Grading fee <span class="val" id="vfee"></span></label>
+      <div title="Flat fallback. With PSA tiers on, the fee is set by the card's slabbed value.">
+           <label>Grading fee <span class="val" id="vfee"></span></label>
            <input type="range" id="fee" min="0" max="60" step="1"></div>
       <div><label>Sub shipping / card <span class="val" id="vship"></span></label>
            <input type="range" id="ship" min="0" max="20" step="0.5"></div>
@@ -136,7 +137,19 @@
 
 // Mirrors gapscan/econ.py so the sliders recompute instantly. If the Python
 // cost model changes, change it here too.
-function allIn(raw, s)  { return raw * (1 + s.prem/100) + s.fee + s.ship; }
+function feeFor(declared, s) {
+  if (!s.tiers || !s.tiers.length) return s.fee;
+  let fee = s.tiers[s.tiers.length - 1][1];
+  for (const [cap, tierFee] of s.tiers) { if (declared <= cap) { fee = tierFee; break; } }
+  if (declared > s.insThreshold) fee += (declared - s.insThreshold) * s.insPct;
+  return fee;
+}
+
+// Declared value is the slabbed value (the PSA 9 where known): PSA prices both
+// the service tier and the insurance off it.
+function allIn(raw, s, declared) {
+  return raw * (1 + s.prem/100) + feeFor(declared == null ? raw : declared, s) + s.ship;
+}
 function netOf(price, s){ return price * (1 - s.mkt/100) - s.out; }
 
 function breakevenP10(cost, net9, net10) {
@@ -156,7 +169,7 @@ function expectedValue(row, s, cost, net9, net10) {
 }
 
 function score(row, s) {
-  const cost = allIn(row.raw, s);
+  const cost = allIn(row.raw, s, row.psa9);
   const net9 = netOf(row.psa9, s);
   const net10 = row.psa10 != null ? netOf(row.psa10, s) : net9;
   const floor = net9 - cost, upside = net10 - cost;
@@ -266,12 +279,14 @@ function currentSize() {
   document.getElementById("resetsize").onclick = () => applySize(SIZE_DEFAULT);
 })();
 
+let TIERS = null, INS_THRESHOLD = 499, INS_PCT = 0.02;
 let DATA = null, SORT = { key:"floor", dir:-1 }, ACTIVE = new Set(["no_brainer","floor_positive"]);
 
 const S = () => ({
   fee:+fee.value, ship:+ship.value, mkt:+mkt.value,
   out:+out.value, prem:+prem.value, comps:+comps.value, maxAge:+maxage.value,
   lowRecovery:+lowrec.value / 100,
+  tiers: TIERS, insThreshold: INS_THRESHOLD, insPct: INS_PCT,
 });
 
 function render() {
@@ -320,6 +335,9 @@ function boot(data) {
   DATA = data;
   const e = data.config.econ, t = data.config.thresholds, c = data.coverage;
   fee.value = e.grading_fee; ship.value = e.sub_ship_per_card;
+  TIERS = e.use_fee_tiers ? e.fee_tiers : null;
+  INS_THRESHOLD = e.insurance_threshold ?? 499;
+  INS_PCT = e.insurance_pct ?? 0.02;
   mkt.value = (e.sale_fee_pct * 100).toFixed(2); out.value = e.ship_out;
   prem.value = e.raw_premium_pct * 100; comps.value = t.min_sales_9;
   maxage.value = t.max_sale_age_days;

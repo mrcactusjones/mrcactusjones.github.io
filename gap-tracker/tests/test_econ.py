@@ -15,8 +15,10 @@ from gapscan.providers.ppt import extract_quote
 class TestEconomics(unittest.TestCase):
     def setUp(self):
         # Round numbers so the assertions are checkable by hand.
+        # Flat fee and round numbers so the arithmetic is checkable by hand.
         self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
-                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0)
+                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0,
+                              use_fee_tiers=False)
         self.th = Thresholds()
 
     def test_all_in_and_net(self):
@@ -25,7 +27,7 @@ class TestEconomics(unittest.TestCase):
 
     def test_raw_premium_raises_cost(self):
         econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0, sale_fee_pct=0.10,
-                         ship_out=5.0, raw_premium_pct=0.20)
+                         ship_out=5.0, raw_premium_pct=0.20, use_fee_tiers=False)
         self.assertAlmostEqual(econ.all_in(100.0), 145.0)
 
     def test_no_brainer_needs_profit_and_confidence(self):
@@ -252,8 +254,10 @@ class TestDataQualityGating(unittest.TestCase):
     """A price from one old sale must not be presented as a sure thing."""
 
     def setUp(self):
+        # Flat fee and round numbers so the arithmetic is checkable by hand.
         self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
-                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0)
+                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0,
+                              use_fee_tiers=False)
         self.th = Thresholds()
 
     def _good(self, **over):
@@ -393,8 +397,10 @@ class TestGradeMix(unittest.TestCase):
 
 class TestExpectedValue(unittest.TestCase):
     def setUp(self):
+        # Flat fee and round numbers so the arithmetic is checkable by hand.
         self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
-                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0)
+                              sale_fee_pct=0.10, ship_out=5.0, raw_premium_pct=0.0,
+                              use_fee_tiers=False)
         self.th = Thresholds()
 
     def test_ev_is_absent_without_a_mix(self):
@@ -469,3 +475,46 @@ class TestSalesMixDownside(unittest.TestCase):
         from gapscan.econ import mix_from_population
         mix = mix_from_population({"grades": {"9": 10, "10": 10}})
         self.assertAlmostEqual(mix.p_low, 0.0, msg="a real report needs no assumption")
+
+
+class TestFeeTiers(unittest.TestCase):
+    """PSA paused its Value tiers in June 2026; the floor moved by ~$60 a card."""
+
+    def setUp(self):
+        self.econ = Economics()
+
+    def test_cheapest_tier_is_regular(self):
+        self.assertAlmostEqual(self.econ.fee_for(50), 79.99)
+        self.assertAlmostEqual(self.econ.fee_for(499), 79.99)
+
+    def test_insurance_surcharge_above_the_threshold(self):
+        self.assertAlmostEqual(self.econ.fee_for(999), 79.99 + 500 * 0.02)
+
+    def test_higher_declared_value_moves_up_a_tier(self):
+        self.assertGreater(self.econ.fee_for(2000), self.econ.fee_for(1400))
+
+    def test_declared_value_defaults_to_raw_when_unknown(self):
+        expected = (100 * (1 + self.econ.raw_premium_pct)
+                    + self.econ.fee_for(100) + self.econ.sub_ship_per_card)
+        self.assertAlmostEqual(self.econ.all_in(100), expected)
+
+    def test_slabbed_value_drives_the_fee_not_the_raw_price(self):
+        # A $60 raw card that grades to $1,800 is not a $79.99 submission.
+        cheap_raw = self.econ.all_in(60, declared_value=1800)
+        by_raw = self.econ.all_in(60, declared_value=60)
+        self.assertGreater(cheap_raw, by_raw + 90)
+
+    def test_flat_fee_mode_ignores_tiers(self):
+        flat = Economics(grading_fee=19.0, use_fee_tiers=False)
+        self.assertAlmostEqual(flat.fee_for(5000), 19.0)
+
+    def test_verdicts_reflect_the_new_cost(self):
+        """A card that cleared at the old bulk rate can fail at the real one."""
+        quote = Quote(raw=35.19, psa9=149.25, psa10=976.89, sales_9=12, sales_10=4,
+                      psa9_confidence="high")
+        cheap = evaluate(quote, Economics(grading_fee=19.0, use_fee_tiers=False),
+                         Thresholds())
+        real = evaluate(quote, Economics(), Thresholds())
+        self.assertGreater(cheap.floor_profit, 50)
+        self.assertLess(real.floor_profit, 10)
+        self.assertEqual(real.verdict, "floor_positive")

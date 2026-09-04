@@ -19,15 +19,48 @@ FIXTURES = ROOT / "fixtures"
 class Economics:
     """Cost model for buy raw -> grade -> sell slabbed."""
 
-    grading_fee: float = 19.0        # PSA bulk/value tier, per card
+    # PSA paused every Value tier on 2026-06-02 (backlog), so the cheapest
+    # service is Regular at $79.99. Tiers are (declared-value cap, fee); the
+    # first tier whose cap covers the card is used.
+    fee_tiers: tuple = ((1499.0, 79.99), (2499.0, 149.0), (4999.0, 299.0))
+    insurance_threshold: float = 499.0   # above this PSA adds a surcharge
+    insurance_pct: float = 0.02
+    grading_fee: float = 79.99       # flat fallback when tiers are disabled
+    use_fee_tiers: bool = True
     sub_ship_per_card: float = 4.0   # round-trip shipping + insurance, amortised
     sale_fee_pct: float = 0.1325     # marketplace take incl. promoted listings
     ship_out: float = 5.00           # shipping the slab to the buyer
     raw_premium_pct: float = 0.15    # you rarely buy at guide; pad the raw price
 
-    def all_in(self, raw_price: float) -> float:
-        """Total sunk cost per card before it sells."""
-        return raw_price * (1 + self.raw_premium_pct) + self.grading_fee + self.sub_ship_per_card
+    def fee_for(self, declared_value: float | None = None) -> float:
+        """Grading fee for a card, including PSA's insurance surcharge.
+
+        Declared value drives both the service tier and the surcharge, so a
+        card that grades into four figures costs materially more to submit than
+        the headline bulk rate suggests.
+        """
+        if not self.use_fee_tiers:
+            return self.grading_fee
+        value = float(declared_value or 0)
+        fee = self.fee_tiers[-1][1]
+        for cap, tier_fee in self.fee_tiers:
+            if value <= cap:
+                fee = tier_fee
+                break
+        if value > self.insurance_threshold:
+            fee += (value - self.insurance_threshold) * self.insurance_pct
+        return fee
+
+    def all_in(self, raw_price: float, declared_value: float | None = None) -> float:
+        """Total sunk cost per card before it sells.
+
+        `declared_value` is what the card is worth once slabbed -- the PSA 9
+        price where we know it -- because that is what PSA prices the service
+        and the insurance on.
+        """
+        return (raw_price * (1 + self.raw_premium_pct)
+                + self.fee_for(declared_value if declared_value is not None else raw_price)
+                + self.sub_ship_per_card)
 
     def net_proceeds(self, sale_price: float) -> float:
         """What actually lands in your pocket on a sale."""

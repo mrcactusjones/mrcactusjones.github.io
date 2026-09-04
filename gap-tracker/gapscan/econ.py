@@ -173,7 +173,7 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
     if quote.raw is None or quote.psa9 is None:
         return None
 
-    all_in = econ.all_in(quote.raw)
+    all_in = econ.all_in(quote.raw, declared_value=quote.psa9)
     if all_in <= 0:
         return None
 
