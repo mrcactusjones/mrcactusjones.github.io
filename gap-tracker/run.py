@@ -210,7 +210,8 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
     print(f"  looking for: {card.get('name')} ({card.get('set_name')} "
           f"#{card.get('number')})\n")
     try:
-        blob = provider.raw_response(card, search=args.search)
+        blob = provider.raw_response(card, search=args.search,
+                                     history_days=args.history)
     except PPTError as exc:
         print(f"Request failed: {exc}")
         print("\nTry a different search term:  run.py probe --search \"Kingdra\"")
@@ -225,8 +226,19 @@ def cmd_probe(args, cfg: Config, store: Store) -> int:
         print(", ".join(sorted(record)))
         graded = record.get("ebay")
         print("\n--- graded block ---")
-        print(json.dumps(graded, indent=2)[:3000] if graded
+        print(json.dumps(graded, indent=2)[:2500] if graded
               else "none returned (PSA prices need includeEbay=true)")
+
+        if args.history:
+            from gapscan.providers.ppt import parse_history
+            print(f"\n--- raw price history (asked for {args.history} days) ---")
+            print(json.dumps(record.get("priceHistory"), indent=2)[:2000])
+            print("\n--- graded price history ---")
+            print(json.dumps((graded or {}).get("priceHistory"), indent=2)[:2000])
+            found = parse_history(record)
+            print("\n--- what the history parser found ---")
+            print({grade: len(points) for grade, points in found.items()} or
+                  "nothing: the response carried no usable history")
         print("\n--- what the extractor found ---")
         print(json.dumps(extract_quote(record).__dict__, indent=2))
     return 0
@@ -751,6 +763,8 @@ def main() -> int:
     p.add_argument("--discover", action="store_true",
                    help="try candidate API endpoints and report what answers")
     p.add_argument("--search", help="override the search text sent to the API")
+    p.add_argument("--history", type=int, metavar="DAYS",
+                   help="also request price history and show what came back")
     p.set_defaults(func=cmd_probe)
 
     p = sub.add_parser("filters", help="find an exact-lookup param (1 credit per try)")

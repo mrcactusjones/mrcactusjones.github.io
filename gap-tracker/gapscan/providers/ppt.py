@@ -508,7 +508,8 @@ class PPTProvider:
         return f"{card.get('name', '')} {card.get('set_name', '')}".strip()
 
     def raw_response(self, card: dict, search: str | None = None,
-                     graded: bool = True, filters: dict | None = None) -> dict:
+                     graded: bool = True, filters: dict | None = None,
+                     history_days: int | None = None) -> dict:
         """Unparsed response -- what `run.py probe` prints.
 
         graded=False omits the eBay block, which is what makes a call cost two
@@ -518,6 +519,9 @@ class PPTProvider:
         params = {"search": text, "limit": self.search_limit}
         if graded and self.include_graded:
             params.update(self.EXTRA_PARAMS)
+        if history_days:
+            params["includeHistory"] = "true"
+            params["days"] = history_days
         if filters:
             params.update(filters)
         return self._request("cards", params)
