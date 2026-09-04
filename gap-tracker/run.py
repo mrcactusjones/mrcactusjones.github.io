@@ -506,15 +506,30 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
 
     scored.sort(key=lambda r: (r.get("floor_days_held_90d", 0),
                                r.get("floor_profit", 0)), reverse=True)
-    print(f"{'held':>5} {'streak':>7} {'floor':>10} {'psa9 30d':>9} "
-          f"{'diverge':>8}  card")
+
+    def pct(value):
+        return f"{value * 100:+.0f}%" if value is not None else "     -"
+
+    print(f"{'held':>7} {'streak':>7} {'floor':>10} {'psa9':>7} {'diverge':>8}  card")
     for row in scored[:args.top]:
-        def pct(value):
-            return f"{value * 100:+.0f}%" if value is not None else "    -"
-        print(f"{row['floor_days_held_90d']:>5} {row.get('floor_streak', 0):>7} "
-              f"${row['floor_profit']:>9.2f} {pct(row.get('psa9_30d')):>9} "
-              f"{pct(row.get('divergence_30d')):>8}  "
+        # Both numbers: "13" alone reads as thin coverage when it can be every
+        # observation there is. A gap point needs a raw and a graded price on
+        # the same day, and graded sales are sparse.
+        held = f"{row['floor_days_held_90d']}/{row.get('floor_observations_90d', '?')}"
+        # Graded sales are too sparse for a 30-day trend on most cards; the
+        # 90-day window is the one that usually has enough points to mean
+        # anything, so prefer it and fall back.
+        move = row.get("psa9_90d")
+        if move is None:
+            move = row.get("psa9_30d")
+        print(f"{held:>7} {row.get('floor_streak', 0):>6}d ${row['floor_profit']:>9.2f} "
+              f"{pct(move):>7} {pct(row.get('divergence_30d')):>8}  "
               f"{row['name']} ({row['set_name']} {row['number']})")
+
+    thin = sum(1 for r in scored if r.get("psa9_90d") is None)
+    if thin:
+        print(f"\n{thin} of {len(scored)} cards have too few graded sales for a "
+              f"price trend; '-' means unavailable, not flat.")
     return 0
 
 
