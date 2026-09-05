@@ -63,6 +63,25 @@ const s = { fee:e.grading_fee, ship:e.sub_ship_per_card, mkt:e.sale_fee_pct*100,
             tiers: e.use_fee_tiers ? e.fee_tiers : null,
             insThreshold: e.insurance_threshold, insPct: e.insurance_pct };
 
+// The fee table, checked at values no card in the data reaches. Without this
+// the page's behaviour above the top tier is never exercised, and that is
+// exactly where its answer differs most from Python's.
+let feeChecked = 0;
+for (const ref of data.fee_reference || []) {
+  assert.ok(Math.abs(ctx.feeFor(ref.declared, s) - ref.fee) < 1e-6,
+    `fee mismatch at $${ref.declared}: js=${ctx.feeFor(ref.declared, s)} py=${ref.fee}`);
+  assert.strictEqual(ctx.aboveModelledRange(ref.declared, s), ref.above_range,
+    `above-range mismatch at $${ref.declared}`);
+  const jsRoom = ctx.tierHeadroom(ref.declared, s);
+  if (ref.headroom === null) {
+    assert.strictEqual(jsRoom, null, `headroom mismatch at $${ref.declared}`);
+  } else {
+    assert.ok(Math.abs(jsRoom - ref.headroom) < 1e-6,
+      `headroom mismatch at $${ref.declared}: js=${jsRoom} py=${ref.headroom}`);
+  }
+  feeChecked++;
+}
+
 let checked = 0, verdictMatches = 0, evChecked = 0, worstChecked = 0, convChecked = 0;
 for (const row of data.rows) {
   const js = ctx.score(row, s);
@@ -111,4 +130,4 @@ assert.strictEqual(verdictMatches, checked,
 for (const series of [null, [], [1], [1,2,3], [null,null], [5,null,7]])
   assert.ok(typeof ctx.spark(series) === "string");
 
-console.log("OK: " + checked + " rows agree on all-in, floor, upside, break-even and verdict; " + evChecked + " also agree on EV; " + worstChecked + " on the worst-case floor; " + convChecked + " on conviction");
+console.log("OK: " + feeChecked + " fee values agree; " + checked + " rows agree on all-in, floor, upside, break-even and verdict; " + evChecked + " also agree on EV; " + worstChecked + " on the worst-case floor; " + convChecked + " on conviction");

@@ -150,6 +150,20 @@ function feeFor(declared, s) {
   return fee;
 }
 
+// Above the top tier feeFor falls back to the last tier's fee, which
+// understates a real submission by hundreds. Python withholds confidence
+// there rather than under-costing the trade, so this must agree.
+function aboveModelledRange(declared, s) {
+  return !!(s.tiers && s.tiers.length && declared > s.tiers[s.tiers.length - 1][0]);
+}
+// Room below the next fee tier, 0-1: 0.05 means a 5% rise in the slabbed
+// price moves the card into a dearer tier.
+function tierHeadroom(declared, s) {
+  if (!s.tiers || !s.tiers.length) return null;
+  for (const [cap] of s.tiers) if (declared <= cap) return cap > 0 ? (cap - declared) / cap : null;
+  return null;
+}
+
 // Declared value is the slabbed value (the PSA 9 where known): PSA prices both
 // the service tier and the insurance off it.
 function allIn(raw, s, declared) {
@@ -234,6 +248,8 @@ function score(row, s) {
                     !row.multiple_outlier &&
                     // Printings worth very different amounts, graded as one pool.
                     !(row.variant_spread && row.variant_spread > T.variant_spread_factor) &&
+                    // The grading fee is unknown above the top tier.
+                    !aboveModelledRange(row.psa9, s) &&
                     // Graded sales that are two cards. row.psa9 has already
                     // been repriced to the cheaper of them server-side, so the
                     // arithmetic here needs no change -- only the confidence.
@@ -253,6 +269,7 @@ function score(row, s) {
     ([raw, psa9]) => netOf(psa9, s) - allIn(raw, s, psa9));
   return { ...row, cost, floor, upside, confident, verdict, floorSeries,
            upsideKnown: row.psa10 != null,
+           headroom: tierHeadroom(row.psa9, s),
            floorRoi: floor / cost, be: breakevenP10(cost, net9, net10),
            ev: expectedValue(row, s, cost, net9, net10),
            worst: worstFloor(floorSeries),
@@ -280,6 +297,12 @@ const COLS = [
   { k:"raw",    t:"Raw",        fmt:r => money(r.raw) },
   { k:"psa9",   t:"PSA 9",      fmt:r => money(r.psa9) },
   { k:"psa10",  t:"PSA 10",     fmt:r => money(r.psa10) },
+  // A card just under a fee-tier cap pays materially more if it prices up:
+  // $69 separates the two sides of the $1,499 line on the same trade.
+  { k:"headroom", t:"Fee room", fmt:r => r.headroom == null ? "—" :
+      `<span class="num ${r.headroom < 0.10 ? "neg" : ""}" title="${
+        (r.headroom*100).toFixed(0)}% below the next grading tier">${
+        (r.headroom*100).toFixed(0)}%</span>` },
   // When the provider's number was two cards averaged, show what it said and
   // what we used instead, so the adjustment is visible rather than silent.
   { k:"psa9_blended", t:"Blend", fmt:r => r.psa9_blended == null ? "—" :

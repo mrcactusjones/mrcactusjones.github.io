@@ -282,6 +282,7 @@ def build(universe: dict, store: Store, cfg: Config,
             "upside_profit": verdict.upside_profit,
             "upside_roi": verdict.upside_roi,
             "upside_known": verdict.upside_known,
+            "fee_headroom": verdict.fee_headroom,
             "breakeven_p10": verdict.breakeven_p10,
             "ev_profit": verdict.ev_profit,
             "sales_per_month": verdict.sales_per_month,
@@ -332,6 +333,18 @@ def build(universe: dict, store: Store, cfg: Config,
     return {
         "generated_at": iso(utcnow()),
         "config": cfg.to_dict(),
+        # Python's own answers at values no card in the data reaches, so the
+        # page's copy of the fee model is checked across the whole table --
+        # including above the top tier, where it withholds confidence.
+        "fee_reference": [
+            {"declared": v,
+             "fee": round(cfg.econ.fee_for(v), 6),
+             "above_range": cfg.econ.above_modelled_range(v),
+             "headroom": (None if (h := cfg.econ.tier_headroom(v)) is None
+                          else round(h, 9))}
+            for v in (0.0, 100.0, 499.0, 500.0, 1499.0, 1500.0, 2499.0, 2500.0,
+                      4999.0, 5000.0, 9999.0, 10000.0, 24999.0, 25000.0, 80000.0)
+        ],
         "coverage": coverage(universe, store, cfg, quotes=quotes),
         "verdict_counts": counts,
         "trend_coverage": with_trends,

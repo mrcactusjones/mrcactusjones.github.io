@@ -903,3 +903,52 @@ class VisibleCompsTest(unittest.TestCase):
         reasons = evaluate(quote, self.econ, self.th).reasons
         self.assertEqual(sum(1 for r in reasons if "comps" in r or "visible" in r), 1,
                          reasons)
+
+
+class FeeTierTest(unittest.TestCase):
+    """PSA prices the service tier off the slabbed value, and the steps are
+    large enough to decide a trade."""
+
+    def setUp(self):
+        self.econ = Economics()   # the real configured tiers
+
+    def test_the_1499_cliff_is_real_money(self):
+        """A dollar of card value either side of the line is $69 of fee."""
+        under, over = self.econ.fee_for(1499.0), self.econ.fee_for(1500.0)
+        self.assertAlmostEqual(under, 99.99, places=2)
+        self.assertAlmostEqual(over, 169.02, places=2)
+        self.assertGreater(over - under, 65.0)
+
+    def test_headroom_says_how_close_a_card_is_to_the_next_tier(self):
+        self.assertAlmostEqual(self.econ.tier_headroom(1499.0), 0.0, places=6)
+        self.assertAlmostEqual(self.econ.tier_headroom(1400.0), 99 / 1499, places=6)
+        # Just over a boundary, the card has the whole next tier to grow into.
+        self.assertGreater(self.econ.tier_headroom(1500.0), 0.35)
+
+    def test_a_card_above_the_top_tier_is_flagged_not_costed(self):
+        top = self.econ.fee_tiers[-1][0]
+        self.assertFalse(self.econ.above_modelled_range(top))
+        self.assertTrue(self.econ.above_modelled_range(top + 1))
+        self.assertIsNone(self.econ.tier_headroom(top + 1))
+
+    def test_above_the_top_tier_costs_confidence(self):
+        th = Thresholds(min_graded_sales=0)
+        quote = Quote(raw=300.0, psa9=40000.0, psa10=90000.0, sales_9=20,
+                      sales_10=10, observed_sales_9=20,
+                      psa9_last_sale="2026-09-01")
+        verdict = evaluate(quote, self.econ, th)
+        self.assertFalse(verdict.confident)
+        self.assertTrue(any("above the top modelled grading tier" in r
+                            for r in verdict.reasons), verdict.reasons)
+
+    def test_tiers_stay_ordered_and_rising(self):
+        """A table out of order would silently price a card at the wrong tier."""
+        caps = [cap for cap, _ in self.econ.fee_tiers]
+        fees = [fee for _, fee in self.econ.fee_tiers]
+        self.assertEqual(caps, sorted(caps))
+        self.assertEqual(fees, sorted(fees))
+
+    def test_disabling_tiers_disables_both_flags(self):
+        flat = Economics(use_fee_tiers=False)
+        self.assertFalse(flat.above_modelled_range(999999.0))
+        self.assertIsNone(flat.tier_headroom(1400.0))

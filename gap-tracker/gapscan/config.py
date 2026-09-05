@@ -29,7 +29,15 @@ class Economics:
     # PSA paused every Value tier on 2026-06-02 (backlog), so the cheapest
     # service is Regular at $79.99. Tiers are (declared-value cap, fee); the
     # first tier whose cap covers the card is used.
-    fee_tiers: tuple = ((1499.0, 79.99), (2499.0, 149.0), (4999.0, 299.0))
+    #
+    # The top two are PSA's premium service levels and are the least certain
+    # figures in this file -- check them against PSA's current price list
+    # before acting on a card that reaches them. Below $5,000 the first three
+    # are the ones that matter, and `raw_price_max` at $400 means a card needs
+    # a 12x multiple to get past them at all. A declared value above the last
+    # cap is flagged rather than costed, because there the fee is a guess.
+    fee_tiers: tuple = ((1499.0, 79.99), (2499.0, 149.0), (4999.0, 299.0),
+                        (9999.0, 499.0), (24999.0, 999.0))
     insurance_threshold: float = 499.0   # above this PSA adds a surcharge
     insurance_pct: float = 0.02
     grading_fee: float = 79.99       # flat fallback when tiers are disabled
@@ -57,6 +65,32 @@ class Economics:
         if value > self.insurance_threshold:
             fee += (value - self.insurance_threshold) * self.insurance_pct
         return fee
+
+    def above_modelled_range(self, declared_value: float | None = None) -> bool:
+        """True when the card is worth more than the top tier covers.
+
+        `fee_for` falls back to the last tier's fee there, which understates a
+        real submission by hundreds of dollars. Better to say the cost is
+        unknown than to quietly under-cost the trade.
+        """
+        if not self.use_fee_tiers or not self.fee_tiers:
+            return False
+        return float(declared_value or 0) > self.fee_tiers[-1][0]
+
+    def tier_headroom(self, declared_value: float | None = None) -> float | None:
+        """How close the card sits to the top of its fee tier, as a fraction.
+
+        0.05 means a 5% rise in the slabbed price moves it into the next tier
+        -- $69 more on the $1,499 boundary, on an otherwise identical trade.
+        None when tiers are off, or the value is above the modelled range.
+        """
+        if not self.use_fee_tiers or not self.fee_tiers:
+            return None
+        value = float(declared_value or 0)
+        for cap, _ in self.fee_tiers:
+            if value <= cap:
+                return (cap - value) / cap if cap > 0 else None
+        return None
 
     def all_in(self, raw_price: float, declared_value: float | None = None) -> float:
         """Total sunk cost per card before it sells.

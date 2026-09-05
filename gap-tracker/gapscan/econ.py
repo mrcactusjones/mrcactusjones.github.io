@@ -188,6 +188,7 @@ class Verdict:
     breakeven_p10: Optional[float]  # P(10) needed to break even when the 9 loses
     confident: bool
     reasons: list[str]
+    fee_headroom: Optional[float] = None   # room below the next fee tier, 0-1
     ev_profit: Optional[float] = None    # probability-weighted, when a mix is known
     sales_per_month: Optional[float] = None
     months_to_sell: Optional[float] = None
@@ -289,6 +290,12 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         reasons.append(
             f"printings differ {quote.variant_spread:.1f}x "
             f"({', '.join(quote.printings or [])}); graded comps pool them")
+    # Above the top tier the fee is the last tier's, which understates a real
+    # submission by hundreds. Say the cost is unknown rather than under-cost it.
+    if econ.above_modelled_range(quote.psa9):
+        reasons.append(
+            f"PSA 9 (${quote.psa9:,.0f}) is above the top modelled grading tier; "
+            f"the fee is a guess")
     if quote.raw < thresholds.raw_price_min:
         reasons.append(f"raw ${quote.raw:.2f} below floor of ${thresholds.raw_price_min:.0f}")
     if quote.raw > thresholds.raw_price_max:
@@ -342,6 +349,7 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         upside_profit=upside_profit,
         upside_roi=upside_profit / all_in,
         upside_known=quote.psa10 is not None,
+        fee_headroom=econ.tier_headroom(quote.psa9),
         breakeven_p10=breakeven_probability(all_in, net9, net10),
         confident=confident,
         reasons=reasons,
