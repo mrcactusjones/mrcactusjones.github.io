@@ -659,10 +659,18 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
         # other way round, `window` re-anchors on the filtered series' last
         # point and quietly covers a different span.
         cheap = [p for p in basis if p[1] <= split.boundary]
-        move = trends.change_pct(cheap, args.days, today)
-        print(f"    cheap side alone: {args.days}d change "
+        # Measured over the span the split was judged on, not a window that
+        # throws most of it away: "n/a, from 12 sale(s)" was both numbers
+        # right and the sentence wrong.
+        span = args.days
+        if basis is not recent and basis:
+            span = max(args.days,
+                       (today - date.fromisoformat(basis[0][0][:10])).days + 1)
+        used = trends.window(cheap, span, today)
+        move = trends.change_pct(cheap, span, today)
+        print(f"    cheap side alone: {span}d change "
               + (f"{move * 100:+.1f}%" if move is not None else "n/a")
-              + f", from {len(cheap)} sale(s)")
+              + f", from {len(used)} sale(s)")
     return 0
 
 
