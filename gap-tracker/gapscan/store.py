@@ -7,7 +7,7 @@ expires.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
@@ -94,8 +94,16 @@ class Store:
         return out
 
     def save_snapshot(self, payload: dict) -> Path:
-        """One dated snapshot per day; re-running the same day overwrites it."""
-        day = utcnow().date().isoformat()
+        """One dated snapshot per day; re-running the same day overwrites it.
+
+        Filed under the *local* date, matching the `date.today()` that every
+        trend window in `rank` is anchored on. Filed by UTC these disagreed:
+        west of Greenwich an evening run lands on tomorrow's UTC date, so an
+        evening run and the next morning's overwrite each other, one local day
+        straddles two files, and the dates `diff` prints are days you never
+        think in.
+        """
+        day = date.today().isoformat()
         out = self.history / f"{day}.json"
         slim = [
             {k: row[k] for k in ("id", "floor_profit", "upside_profit", "verdict",

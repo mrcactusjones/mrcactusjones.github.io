@@ -692,7 +692,17 @@ def cmd_diff(args, cfg: Config, store: Store) -> int:
             return card_id
         return f"{name} ({entry.get('set_name')} {entry.get('number')})"
 
-    print(f"{earlier} -> {later}\n")
+    print(f"{earlier} ({len(before)} cards) -> {later} ({len(after)} cards)")
+    # A coverage jump swamps everything below it and reads as market movement.
+    # 437 cards "entered the ranking" once, and every one of them was a card
+    # the older snapshot had simply never priced.
+    grew = len(after) - len(before)
+    if before and abs(grew) > max(10, 0.05 * len(before)):
+        print(f"  coverage {'grew' if grew > 0 else 'shrank'} by {abs(grew)} card(s) "
+              f"between these runs, so most of the entered/dropped counts below\n"
+              f"  are coverage rather than the market. The verdict and floor moves "
+              f"are the meaningful part.")
+    print()
 
     moves = []
     for card_id, row in after.items():
@@ -731,14 +741,25 @@ def cmd_diff(args, cfg: Config, store: Store) -> int:
 
     entered = [c for c in after if c not in before]
     left = [c for c in before if c not in after]
-    for group, verb in ((entered, "entered the ranking"), (left, "dropped out")):
-        if group:
-            print(f"  {len(group)} card(s) {verb}")
-            for card_id in group[:args.top]:
-                print(f"    {label(card_id)}")
-            if len(group) > args.top:
-                print(f"    ... and {len(group) - args.top} more")
-            print()
+    for group, source, verb in ((entered, after, "entered the ranking"),
+                                (left, before, "dropped out")):
+        if not group:
+            continue
+        print(f"  {len(group)} card(s) {verb}")
+        # By verdict, best first: a new no-brainer is the most actionable line
+        # in the report and a new dead card is noise. One flat list buried the
+        # former under hundreds of the latter.
+        by_verdict: dict[str, list[str]] = {}
+        for card_id in group:
+            by_verdict.setdefault(source[card_id].get("verdict") or "?", []).append(card_id)
+        for verdict in sorted(by_verdict, key=lambda v: -VERDICT_RANK.get(v, -1)):
+            members = by_verdict[verdict]
+            print(f"    {verdict} ({len(members)})")
+            for card_id in members[:args.top]:
+                print(f"      {label(card_id)}")
+            if len(members) > args.top:
+                print(f"      ... and {len(members) - args.top} more")
+        print()
 
     if not moves and not big and not entered and not left:
         print("  nothing moved.")
@@ -829,9 +850,18 @@ def cmd_status(args, cfg: Config, store: Store) -> int:
     else:
         print("last scan  never -- next: run.py daily --provider ppt --log")
 
-    snapshots = sorted(store.history.glob("*.json")) if store.history.exists() else []
-    print(f"history    {len(snapshots)} day(s)"
-          + (f", {snapshots[0].stem} to {snapshots[-1].stem}" if snapshots else ""))
+    days = store.snapshot_dates()
+    print(f"history    {len(days)} day(s)"
+          + (f", {days[0]} to {days[-1]}" if days else ""))
+    if days:
+        # The size of the newest one, because `diff` compares against whatever
+        # sits in the previous file and a stale or thin snapshot silently makes
+        # a coverage jump look like the market moved.
+        newest_rows = len(store.load_snapshot(days[-1]))
+        line = f"           newest {days[-1]}: {newest_rows} card(s)"
+        if len(days) > 1:
+            line += f", previous {days[-2]}: {len(store.load_snapshot(days[-2]))}"
+        print(line)
 
     rankings = store.root / "rankings.json"
     if rankings.exists():
