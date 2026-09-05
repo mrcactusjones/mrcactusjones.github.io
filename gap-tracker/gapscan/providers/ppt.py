@@ -159,7 +159,18 @@ class PopulationUnavailable(Exception):
 
 
 class OutOfCredits(Exception):
-    """The daily credit allowance is gone; stop, don't keep asking."""
+    """The daily credit allowance is gone; stop, don't keep asking.
+
+    Carries the server's own `resetsAt`. Our credit ledger is an estimate of a
+    counter we do not hold, so when the two disagree this is the one that is
+    right -- but only if the caller can reach it without re-parsing the body.
+    """
+
+    def __init__(self, message: str, resets_at: str | None = None,
+                 detail: str = ""):
+        self.resets_at = resets_at
+        self.detail = detail or message
+        super().__init__(message)
 
 
 class RateLimited(Exception):
@@ -534,6 +545,22 @@ FILTER_CANDIDATES = [
 ]
 
 
+def limit_from_error(detail: str) -> dict:
+    """The facts in a 429 body: what kind of limit, and when it lifts.
+
+    The provider states both every time it refuses. Printing them and throwing
+    them away is how a local estimate came to contradict the server.
+    """
+    try:
+        blob = json.loads(detail)
+    except (ValueError, TypeError):
+        return {}
+    if not isinstance(blob, dict):
+        return {}
+    return {"kind": blob.get("limitType"), "resets_at": blob.get("resetsAt"),
+            "available": blob.get("available")}
+
+
 def credits_from_error(detail: str) -> str | None:
     """Pull the remaining-credit figure out of a 429 body."""
     try:
@@ -668,7 +695,9 @@ class PPTProvider:
             if exc.code in (401, 402, 403):
                 raise PopulationUnavailable(exc.detail) from None
             if exc.code == 429:
-                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail,
+                                   limit_from_error(exc.detail).get("resets_at"),
+                                   exc.detail) from None
             return None
         self.credits_used += 2
         return parse_population(blob)
@@ -718,7 +747,9 @@ class PPTProvider:
             # the sweep tried all 36 sets in turn, printing the same
             # exhausted-allowance error for each.
             if exc.code == 429:
-                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail,
+                                   limit_from_error(exc.detail).get("resets_at"),
+                                   exc.detail) from None
             raise
         cost = limit * 3  # base + graded + history, per card
         self.credits_used += cost
@@ -755,7 +786,9 @@ class PPTProvider:
             if exc.code in (401, 403):
                 raise SystemExit(f"PPT rejected the API key ({exc.code}): {exc.detail}")
             if exc.code == 429:
-                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail,
+                                   limit_from_error(exc.detail).get("resets_at"),
+                                   exc.detail) from None
             print(f"  ! {card['id']}: {exc}")
             return None
         except (urllib.error.URLError, TimeoutError) as exc:

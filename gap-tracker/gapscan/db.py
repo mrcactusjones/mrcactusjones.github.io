@@ -10,7 +10,7 @@ The JSON outputs the dashboard reads are still generated; this sits underneath.
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable, Iterator
@@ -51,6 +51,15 @@ CREATE INDEX IF NOT EXISTS idx_points_card_grade
 CREATE INDEX IF NOT EXISTS idx_points_date ON price_points (date);
 
 -- What the model concluded on a given day, so verdict changes are auditable.
+-- What the provider itself said when it refused. Our credit ledger is an
+-- estimate of a counter we do not hold; this is the counter answering.
+CREATE TABLE IF NOT EXISTS api_limits (
+    kind      TEXT PRIMARY KEY,   -- 'daily', 'minute'
+    resets_at TEXT,               -- the server's own resetsAt
+    seen_at   TEXT,
+    detail    TEXT
+);
+
 CREATE TABLE IF NOT EXISTS runs (
     started_at TEXT PRIMARY KEY,
     finished_at TEXT,
@@ -182,6 +191,39 @@ def record_run(conn: sqlite3.Connection, started_at: str, credits: int,
                finished_at=excluded.finished_at, cards=excluded.cards,
                credits=excluded.credits, notes=excluded.notes""",
         (started_at, iso(utcnow()), cards, credits, notes))
+
+
+def record_limit(conn: sqlite3.Connection, kind: str, resets_at: str | None,
+                 detail: str = "") -> None:
+    """Remember that the provider refused, and until when.
+
+    One row per kind, replaced each time: only the latest refusal matters.
+    """
+    conn.execute(
+        """INSERT INTO api_limits (kind, resets_at, seen_at, detail)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(kind) DO UPDATE SET
+               resets_at=excluded.resets_at, seen_at=excluded.seen_at,
+               detail=excluded.detail""",
+        (kind, resets_at, iso(utcnow()), detail[:500]))
+
+
+def limit_active(conn: sqlite3.Connection, kind: str = "daily",
+                 now: datetime | None = None) -> sqlite3.Row | None:
+    """The refusal still in force, or None once its reset has passed.
+
+    A refusal is a fact with an expiry, not a permanent state.
+    """
+    row = conn.execute("SELECT * FROM api_limits WHERE kind=?", (kind,)).fetchone()
+    if row is None or not row["resets_at"]:
+        return None
+    try:
+        resets = datetime.fromisoformat(str(row["resets_at"]).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if resets.tzinfo is None:
+        resets = resets.replace(tzinfo=timezone.utc)
+    return row if resets > (now or utcnow()) else None
 
 
 def credits_spent_since(conn: sqlite3.Connection, since: str) -> int:

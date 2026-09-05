@@ -176,3 +176,62 @@ class CreditLedgerTest(unittest.TestCase):
                          "2026-09-05T00:00:00+00:00")
         self.assertEqual(db.allowance_resets_at(evening).isoformat(),
                          "2026-09-06T00:00:00+00:00")
+
+
+class RefusalRecordTest(unittest.TestCase):
+    """The provider's own answer outranks our estimate of it.
+
+    A ledger that had never seen the day's earlier spending reported
+    "0 spent today, 20,000 of 20,000 left" one command before the API refused
+    with limitType daily. The sum was right; the claim was not.
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.row_factory = sqlite3.Row
+        self.conn.executescript(db.SCHEMA)
+
+    @staticmethod
+    def _at(hour, day=5):
+        from datetime import datetime, timezone
+        return datetime(2026, 9, day, hour, tzinfo=timezone.utc)
+
+    def test_a_refusal_holds_until_its_reset(self):
+        db.record_limit(self.conn, "daily", "2026-09-06T00:00:00.000Z", "exhausted")
+        self.assertIsNotNone(db.limit_active(self.conn, "daily", self._at(16)))
+
+    def test_it_stops_holding_afterwards(self):
+        db.record_limit(self.conn, "daily", "2026-09-06T00:00:00.000Z", "exhausted")
+        self.assertIsNone(db.limit_active(self.conn, "daily", self._at(1, day=6)))
+
+    def test_no_refusal_recorded_is_not_a_refusal(self):
+        self.assertIsNone(db.limit_active(self.conn, "daily", self._at(16)))
+
+    def test_the_latest_refusal_replaces_the_last(self):
+        db.record_limit(self.conn, "daily", "2026-09-06T00:00:00.000Z", "first")
+        db.record_limit(self.conn, "daily", "2026-09-07T00:00:00.000Z", "second")
+        row = db.limit_active(self.conn, "daily", self._at(1, day=6))
+        self.assertEqual(row["detail"], "second")
+
+    def test_an_unparseable_reset_is_not_treated_as_active(self):
+        """Better to let a run try and be refused than to block on nonsense."""
+        db.record_limit(self.conn, "daily", "not a timestamp", "odd")
+        self.assertIsNone(db.limit_active(self.conn, "daily", self._at(16)))
+
+    def test_the_server_s_facts_are_pulled_out_of_the_body(self):
+        from gapscan.providers.ppt import limit_from_error
+        body = ('{"error":"Daily rate limit exceeded","retryAfter":26311,'
+                '"resetsAt":"2026-09-06T00:00:00.000Z","limitType":"daily"}')
+        self.assertEqual(limit_from_error(body),
+                         {"kind": "daily", "resets_at": "2026-09-06T00:00:00.000Z",
+                          "available": None})
+
+    def test_a_body_that_is_not_json_yields_nothing(self):
+        from gapscan.providers.ppt import limit_from_error
+        self.assertEqual(limit_from_error("<html>502</html>"), {})
+
+    def test_out_of_credits_carries_the_reset(self):
+        """So the caller can store it without re-parsing the body."""
+        from gapscan.providers.ppt import OutOfCredits
+        exc = OutOfCredits("gone", "2026-09-06T00:00:00.000Z", "detail")
+        self.assertEqual(exc.resets_at, "2026-09-06T00:00:00.000Z")

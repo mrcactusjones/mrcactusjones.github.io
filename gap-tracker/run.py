@@ -389,11 +389,18 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
             records, hits = watchlist_mod.find_by_number(
                 fetch_page, entry, args.pages, page_size)
         except PPTError as exc:
-            from gapscan.providers.ppt import credits_from_error
+            from gapscan.providers.ppt import credits_from_error, limit_from_error
             if exc.code == 429:
                 print(f"  {entry['name']} #{entry['number']}: out of credits -- "
                       f"{credits_from_error(exc.detail) or exc.detail}")
                 print("  stopping; the rest keep their place in the list.")
+                # Remember the server's own reset, so the next command does
+                # not offer a full allowance the account does not have.
+                facts = limit_from_error(exc.detail)
+                if facts.get("kind") == "daily":
+                    with db.session() as conn:
+                        db.record_limit(conn, "daily", facts.get("resets_at"),
+                                        exc.detail)
                 outcome = "stop"
             else:
                 print(f"  {entry['name']} #{entry['number']}: request failed -- {exc}")
@@ -447,6 +454,26 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def _blocked_by_limit(db_mod, cfg: Config) -> bool:
+    """True when the provider has refused and its reset has not yet passed.
+
+    The credit ledger is our estimate of a counter we do not hold. This is
+    that counter's own answer, and when the two disagree it wins -- a ledger
+    that had never seen the day's earlier spending once reported a full
+    allowance one command before the API refused.
+    """
+    if not db_mod.PATH.exists():
+        return False
+    with db_mod.session() as conn:
+        row = db_mod.limit_active(conn, "daily")
+    if row is None:
+        return False
+    print(f"The provider says the daily allowance is exhausted until "
+          f"{row['resets_at']}\n  (it said so at {row['seen_at']}). "
+          f"Nothing to spend until then.")
+    return True
+
+
 def cmd_backfill(args, cfg: Config, store: Store) -> int:
     """Sweep whole sets, storing months of price history in the database.
 
@@ -470,18 +497,19 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
     # What the day has already cost. Without this every run started as though
     # the whole allowance were untouched, so three sweeps in a day each
     # believed they had 20,000 and the last ran the account dry mid-task.
+    if _blocked_by_limit(db, cfg):
+        return 1
     day_start = db.allowance_day_start()
     with db.session() as conn:
         spent_today = db.credits_spent_since(conn, iso(day_start))
     allowance = args.budget or cfg.budget.daily_credits
     budget = max(0, allowance - spent_today)
     if spent_today:
-        print(f"{spent_today:,} of {allowance:,} credits already spent today; "
-              f"{budget:,} left (resets "
-              f"{db.allowance_resets_at().strftime('%H:%M UTC')})")
+        print(f"at least {spent_today:,} of {allowance:,} credits spent today "
+              f"(our estimate); capping this run at {budget:,}")
     if budget <= 0:
-        print(f"Nothing left in today's allowance. It resets at "
-              f"{db.allowance_resets_at().isoformat()}.")
+        print(f"Our own record already accounts for the whole allowance. It "
+              f"resets at {db.allowance_resets_at().isoformat()}.")
         return 1
     if args.limit > PAGE_MAX:
         print(f"note: the server returns at most {PAGE_MAX} cards a page but bills "
@@ -525,6 +553,9 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                         max_price=None if args.all_prices else cfg.thresholds.raw_price_max)
                 except OutOfCredits as exc:
                     print(f"  stopping: {exc}")
+                    # The server told us when it lifts; remember it so the
+                    # next command does not start a run it cannot finish.
+                    db.record_limit(conn, "daily", exc.resets_at, exc.detail)
                     stop = True
                     break
                 except PPTError as exc:
@@ -938,12 +969,23 @@ def cmd_status(args, cfg: Config, store: Store) -> int:
     from gapscan import db as _db
     if _db.PATH.exists():
         with _db.session() as conn:
-            spent = _db.credits_spent_since(
-                conn, iso(_db.allowance_day_start()))
-        allowance = cfg.budget.daily_credits
-        print(f"credits    {spent:,} spent today, {max(0, allowance - spent):,} "
-              f"of {allowance:,} left (resets "
-              f"{_db.allowance_resets_at().strftime('%Y-%m-%d %H:%M UTC')})")
+            spent = _db.credits_spent_since(conn, iso(_db.allowance_day_start()))
+            refusal = _db.limit_active(conn, "daily")
+            first_run = conn.execute(
+                "SELECT MIN(started_at) FROM runs").fetchone()[0]
+        # Two separate facts, never combined into a balance. The provider
+        # holds the counter; we hold an estimate of our own spending, and a
+        # subtraction of one from the other reads as authority it has not got.
+        if refusal is not None:
+            print(f"allowance  the API refused: exhausted until "
+                  f"{refusal['resets_at']} (seen {refusal['seen_at']})")
+        else:
+            print(f"allowance  no refusal on record; resets "
+                  f"{_db.allowance_resets_at().strftime('%Y-%m-%d %H:%M UTC')}")
+        print(f"credits    at least {spent:,} spent today of {cfg.budget.daily_credits:,} "
+              f"-- our own estimate, not the provider's meter")
+        if first_run:
+            print(f"           (nothing before {first_run[:10]} is counted)")
 
     days = store.snapshot_dates()
     print(f"history    {len(days)} day(s)"
