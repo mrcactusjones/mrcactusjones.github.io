@@ -25,6 +25,7 @@ from gapscan import watchlist as watchlist_mod
 from gapscan import scan as scan_mod
 from gapscan.catalog import build as build_catalog
 from gapscan.catalog import merge_universe
+from gapscan.providers.ppt import PAGE_MAX
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
 from gapscan.providers.mock import MockProvider
 from gapscan.store import Store
@@ -414,6 +415,11 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         return 1
 
     budget = args.budget or cfg.budget.daily_credits
+    if args.limit > PAGE_MAX:
+        print(f"note: the server returns at most {PAGE_MAX} cards a page but bills "
+              f"the limit asked for, so --limit {args.limit} would pay for "
+              f"{args.limit - PAGE_MAX} undelivered cards each time. Using {PAGE_MAX}.")
+        args.limit = PAGE_MAX
     per_page = args.limit * 3
     if per_page > budget:
         # Silently storing nothing is the worst possible outcome here.
@@ -478,9 +484,12 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                             "quote": quote.__dict__, "provider": provider.name})
                 print(f"  {set_name} @{offset}: {len(records)} cards, "
                       f"{provider.credits_used} credits used")
-                if len(records) < args.limit:
+                # Advance by what the server actually returned. Using the
+                # requested limit stopped every set after one page, because the
+                # server caps a page below what we asked for.
+                offset += len(records)
+                if len(records) < min(args.limit, PAGE_MAX):
                     break
-                offset += args.limit
             if set_name is None:
                 break
         stats = db.stats(conn)
@@ -809,7 +818,8 @@ def main() -> int:
     p = sub.add_parser("backfill", help="sweep sets and store price history")
     add_provider(p)
     p.add_argument("--days", type=int, default=180, help="history depth to request")
-    p.add_argument("--limit", type=int, default=100, help="cards per page (max 100)")
+    p.add_argument("--limit", type=int, default=25,
+                   help=f"cards per page (server returns at most {PAGE_MAX})")
     p.add_argument("--sets", help="comma-separated set names, default all")
     p.add_argument("--budget", type=int, help="credit ceiling for this run")
     p.add_argument("--all-prices", action="store_true",

@@ -27,6 +27,9 @@ DEFAULT_BASE = "https://www.pokemonpricetracker.com/api/v2"
 # Wide enough that the right printing is in the page; matching is exact,
 # so extra results cost nothing but are cheap insurance.
 SEARCH_LIMIT = 1  # per-card billing: every extra result is another credit
+# The server returns at most this many cards per request but bills the limit
+# asked for, so requesting more is money spent on cards never delivered.
+PAGE_MAX = 25
 
 # Fill these in after a `probe` run to bypass pattern matching entirely.
 # Values are dotted paths into the response, e.g. "data.0.prices.psa10.market".
@@ -157,6 +160,14 @@ class PopulationUnavailable(Exception):
 
 class OutOfCredits(Exception):
     """The daily credit allowance is gone; stop, don't keep asking."""
+
+
+class RateLimited(Exception):
+    """The per-minute window is full. Wait, don't skip the work."""
+
+    def __init__(self, retry_after: float, detail: str):
+        self.retry_after = retry_after
+        super().__init__(detail)
 
 
 class PPTError(Exception):
@@ -555,6 +566,23 @@ class PPTProvider:
         self._last_call = 0.0
 
     def _request(self, path: str, params: dict) -> dict:
+        """One call, waiting out the per-minute window if we hit it.
+
+        The minute limit clears in seconds, so skipping the work over it
+        loses a whole set for want of a short sleep. The daily allowance is
+        a different 429 and still propagates immediately.
+        """
+        for attempt in range(4):
+            try:
+                return self._request_once(path, params)
+            except RateLimited as exc:
+                if attempt == 3:
+                    raise
+                print(f"    minute limit reached; waiting {exc.retry_after:.0f}s")
+                time.sleep(exc.retry_after)
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    def _request_once(self, path: str, params: dict) -> dict:
         gap = self.min_interval - (time.monotonic() - self._last_call)
         if gap > 0:
             time.sleep(gap)
@@ -574,6 +602,15 @@ class PPTProvider:
                 detail = exc.read(500).decode("utf-8", "replace").strip()
             except Exception:  # noqa: BLE001
                 detail = ""
+            # Two very different 429s share a status code: a per-minute window
+            # that clears in seconds, and a daily allowance that does not.
+            if exc.code == 429 and "minute" in detail.lower():
+                wait = 5.0
+                try:
+                    wait = float(json.loads(detail).get("retryAfter", 5)) + 1
+                except (ValueError, TypeError, AttributeError):
+                    pass
+                raise RateLimited(min(wait, 65.0), detail) from None
             raise PPTError(exc.code, detail or exc.reason) from None
         finally:
             self._last_call = time.monotonic()
@@ -651,6 +688,8 @@ class PPTProvider:
         keep anyway means far fewer pages to cover the cards worth having --
         the filtering is a cost saving, not just a convenience.
         """
+        # Asking for more than the server returns is billed anyway.
+        limit = min(limit, PAGE_MAX)
         params = {
             "set": set_name,
             "limit": limit,
