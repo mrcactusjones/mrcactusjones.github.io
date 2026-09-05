@@ -310,7 +310,11 @@ const COLS = [
         r.floor_days_held_90d}/${r.floor_observations_90d ?? "?"}</span>` },
   { k:"floor_streak", t:"Streak", fmt:r =>
       `<span class="num" title="Calendar days the gap has held unbroken">${r.floor_streak}d</span>` },
-  { k:"psa9_30d", t:"PSA 9 30d", fmt:r => pct(r.psa9_30d) },
+  // Hovering says how many PSA 9 prices the move rests on: -66% from four
+  // sales and -66% from forty read identically without it.
+  { k:"psa9_30d", t:"PSA 9 30d", fmt:r => r.psa9_30d == null ? "—" :
+      `<span title="from ${r.psa9_observations_90d ?? "?"} PSA 9 price(s) in 90 days">${
+        pct(r.psa9_30d)}</span>` },
   { k:"divergence_30d", t:"Diverge", fmt:r => r.divergence_30d == null ? "—" :
       `<span class="num ${r.divergence_30d >= 0 ? "pos" : "neg"}" title="PSA 9 momentum minus raw momentum: positive means the gap is widening on its own">${
         (r.divergence_30d * 100).toFixed(0)}%</span>` },

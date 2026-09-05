@@ -27,14 +27,32 @@ def window(points: Sequence[Point], days: int, today: date | None = None) -> lis
     return [p for p in points if _as_date(p[0]) >= cutoff]
 
 
-def _edge(values: Sequence[float], size: int = 3) -> float:
-    """Median of the first/last few points, so one odd sale can't set the trend."""
-    return statistics.median(values[:size]) if values else 0.0
+def _ends(values: Sequence[float]) -> tuple[float, float]:
+    """Medians of the first and last third of a series.
+
+    The ends used to be a fixed three points, which overlapped themselves on a
+    short series: at four points the two medians shared two of their three
+    values and cancelled most of the move, so the same real change reported as
+    +9% on a thin card and +26% on a well-comped one. Since the trend figures
+    are ranked against each other, that made them incomparable -- and one new
+    sale on a thin card could nearly double its number.
+
+    A third of the series scales with the data instead. It never overlaps, it
+    uses more points as more arrive, and it stays a median, so a single wild
+    sale cannot carry it.
+    """
+    size = max(2, len(values) // 3)
+    return statistics.median(values[:size]), statistics.median(values[-size:])
 
 
 def change_pct(points: Sequence[Point], days: int = 30,
                today: date | None = None) -> Optional[float]:
-    """Percent change across the window, comparing ends by median.
+    """Percent change from the early third of the window to the late third.
+
+    Not the endpoint-to-endpoint change: on a steady climb the medians sit
+    inside the window, so this reads about two thirds of the total move. It is
+    understated by the same factor on every card, which is what makes the
+    figures comparable -- and understating a trend is the safe direction.
 
     Needs at least four points: with two, "trend" is just the noise between
     two sales.
@@ -42,8 +60,7 @@ def change_pct(points: Sequence[Point], days: int = 30,
     recent = window(points, days, today)
     if len(recent) < 4:
         return None
-    values = [v for _, v in recent]
-    start, end = _edge(values), _edge(list(reversed(values)))
+    start, end = _ends([v for _, v in recent])
     if start <= 0:
         return None
     return (end - start) / start
@@ -218,6 +235,9 @@ def summarise(raw: Sequence[Point], psa9: Sequence[Point], psa10: Sequence[Point
         "floor_days_held_90d": held_days(floor, threshold, 90, today),
         "floor_observations_90d": observations(floor, 90, today),
         "floor_streak": current_streak(floor, threshold),
+        # The denominator for the price trends, for the same reason the floor
+        # has one: -66% from four sales and -66% from forty read identically.
+        "psa9_observations_90d": observations(psa9, 90, today),
         "floor_points": len(floor),
         "history_days": len({d for d, _ in raw} | {d for d, _ in psa9}),
     }

@@ -42,6 +42,57 @@ class TestChange(unittest.TestCase):
         new = line([100, 100, 100, 100])
         self.assertAlmostEqual(trends.change_pct(old + new, 30, TODAY), 0.0)
 
+    def test_the_same_move_reads_the_same_however_many_comps_a_card_has(self):
+        """The defect that made trend figures incomparable.
+
+        Ends used to be a fixed three points, so on a four-point series the two
+        medians shared two values and cancelled the move: a clean +30% climb
+        read +9% on a thin card and +26% on a well-comped one, while the
+        ranking sorted on those numbers.
+        """
+        def climb(n, move=0.30):
+            return line([100.0 * (1 + move * i / (n - 1)) for i in range(n)])
+
+        readings = [trends.change_pct(climb(n), 9999, TODAY)
+                    for n in (4, 6, 10, 20, 40, 90)]
+        self.assertLess(max(readings) - min(readings), 0.06,
+                        f"sample size still moves the answer: {readings}")
+        # Medians sit inside the window, so a steady climb reads short of the
+        # full move -- consistently, and never over it.
+        for reading in readings:
+            self.assertLess(reading, 0.30)
+            self.assertGreater(reading, 0.15)
+
+    def test_a_step_change_is_reported_at_its_true_size(self):
+        """No extrapolation: a move that happened is not scaled up."""
+        for n in (4, 6, 12, 30):
+            pts = line([100.0] * (n // 2) + [120.0] * (n - n // 2))
+            self.assertAlmostEqual(trends.change_pct(pts, 9999, TODAY), 0.20,
+                                   msg=f"n={n}")
+
+    def test_one_wild_sale_at_the_end_cannot_carry_the_trend(self):
+        """The end is where an outlier does the most damage."""
+        pts = line([100.0] * 11 + [900.0])
+        self.assertAlmostEqual(trends.change_pct(pts, 9999, TODAY), 0.0)
+
+    def test_a_new_sale_does_not_lurch_a_thin_card(self):
+        """One arrival used to double a thin card's reported trend.
+
+        Four points with the old fixed ends read +9.1%; a fifth point 1.5%
+        above the last took it to +18.2%. Nothing about the market had
+        changed. At the shortest series a new sale still moves the number --
+        two points is half the end median -- but it may not swamp it.
+        """
+        before = trends.change_pct(line([100, 110, 120, 130]), 9999, TODAY)
+        after = trends.change_pct(line([100, 110, 120, 130, 132]), 9999, TODAY)
+        self.assertLess(after / before, 1.5, f"{before:.3f} -> {after:.3f}")
+
+    def test_a_new_sale_barely_registers_once_a_card_is_well_comped(self):
+        values = [100.0 + i for i in range(30)]
+        before = trends.change_pct(line(values), 9999, TODAY)
+        after = trends.change_pct(line(values + [130.0]), 9999, TODAY)
+        self.assertLess(abs(after - before), 0.01, f"{before:.3f} -> {after:.3f}")
+
 
 class TestVolatility(unittest.TestCase):
     def test_flat_series_has_no_volatility(self):

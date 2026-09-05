@@ -535,7 +535,8 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     def pct(value):
         return f"{value * 100:+.0f}%" if value is not None else "     -"
 
-    print(f"{'held':>7} {'streak':>7} {'floor':>10} {'psa9':>7} {'diverge':>8}  card")
+    print(f"{'held':>7} {'streak':>7} {'floor':>10} {'psa9':>7} {'/n':<4}"
+          f"{'diverge':>8}  card")
     for row in scored[:args.top]:
         # Both numbers: "13" alone reads as thin coverage when it can be every
         # observation there is. A gap point needs a raw and a graded price on
@@ -547,11 +548,15 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
         move = row.get("psa9_90d")
         if move is None:
             move = row.get("psa9_30d")
+        # How many PSA 9 prices that percentage rests on. Without it a trend
+        # from four sales and one from forty look equally solid.
+        comps = row.get("psa9_observations_90d")
         # The floor is the whole test, so an underwater one is marked in the
         # row rather than left for the reader to notice the minus sign.
         mark = " " if row.get("floor_profit", 0) > 0 else "v"
         print(f"{mark}{held:>6} {row.get('floor_streak', 0):>6}d ${row['floor_profit']:>9.2f} "
-              f"{pct(move):>7} {pct(row.get('divergence_30d')):>8}  "
+              f"{pct(move):>7} {'' if comps is None else f'/{comps}':<4}"
+              f"{pct(row.get('divergence_30d')):>8}  "
               f"{row['name']} ({row['set_name']} {row['number']})")
 
     sunk = sum(1 for r in scored[:args.top] if r.get("floor_profit", 0) <= 0)
@@ -562,6 +567,47 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     if thin:
         print(f"\n{thin} of {len(scored)} cards have too few graded sales for a "
               f"price trend; '-' means unavailable, not flat.")
+    return 0
+
+
+def cmd_series(args, cfg: Config, store: Store) -> int:
+    """Print the stored price points behind a trend. Spends no credits.
+
+    Every trend figure is derived from these rows, and until now nothing could
+    show them -- so a percentage that moved between runs could not be traced
+    to the data or to the maths.
+    """
+    from gapscan import db
+
+    with db.session() as conn:
+        rows = db.series_detail(conn, args.card, args.grade)
+        if not rows:
+            have = db.grades_for(conn, args.card)
+            print(f"No {args.grade} points for {args.card}.")
+            print(f"  grades stored: {', '.join(have) if have else 'none'}"
+                  if have else "  that card has no stored prices at all")
+            return 1
+
+    points = [(r["date"], r["price"]) for r in rows]
+    recent = trends.window(points, args.days)
+    keep = {d for d, _ in recent}
+
+    print(f"{args.card} {args.grade}: {len(rows)} point(s) stored, "
+          f"{len(recent)} in the last {args.days} days\n")
+    print(f"{'date':<12}{'price':>10}  {'sales':>5}  {'origin':<9} in window")
+    for row in rows:
+        inside = "yes" if row["date"] in keep else ""
+        sales = "" if row["sales"] is None else str(row["sales"])
+        print(f"{row['date']:<12}{row['price']:>10.2f}  {sales:>5}  "
+              f"{(row['origin'] or ''):<9} {inside}")
+
+    print()
+    for days in sorted({30, 90, args.days}):
+        move = trends.change_pct(points, days)
+        n = trends.observations(points, days)
+        shown = f"{move * 100:+.1f}%" if move is not None else "n/a"
+        print(f"  {days:>3}d change {shown:>8}  from {n} point(s)"
+              + ("" if n >= 4 else "  (under the 4-point minimum)"))
     return 0
 
 
@@ -848,6 +894,12 @@ def main() -> int:
     p = sub.add_parser("trends", help="rank by how long the gap has held")
     p.add_argument("--top", type=int, default=20)
     p.set_defaults(func=cmd_trends)
+
+    p = sub.add_parser("series", help="print the stored prices behind a trend")
+    p.add_argument("--card", required=True, help="card id, e.g. base2-12")
+    p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
+    p.add_argument("--days", type=int, default=90, help="window to summarise")
+    p.set_defaults(func=cmd_series)
 
     p = sub.add_parser("population", help="test population access (2 credits)")
     p.set_defaults(func=cmd_population)

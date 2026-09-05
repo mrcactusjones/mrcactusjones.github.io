@@ -149,6 +149,19 @@ def series(conn: sqlite3.Connection, card_id: str, grade: str) -> list[tuple[str
         (card_id, grade))]
 
 
+def series_detail(conn: sqlite3.Connection, card_id: str,
+                  grade: str) -> list[sqlite3.Row]:
+    """Like `series`, but keeps where each point came from.
+
+    A price the provider reported as history and one we snapshotted today are
+    stored the same way and read back the same way, which makes a series that
+    shifts between runs impossible to explain. This keeps them apart.
+    """
+    return list(conn.execute(
+        """SELECT date, price, sales, origin FROM price_points
+           WHERE card_id=? AND grade=? ORDER BY date""", (card_id, grade)))
+
+
 def grades_for(conn: sqlite3.Connection, card_id: str) -> list[str]:
     return [r["grade"] for r in conn.execute(
         "SELECT DISTINCT grade FROM price_points WHERE card_id=? ORDER BY grade",
