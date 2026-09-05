@@ -354,29 +354,52 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
 
     from gapscan.providers.ppt import PPTError, PPTProvider
 
+    from gapscan.providers.ppt import PAGE_MAX
+
+    # Not cfg.budget.search_limit: that is 1, sized for the 100-credit free
+    # tier, and one result for "Clefairy" is whichever Clefairy the API ranks
+    # first out of hundreds. Every 2026 card in the list failed that way. The
+    # card number is what identifies these, and it can only be matched against
+    # results we actually asked for.
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_call,
-                           search_limit=cfg.budget.search_limit)
+                           search_limit=min(args.limit, PAGE_MAX))
     pending = [e for e in entries if not watchlist_mod.is_resolved(e) or args.force]
-    print(f"Resolving {len(pending)} entr(ies), 1 credit each (no price data).\n")
+    per_card = min(args.limit, PAGE_MAX) * args.pages
+    print(f"Resolving {len(pending)} entr(ies): up to {args.pages} page(s) of "
+          f"{min(args.limit, PAGE_MAX)}, so at most {per_card} credits each "
+          f"({len(pending) * per_card} total, no price data).\n")
 
     for entry in pending:
         query = f"{entry['name']} {entry.get('set_hint', '')}".strip() if args.use_hint \
             else entry["name"]
+        page_size = min(args.limit, PAGE_MAX)
+        outcome = "ok"
+
+        def fetch_page(offset: int, _entry=entry, _query=query) -> list[dict]:
+            blob_page = provider.raw_response(
+                {"name": _entry["name"]}, search=_query, graded=False,
+                filters={"offset": offset})
+            return watchlist_mod.results_of(blob_page)
+
         try:
-            blob_resp = provider.raw_response({"name": entry["name"]}, search=query,
-                                              graded=False)
+            records, hits = watchlist_mod.find_by_number(
+                fetch_page, entry, args.pages, page_size)
         except PPTError as exc:
             from gapscan.providers.ppt import credits_from_error
             if exc.code == 429:
                 print(f"  {entry['name']} #{entry['number']}: out of credits -- "
                       f"{credits_from_error(exc.detail) or exc.detail}")
                 print("  stopping; the rest keep their place in the list.")
-                break
-            print(f"  {entry['name']} #{entry['number']}: request failed -- {exc}")
+                outcome = "stop"
+            else:
+                print(f"  {entry['name']} #{entry['number']}: request failed -- {exc}")
+                outcome = "skip"
+            records, hits = [], []
+        if outcome == "stop":
+            break
+        if outcome == "skip":
             continue
 
-        records = watchlist_mod.results_of(blob_resp)
-        hits = watchlist_mod.candidates_for(entry, records)
         label = f"{entry['name']} #{entry['number']} ({entry.get('set_hint')})"
 
         if len(hits) == 1:
@@ -385,8 +408,23 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
         elif not hits:
             print(f"  --  {label}: no result with that number "
                   f"among {len(records)} hit(s)")
-            for record in records[:5]:
+            # The distinct sets are the useful part: they say whether the
+            # search is reaching the right era at all, or returning the same
+            # old promos over and over.
+            sets = []
+            for record in records:
+                name = record.get("setName")
+                if name and name not in sets:
+                    sets.append(name)
+            if sets:
+                print(f"        sets seen ({len(sets)}): {', '.join(sets[:8])}"
+                      + (" ..." if len(sets) > 8 else ""))
+            for record in records[:3]:
                 print(f"        saw: {watchlist_mod.summarise(record)}")
+            if len(records) >= page_size * args.pages:
+                print(f"        every page was full -- try --pages "
+                      f"{args.pages * 2}, or set set_name by hand from "
+                      f"`run.py probe --search \"{entry['name']}\"`")
         else:
             print(f"  ??  {label}: {len(hits)} candidates -- pick one and put its "
                   f"set name in watchlist.json")
@@ -1053,7 +1091,12 @@ def main() -> int:
     p.set_defaults(func=cmd_filters)
 
     p = sub.add_parser("watchlist", help="hand-picked cards; --resolve to pin them")
-    p.add_argument("--resolve", action="store_true", help="look each entry up (1 credit each)")
+    p.add_argument("--limit", type=int, default=25,
+                   help="results per search page (server caps at 25)")
+    p.add_argument("--pages", type=int, default=4,
+                   help="pages to scan per card before giving up")
+    p.add_argument("--resolve", action="store_true",
+                   help="look each entry up (see --limit/--pages for the cost)")
     p.add_argument("--force", action="store_true", help="re-resolve already-resolved entries")
     p.add_argument("--use-hint", action="store_true",
                    help="include set_hint in the search text")

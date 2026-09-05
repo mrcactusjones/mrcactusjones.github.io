@@ -99,3 +99,65 @@ class TestResolution(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FindByNumberTest(unittest.TestCase):
+    """Resolution matches on card number, so it has to see enough results.
+
+    Every 2026 card on the list failed to resolve because the search asked for
+    one result -- a leftover from the 100-credit free tier -- and one result
+    for "Clefairy" is whichever Clefairy the API ranks first out of hundreds.
+    """
+
+    ENTRY = {"name": "Clefairy", "number": "094"}
+
+    @staticmethod
+    def _rec(number, set_name="Some Set"):
+        return {"cardNumber": number, "setName": set_name, "name": "Clefairy"}
+
+    def _pager(self, pages):
+        """A fetch_page that serves fixed pages and counts the calls."""
+        self.calls = []
+
+        def fetch(offset):
+            self.calls.append(offset)
+            index = offset // 25
+            return pages[index] if index < len(pages) else []
+        return fetch
+
+    def test_a_match_on_a_later_page_is_found(self):
+        pages = [[self._rec(str(i)) for i in range(25)],
+                 [self._rec(str(i)) for i in range(25, 50)],
+                 [self._rec("094", "Prismatic")] + [self._rec(str(i)) for i in range(24)]]
+        records, hits = watchlist.find_by_number(self._pager(pages), self.ENTRY, 4, 25)
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["setName"], "Prismatic")
+        self.assertEqual(len(records), 75)
+
+    def test_it_stops_as_soon_as_it_matches(self):
+        pages = [[self._rec("094")], [self._rec("094")]]
+        watchlist.find_by_number(self._pager(pages), self.ENTRY, 4, 25)
+        self.assertEqual(self.calls, [0], "paid for a page it did not need")
+
+    def test_a_short_page_ends_the_scan(self):
+        """Results ran out; more pages cost credits and return nothing."""
+        pages = [[self._rec(str(i)) for i in range(3)]]
+        watchlist.find_by_number(self._pager(pages), self.ENTRY, 4, 25)
+        self.assertEqual(self.calls, [0])
+
+    def test_it_never_scans_more_pages_than_asked(self):
+        full = [self._rec(str(i)) for i in range(25)]
+        watchlist.find_by_number(self._pager([full] * 10), self.ENTRY, 3, 25)
+        self.assertEqual(self.calls, [0, 25, 50])
+
+    def test_no_match_returns_everything_seen(self):
+        """The caller reports which sets came back, so the miss is diagnosable."""
+        pages = [[self._rec("1", "Base")], []]
+        records, hits = watchlist.find_by_number(self._pager(pages), self.ENTRY, 4, 25)
+        self.assertEqual(hits, [])
+        self.assertEqual(len(records), 1)
+
+    def test_one_page_is_still_honoured(self):
+        full = [self._rec(str(i)) for i in range(25)]
+        watchlist.find_by_number(self._pager([full] * 4), self.ENTRY, 1, 25)
+        self.assertEqual(self.calls, [0])

@@ -73,6 +73,31 @@ def candidates_for(entry: dict, records: list[dict]) -> list[dict]:
             if want and _norm_number(r.get("cardNumber") or r.get("number")) == want]
 
 
+def find_by_number(fetch_page, entry: dict, pages: int,
+                   page_size: int) -> tuple[list[dict], list[dict]]:
+    """Scan pages of search results until the card number matches.
+
+    Returns (all records seen, matching records). `fetch_page(offset)` returns
+    one page.
+
+    A single page is not enough: these entries are identified by number, and
+    a name search for "Clefairy" returns whichever Clefairy the API ranks
+    first out of hundreds. Billing is per card requested, so a miss on page
+    one costs the same whether we stop or keep looking -- and stopping there
+    is what left every 2026 card in the list unresolved.
+    """
+    records: list[dict] = []
+    for page in range(max(1, pages)):
+        got = fetch_page(page * page_size)
+        records.extend(got)
+        hits = candidates_for(entry, records)
+        if hits:
+            return records, hits
+        if len(got) < page_size:
+            break   # the results ran out; more pages would cost and return nothing
+    return records, []
+
+
 def summarise(record: dict) -> str:
     return (f"{record.get('setName')} #{record.get('cardNumber')} "
             f"{record.get('name')} [{record.get('rarity')}] "
