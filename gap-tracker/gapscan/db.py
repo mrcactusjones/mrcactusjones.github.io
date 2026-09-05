@@ -10,11 +10,13 @@ The JSON outputs the dashboard reads are still generated; this sits underneath.
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timedelta
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable, Iterator
 
 from .config import DATA
+from .store import iso, utcnow
 
 PATH = DATA / "gaps.sqlite3"
 
@@ -163,6 +165,49 @@ def grades_for(conn: sqlite3.Connection, card_id: str) -> list[str]:
     return [r["grade"] for r in conn.execute(
         "SELECT DISTINCT grade FROM price_points WHERE card_id=? ORDER BY grade",
         (card_id,))]
+
+
+def record_run(conn: sqlite3.Connection, started_at: str, credits: int,
+               cards: int = 0, notes: str = "") -> None:
+    """Log what a credit-spending command cost.
+
+    The daily allowance is an account-wide budget, but each run only knew its
+    own spend -- so three sweeps in a day each started believing the whole
+    20,000 was free, and the third ran the account dry mid-task.
+    """
+    conn.execute(
+        """INSERT INTO runs (started_at, finished_at, cards, credits, notes)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(started_at) DO UPDATE SET
+               finished_at=excluded.finished_at, cards=excluded.cards,
+               credits=excluded.credits, notes=excluded.notes""",
+        (started_at, iso(utcnow()), cards, credits, notes))
+
+
+def credits_spent_since(conn: sqlite3.Connection, since: str) -> int:
+    """Credits logged at or after an ISO timestamp."""
+    row = conn.execute(
+        "SELECT COALESCE(SUM(credits), 0) FROM runs WHERE started_at >= ?",
+        (since,)).fetchone()
+    return int(row[0] or 0)
+
+
+def allowance_resets_at(now: datetime | None = None) -> datetime:
+    """Next 00:00 UTC. The provider resets the daily allowance there.
+
+    Deliberately UTC and not the local date the snapshots use: this is the
+    provider's boundary, not ours, and west of Greenwich an evening run falls
+    in tomorrow's allowance while still being today locally.
+    """
+    now = now or utcnow()
+    return (now + timedelta(days=1)).replace(hour=0, minute=0, second=0,
+                                             microsecond=0)
+
+
+def allowance_day_start(now: datetime | None = None) -> datetime:
+    """The 00:00 UTC that began the current allowance day."""
+    now = now or utcnow()
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def stats(conn: sqlite3.Connection) -> dict:

@@ -709,7 +709,17 @@ class PPTProvider:
             params["minPrice"] = min_price
         if max_price is not None:
             params["maxPrice"] = max_price
-        blob = self._request("cards", params)
+        try:
+            blob = self._request("cards", params)
+        except PPTError as exc:
+            # The daily allowance is a different refusal from the per-minute
+            # window, and the caller stops the whole sweep on OutOfCredits.
+            # Without this translation it read as an ordinary set failure and
+            # the sweep tried all 36 sets in turn, printing the same
+            # exhausted-allowance error for each.
+            if exc.code == 429:
+                raise OutOfCredits(credits_from_error(exc.detail) or exc.detail) from None
+            raise
         cost = limit * 3  # base + graded + history, per card
         self.credits_used += cost
         return results_of(blob), cost

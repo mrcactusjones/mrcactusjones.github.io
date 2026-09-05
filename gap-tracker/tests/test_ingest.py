@@ -126,3 +126,53 @@ class SnapshotReaderTest(unittest.TestCase):
     def test_rows_without_an_id_are_skipped(self):
         self._write("2026-09-05", [{"verdict": "dead"}, {"id": "ok", "verdict": "dead"}])
         self.assertEqual(list(self.store.load_snapshot("2026-09-05")), ["ok"])
+
+
+class CreditLedgerTest(unittest.TestCase):
+    """The allowance is account-wide; each run only knew its own spend.
+
+    Three sweeps in one day each started believing the whole 20,000 was free,
+    and the third ran the account dry mid-task with the watchlist still
+    unresolved.
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.row_factory = sqlite3.Row
+        self.conn.executescript(db.SCHEMA)
+
+    def test_the_day_s_runs_add_up(self):
+        db.record_run(self.conn, "2026-09-05T09:00:00+00:00", 6825, 1767, "backfill")
+        db.record_run(self.conn, "2026-09-05T13:00:00+00:00", 7200, 1869, "backfill")
+        self.assertEqual(
+            db.credits_spent_since(self.conn, "2026-09-05T00:00:00+00:00"), 14025)
+
+    def test_yesterday_does_not_count_against_today(self):
+        db.record_run(self.conn, "2026-09-04T22:00:00+00:00", 8400, 604, "backfill")
+        db.record_run(self.conn, "2026-09-05T09:00:00+00:00", 6825, 1767, "backfill")
+        self.assertEqual(
+            db.credits_spent_since(self.conn, "2026-09-05T00:00:00+00:00"), 6825)
+
+    def test_an_empty_ledger_is_zero_not_an_error(self):
+        self.assertEqual(
+            db.credits_spent_since(self.conn, "2026-09-05T00:00:00+00:00"), 0)
+
+    def test_re_recording_a_run_replaces_it(self):
+        """A run logs once; a retry of the same start must not double-count."""
+        db.record_run(self.conn, "2026-09-05T09:00:00+00:00", 100, 1, "backfill")
+        db.record_run(self.conn, "2026-09-05T09:00:00+00:00", 250, 3, "backfill")
+        self.assertEqual(
+            db.credits_spent_since(self.conn, "2026-09-05T00:00:00+00:00"), 250)
+
+    def test_the_allowance_day_is_utc_not_local(self):
+        """The provider resets at 00:00 UTC; snapshots use the local date.
+
+        West of Greenwich an evening run is tomorrow's allowance while still
+        being today locally, so these two boundaries must not be confused.
+        """
+        from datetime import datetime, timezone
+        evening = datetime(2026, 9, 5, 23, 30, tzinfo=timezone.utc)
+        self.assertEqual(db.allowance_day_start(evening).isoformat(),
+                         "2026-09-05T00:00:00+00:00")
+        self.assertEqual(db.allowance_resets_at(evening).isoformat(),
+                         "2026-09-06T00:00:00+00:00")

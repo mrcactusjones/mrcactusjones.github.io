@@ -95,3 +95,41 @@ class RateLimitTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DailyLimitTest(unittest.TestCase):
+    """The daily allowance and the per-minute window share a status code.
+
+    fetch_batch let a daily refusal escape as an ordinary PPTError, which
+    cmd_backfill treats as one bad set -- so a sweep that had no credits left
+    tried all 36 sets in turn and printed the same exhausted-allowance error
+    for every one of them.
+    """
+
+    DAILY = ('{"error":"Daily rate limit exceeded","retryAfter":29886,'
+             '"limitType":"daily"}')
+
+    def test_a_daily_refusal_stops_the_whole_sweep(self):
+        from gapscan.providers.ppt import OutOfCredits
+        provider = _provider()
+        with mock.patch.object(ppt.urllib.request, "urlopen",
+                               side_effect=_http_error(429, self.DAILY)):
+            with self.assertRaises(OutOfCredits):
+                provider.fetch_batch("Aquapolis", limit=5)
+
+    def test_a_minute_refusal_still_retries(self):
+        provider = _provider()
+        body = '{"error":"Minute rate limit exceeded","retryAfter":2}'
+        answers = [RateLimited(2.0, body), {"data": [{"id": "x"}]}]
+        with mock.patch.object(ppt.time, "sleep"), \
+                mock.patch.object(provider, "_request_once", side_effect=answers):
+            records, cost = provider.fetch_batch("Aquapolis", limit=5)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(cost, 15)
+
+    def test_other_errors_are_still_that_set_s_problem(self):
+        provider = _provider()
+        with mock.patch.object(ppt.urllib.request, "urlopen",
+                               side_effect=_http_error(500, "boom")):
+            with self.assertRaises(PPTError):
+                provider.fetch_batch("Aquapolis", limit=5)

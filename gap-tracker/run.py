@@ -30,7 +30,7 @@ from gapscan.catalog import sweep_targets
 from gapscan.providers.ppt import PAGE_MAX
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
 from gapscan.providers.mock import MockProvider
-from gapscan.store import Store
+from gapscan.store import Store, iso, utcnow
 
 
 class _Tee:
@@ -352,9 +352,8 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
             print("Resolve the rest with --resolve.")
         return 0
 
-    from gapscan.providers.ppt import PPTError, PPTProvider
-
-    from gapscan.providers.ppt import PAGE_MAX
+    from gapscan import db
+    from gapscan.providers.ppt import PAGE_MAX, PPTError, PPTProvider
 
     # Not cfg.budget.search_limit: that is 1, sized for the 100-credit free
     # tier, and one result for "Clefairy" is whichever Clefairy the API ranks
@@ -363,6 +362,7 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
     # results we actually asked for.
     provider = PPTProvider(credits_per_card=cfg.budget.credits_per_call,
                            search_limit=min(args.limit, PAGE_MAX))
+    resolve_started = store_now()
     pending = [e for e in entries if not watchlist_mod.is_resolved(e) or args.force]
     per_card = min(args.limit, PAGE_MAX) * args.pages
     print(f"Resolving {len(pending)} entr(ies): up to {args.pages} page(s) of "
@@ -379,6 +379,10 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
             blob_page = provider.raw_response(
                 {"name": _entry["name"]}, search=_query, graded=False,
                 filters={"offset": offset})
+            # raw_response does not bill itself the way fetch/fetch_batch do,
+            # so resolution spent credits the ledger never saw. One credit per
+            # card requested, no graded block.
+            provider.credits_used += page_size
             return watchlist_mod.results_of(blob_page)
 
         try:
@@ -432,8 +436,12 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
                 print(f"        {watchlist_mod.summarise(record)}")
 
     watchlist_mod.save(blob)
+    with db.session() as conn:
+        db.record_run(conn, resolve_started, provider.credits_used,
+                      len(pending), "watchlist --resolve")
     done = sum(1 for e in entries if watchlist_mod.is_resolved(e))
-    print(f"\n{done}/{len(entries)} resolved -> {watchlist_mod.LOCAL}")
+    print(f"\n{done}/{len(entries)} resolved -> {watchlist_mod.LOCAL} "
+          f"({provider.credits_used:,} credits)")
     if done:
         print("Next: run.py catalog   (folds them into the universe)")
     return 0
@@ -459,7 +467,22 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         print("No matching sets in the universe.")
         return 1
 
-    budget = args.budget or cfg.budget.daily_credits
+    # What the day has already cost. Without this every run started as though
+    # the whole allowance were untouched, so three sweeps in a day each
+    # believed they had 20,000 and the last ran the account dry mid-task.
+    day_start = db.allowance_day_start()
+    with db.session() as conn:
+        spent_today = db.credits_spent_since(conn, iso(day_start))
+    allowance = args.budget or cfg.budget.daily_credits
+    budget = max(0, allowance - spent_today)
+    if spent_today:
+        print(f"{spent_today:,} of {allowance:,} credits already spent today; "
+              f"{budget:,} left (resets "
+              f"{db.allowance_resets_at().strftime('%H:%M UTC')})")
+    if budget <= 0:
+        print(f"Nothing left in today's allowance. It resets at "
+              f"{db.allowance_resets_at().isoformat()}.")
+        return 1
     if args.limit > PAGE_MAX:
         print(f"note: the server returns at most {PAGE_MAX} cards a page but bills "
               f"the limit asked for, so --limit {args.limit} would pay for "
@@ -483,6 +506,7 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
 
     cards = points = discovered = repinned = 0
     stop = False
+    started_at = store_now()
     with db.session() as conn:
         for target in targets:
             if stop:
@@ -544,6 +568,11 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                 offset += len(records)
                 if len(records) < min(args.limit, PAGE_MAX):
                     break
+        # Logged before the summary and whatever the outcome: a run that
+        # stopped on an exhausted allowance still spent what it spent, and
+        # that is exactly the run whose cost the next one needs to know.
+        db.record_run(conn, started_at, provider.credits_used, cards,
+                      f"backfill {len(targets)} set(s)")
         stats = db.stats(conn)
 
     store.save_universe(universe)
@@ -904,6 +933,18 @@ def cmd_status(args, cfg: Config, store: Store) -> int:
     else:
         print("last scan  never -- next: run.py daily --provider ppt --log")
 
+    # The provider's allowance is account-wide and resets at 00:00 UTC, so
+    # this is the number that decides whether a sweep can run at all.
+    from gapscan import db as _db
+    if _db.PATH.exists():
+        with _db.session() as conn:
+            spent = _db.credits_spent_since(
+                conn, iso(_db.allowance_day_start()))
+        allowance = cfg.budget.daily_credits
+        print(f"credits    {spent:,} spent today, {max(0, allowance - spent):,} "
+              f"of {allowance:,} left (resets "
+              f"{_db.allowance_resets_at().strftime('%Y-%m-%d %H:%M UTC')})")
+
     days = store.snapshot_dates()
     print(f"history    {len(days)} day(s)"
           + (f", {days[0]} to {days[-1]}" if days else ""))
@@ -1000,7 +1041,6 @@ def cmd_demo(args, cfg: Config, store: Store) -> int:
 
 
 def store_now() -> str:
-    from gapscan.store import iso, utcnow
     return iso(utcnow())
 
 
