@@ -162,6 +162,32 @@ def series_detail(conn: sqlite3.Connection, card_id: str,
            WHERE card_id=? AND grade=? ORDER BY date""", (card_id, grade)))
 
 
+def sales_series(conn: sqlite3.Connection, card_id: str,
+                 grade: str) -> tuple[list[tuple[str, float]], str]:
+    """A grade's real sales, or its snapshots when there are none.
+
+    `history` rows are individual eBay sale prices; `snapshot` rows are the
+    provider's blended figure, written once per run. They are different kinds
+    of measurement and mixing them corrupts every analysis downstream: each
+    daily run appends another copy of the same blended number, so the tail of
+    a series becomes a flat run that swamps a trend and -- worse -- packs the
+    middle of the distribution until the two-printings check stops firing.
+
+    The fallback is not optional. For cards the provider returns no graded
+    history for, our own snapshots are the only series there is, and over time
+    they become a real one we built ourselves.
+
+    Returns (points, origin) so a caller can say which it got.
+    """
+    rows = list(conn.execute(
+        """SELECT date, price, origin FROM price_points
+           WHERE card_id=? AND grade=? ORDER BY date""", (card_id, grade)))
+    sales = [(r["date"], r["price"]) for r in rows if r["origin"] == "history"]
+    if sales:
+        return sales, "history"
+    return [(r["date"], r["price"]) for r in rows], "snapshot"
+
+
 def grades_for(conn: sqlite3.Connection, card_id: str) -> list[str]:
     return [r["grade"] for r in conn.execute(
         "SELECT DISTINCT grade FROM price_points WHERE card_id=? ORDER BY grade",

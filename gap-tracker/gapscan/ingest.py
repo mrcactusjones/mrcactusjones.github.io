@@ -60,10 +60,12 @@ def ingest_record(conn: sqlite3.Connection, record: dict, universe: dict | None 
     db.upsert_card(conn, card, scanned_at=today)
 
     rows: list[tuple] = []
+    covered: set[tuple[str, str]] = set()   # (grade, date) a real sale already holds
     for grade, points in parse_history(record).items():
         if grade in KEEP_GRADES:
-            rows.extend((card["id"], stamp, grade, price, None, "history")
-                        for stamp, price in points)
+            for stamp, price in points:
+                rows.append((card["id"], stamp, grade, price, None, "history"))
+                covered.add((grade, stamp))
 
     # Today's observation, which the history window may not include yet.
     quote = extract_quote(record)
@@ -73,7 +75,10 @@ def ingest_record(conn: sqlite3.Connection, record: dict, universe: dict | None 
                                 ("psa10", quote.psa10, quote.sales_10),
                                 ("cgc9", quote.cgc9, quote.cgc9_sales),
                                 ("cgc10", quote.cgc10, quote.cgc10_sales)):
-        if price:
+        # One row per (card, date, grade) and last write wins, so a snapshot
+        # written after the history would replace a real sale with the
+        # provider's blended average. The transaction is the better record.
+        if price and (grade, today) not in covered:
             rows.append((card["id"], today, grade, float(price), sales, "snapshot"))
 
     if rows:

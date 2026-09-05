@@ -155,6 +155,11 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
           f"{cov['universe']} (oldest {cov['oldest_scan_days']}d, "
           f"~{cov['days_to_full_coverage']}d to full) | watchlist changes: {moved}")
     print(f"verdicts: {rankings['verdict_counts']}")
+    pooled = rankings.get("comps_split_cards", 0)
+    if pooled:
+        print(f"note: {pooled} card(s) have graded sales that are two printings "
+              f"pooled;\n      those are priced off the cheaper and cannot be "
+              f"no-brainers.")
     stale = rankings.get("stale_variant_data", 0)
     if stale:
         print(f"note: {stale} card(s) were fetched before printing data was "
@@ -588,15 +593,21 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
                   if have else "  that card has no stored prices at all")
             return 1
 
-    points = [(r["date"], r["price"]) for r in rows]
+    # Analysis reads real sales, so show what it reads -- not the mix, which
+    # is what made a blended snapshot look like a sale in the first place.
+    with db.session() as conn:
+        points, origin = db.sales_series(conn, args.card, args.grade)
     recent = trends.window(points, args.days)
-    keep = {d for d, _ in recent}
+    keep = {(d, v) for d, v in recent}
 
-    print(f"{args.card} {args.grade}: {len(rows)} point(s) stored, "
+    note = ("" if origin == "history" else
+            "  (no sale history for this grade; these are our own snapshots)")
+    print(f"{args.card} {args.grade}: {len(rows)} row(s) stored, "
+          f"{len(points)} analysed as {origin}{note}, "
           f"{len(recent)} in the last {args.days} days\n")
     print(f"{'date':<12}{'price':>10}  {'sales':>5}  {'origin':<9} in window")
     for row in rows:
-        inside = "yes" if row["date"] in keep else ""
+        inside = "yes" if (row["date"], row["price"]) in keep else ""
         sales = "" if row["sales"] is None else str(row["sales"])
         print(f"{row['date']:<12}{row['price']:>10.2f}  {sales:>5}  "
               f"{(row['origin'] or ''):<9} {inside}")
@@ -627,6 +638,16 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
         print(f"    {split.low_count} sale(s) near ${split.low:,.2f}  <- the floor "
               f"is priced from these")
         print(f"    {split.high_count} sale(s) near ${split.high:,.2f}")
+        # What `rank` sees: the trend of the cheap printing alone. The figures
+        # above cover both, so they describe no single card.
+        # Window first, then filter -- the order the split itself used. The
+        # other way round, `window` re-anchors on the filtered series' last
+        # point and quietly covers a different span.
+        cheap = [p for p in recent if p[1] <= split.boundary]
+        move = trends.change_pct(cheap, args.days)
+        print(f"    cheap side alone: {args.days}d change "
+              + (f"{move * 100:+.1f}%" if move is not None else "n/a")
+              + f", from {len(cheap)} sale(s)")
     return 0
 
 

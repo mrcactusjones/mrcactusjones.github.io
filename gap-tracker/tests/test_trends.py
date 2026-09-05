@@ -366,3 +366,43 @@ class CheapVariantPriceTest(unittest.TestCase):
     def test_it_rounds_to_cents(self):
         self.assertEqual(rank.cheap_variant_price(999.0, self._split(347.499)),
                          347.50)
+
+
+class SnapshotAccumulationTest(unittest.TestCase):
+    """A blended snapshot is not a sale, and one lands on every run.
+
+    `price_points` stores both under one grade. Mixing them meant each daily
+    run appended another copy of the provider's blended figure, which wandered
+    the trend with no market movement behind it and -- after about a month --
+    packed the middle of the distribution until the two-printings check
+    stopped firing altogether.
+    """
+
+    SALES = [(f"2026-{6 + i // 15:02d}-{1 + (i * 2) % 28:02d}", v)
+             for i, v in enumerate(VAPOREON_PSA9[:33])]
+    BLEND = 510.50
+
+    def _with_snapshots(self, runs):
+        from datetime import timedelta
+        start = date(2026, 9, 4)
+        return sorted(self.SALES) + [
+            ((start + timedelta(days=i)).isoformat(), self.BLEND) for i in range(runs)]
+
+    def test_snapshots_eventually_hide_the_split(self):
+        """The failure this guards against, asserted directly."""
+        mixed = self._with_snapshots(40)
+        vals = [v for _, v in mixed]
+        self.assertIsNone(trends.comps_split(vals),
+                          "if this starts passing, mixing has stopped hiding splits")
+
+    def test_the_sales_alone_still_split_however_many_runs_have_happened(self):
+        sales_only = [v for _, v in self.SALES]
+        for runs in (0, 7, 30, 60, 200):
+            # Runs add snapshots, never sales, so the answer must not move.
+            self.assertIsNotNone(trends.comps_split(sales_only), f"{runs} runs")
+
+    def test_the_cut_lands_on_a_real_sale(self):
+        """The boundary was landing on $510.50 -- a figure nobody traded at."""
+        split = trends.comps_split([v for _, v in self.SALES])
+        self.assertIn(split.boundary, [v for _, v in self.SALES])
+        self.assertNotEqual(split.boundary, self.BLEND)

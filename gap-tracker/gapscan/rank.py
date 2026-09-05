@@ -1,6 +1,8 @@
 """Turn cached quotes into a ranking, and promote the top cards to the watchlist."""
 from __future__ import annotations
 
+from datetime import date
+
 from .config import Config
 from .econ import (Quote, days_since, evaluate, mix_from_population,
                    mix_from_sales)
@@ -56,15 +58,21 @@ def _multiple_reasons(entry: dict, quote: Quote, medians: dict,
     return []
 
 
-def _gap_pairs(raw: list, psa9: list, days: int = 90) -> list[list]:
+def _gap_pairs(raw: list, psa9: list, days: int = 90,
+               today: date | None = None) -> list[list]:
     """[[raw, psa9], ...] for every priced day in the window, oldest first.
 
     Not downsampled: the page recomputes the worst case from these, and a
     sampled series would quietly miss the dip that makes a card risky.
+
+    `today` must match the one `summarise` used. The page derives its worst
+    case from these pairs and Python derives its own from the floor series; a
+    different anchor gives the two a different window, and they disagree about
+    the number the tool exists to report.
     """
     from . import trends
     return [[round(r, 2), round(g, 2)]
-            for _, r, g in trends.gap_inputs(raw, psa9, days=days)]
+            for _, r, g in trends.gap_inputs(raw, psa9, days=days, today=today)]
 
 
 def _comps_splits(priced: list, cfg: Config) -> dict:
@@ -81,11 +89,18 @@ def _comps_splits(priced: list, cfg: Config) -> dict:
     if not db.PATH.exists():
         return {}
     splits = {}
+    today = date.today()
     with db.session() as conn:
         for entry, _ in priced:
+            # Real sales only. A snapshot is the provider's blended figure --
+            # the very number a split is hiding inside -- and one lands in the
+            # series on every run, so including them would let the detector
+            # cut the clusters at a point that is not data, then stop firing
+            # altogether once enough of them piled up.
+            sales, _ = db.sales_series(conn, entry["id"], "psa9")
             # The recent window, not the whole series: a cluster median drawn
             # from sales a year old is not a price you can transact at today.
-            recent = trends.window(db.series(conn, entry["id"], "psa9"), SPLIT_WINDOW_DAYS)
+            recent = trends.window(sales, SPLIT_WINDOW_DAYS, today)
             split = trends.comps_split(
                 [v for _, v in recent], cfg.thresholds.comps_split_spread,
                 cfg.thresholds.comps_split_min_share,
@@ -119,10 +134,15 @@ def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) ->
     if not db.PATH.exists():
         return 0
     enriched = 0
+    today = date.today()
     with db.session() as conn:
         for row in rows:
+            # Raw history is already a daily market price, the same kind of
+            # measurement as its snapshot, so it is read whole. The graded
+            # series is sales, and mixing the blended snapshot into those
+            # flattens every trend computed from them.
             raw = db.series(conn, row["id"], "raw")
-            psa9 = db.series(conn, row["id"], "psa9")
+            psa9, _ = db.sales_series(conn, row["id"], "psa9")
             split = (splits or {}).get(row["id"])
             if split is not None:
                 # Keep only the cheap variant's sales. The headline floor is
@@ -132,17 +152,22 @@ def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) ->
                 psa9 = [p for p in psa9 if p[1] <= split.boundary]
             if len(raw) < 2 and len(psa9) < 2:
                 continue
-            psa10 = db.series(conn, row["id"], "psa10")
+            psa10, _ = db.sales_series(conn, row["id"], "psa10")
             floor = trends.gap_series(raw, psa9, cfg.econ.all_in, cfg.econ.net_proceeds)
+            # One anchor for every window. Left to itself each series anchors
+            # on its own last observation, so a raw series ending today and a
+            # psa9 series ending at its last sale describe different spans --
+            # and `divergence` subtracts one from the other.
             row.update(trends.summarise(raw, psa9, psa10, floor,
-                                        cfg.thresholds.min_floor_profit))
+                                        cfg.thresholds.min_floor_profit,
+                                        today=today))
             # No separate floor history: gap_points carries the same shape and
             # lets the page cost it under the user's own settings, so the
             # sparkline and the worst case can never disagree with the table.
             # Weekly (raw, psa9) pairs for the last 90 days, so the page can
             # recompute the worst-case floor under the user's own cost
             # assumptions instead of trusting a number baked at rank time.
-            row["gap_points"] = _gap_pairs(raw, psa9, days=90)
+            row["gap_points"] = _gap_pairs(raw, psa9, days=90, today=today)
             enriched += 1
     return enriched
 
@@ -297,6 +322,7 @@ def build(universe: dict, store: Store, cfg: Config,
         "verdict_counts": counts,
         "trend_coverage": with_trends,
         "stale_variant_data": stale_variants,
+        "comps_split_cards": sum(1 for row in rows if row.get("comps_split")),
         "scoring": {"weights": cfg.scoring.weights,
                     "roi_full": cfg.scoring.roi_full,
                     "depth_full": cfg.scoring.depth_full,
