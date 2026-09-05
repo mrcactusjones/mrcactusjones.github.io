@@ -633,14 +633,22 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
 
     # The question this command exists to answer: is this one card's prices,
     # or two cards' sales sharing a title-parsed grade?
-    split = trends.comps_split([v for _, v in recent],
+    # Same fallback `rank` uses: a thin window is absence of evidence, not
+    # evidence of one card, and the sparse expensive cards it excludes are
+    # where a pooled price does the most damage.
+    basis, basis_note = recent, f"the last {args.days} days"
+    if len(recent) < cfg.thresholds.comps_split_min_sample:
+        basis, basis_note = points, "all stored sales (the window is too thin)"
+    split = trends.comps_split([v for _, v in basis],
                                cfg.thresholds.comps_split_spread,
                                cfg.thresholds.comps_split_min_share,
-                               cfg.thresholds.comps_split_min_sample)
+                               cfg.thresholds.comps_split_min_sample,
+                               cfg.thresholds.comps_split_tail_spread)
     if split is None:
-        print("  reads as one card's sales")
+        print(f"  reads as one card's sales, judged on {basis_note}")
     else:
-        print(f"\n  TWO CARDS POOLED (spread {split.spread:.2f}x, "
+        print(f"\n  TWO CARDS POOLED, judged on {basis_note}")
+        print(f"  (middle half {split.spread:.2f}x, tails {split.tails:.2f}x, "
               f"cut at ${split.boundary:,.2f})")
         print(f"    {split.low_count} sale(s) near ${split.low:,.2f}  <- the floor "
               f"is priced from these")
@@ -650,7 +658,7 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
         # Window first, then filter -- the order the split itself used. The
         # other way round, `window` re-anchors on the filtered series' last
         # point and quietly covers a different span.
-        cheap = [p for p in recent if p[1] <= split.boundary]
+        cheap = [p for p in basis if p[1] <= split.boundary]
         move = trends.change_pct(cheap, args.days, today)
         print(f"    cheap side alone: {args.days}d change "
               + (f"{move * 100:+.1f}%" if move is not None else "n/a")

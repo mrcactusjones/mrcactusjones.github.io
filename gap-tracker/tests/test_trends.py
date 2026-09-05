@@ -341,6 +341,58 @@ class CompsSplitTest(unittest.TestCase):
         self.assertIsNone(trends.comps_split(pooled, min_spread=99.0))
 
 
+# Celebi (Skyridge 145), every PSA 9 sale stored on 2026-09-05. A quarter of
+# them are a dearer printing -- the lopsided shape the middle-half test alone
+# could not see, on the card that was ranked first in the database.
+CELEBI_PSA9 = [999.99, 1000.00, 6999.00, 5415.00, 1100.00, 1399.99, 1349.00,
+               1290.39, 1125.00, 1075.00, 1275.00, 1106.12, 1400.00, 6500.00,
+               4347.34, 1085.00]
+
+
+class LopsidedSplitTest(unittest.TestCase):
+    """A dear printing that is a quarter of the sales sits above p75.
+
+    The middle-half test read Celebi at 1.27x -- indistinguishable from a
+    steady card -- while four of its sixteen sales were three times the price
+    of the other twelve. p90/p10 is the trigger that sees that shape.
+    """
+
+    def test_the_card_that_exposed_this(self):
+        split = trends.comps_split(CELEBI_PSA9)
+        self.assertIsNotNone(split)
+        self.assertEqual([split.low_count, split.high_count], [12, 4])
+        self.assertAlmostEqual(split.low, 1115.56, delta=15)
+        self.assertAlmostEqual(split.high, 5957.50, delta=100)
+
+    def test_the_middle_half_alone_would_still_miss_it(self):
+        """Documents why the second trigger exists, not just that it works."""
+        split = trends.comps_split(CELEBI_PSA9)
+        self.assertLess(split.spread, 2.0, "middle half sees nothing")
+        self.assertGreater(split.tails, 4.0, "the tails are what fired")
+
+    def test_a_lopsided_split_is_caught_where_it_used_to_be_missed(self):
+        found = 0
+        for seed in range(20):
+            pooled = _noisy(22, 0.20, seed) + _noisy(8, 0.20, seed + 50, base=1600.0)
+            if trends.comps_split(pooled) is not None:
+                found += 1
+        self.assertGreaterEqual(found, 18, f"only {found}/20 caught")
+
+    def test_the_tail_trigger_does_not_fire_on_one_noisy_card(self):
+        for spread in (0.15, 0.25, 0.35):
+            for seed in range(15):
+                self.assertIsNone(trends.comps_split(_noisy(30, spread, seed)),
+                                  f"spread={spread} seed={seed}")
+
+    def test_the_tail_trigger_does_not_fire_on_a_climbing_card(self):
+        for seed in range(15):
+            self.assertIsNone(
+                trends.comps_split(_noisy(30, 0.25, seed, climb=0.6)), seed)
+
+    def test_the_threshold_is_honoured(self):
+        self.assertIsNone(trends.comps_split(CELEBI_PSA9, tail_spread=99.0))
+
+
 class CheapVariantPriceTest(unittest.TestCase):
     """The floor of a two-printing card is priced off the cheap one."""
 

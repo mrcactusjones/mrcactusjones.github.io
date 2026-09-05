@@ -181,7 +181,9 @@ class CompsSplit:
     high: float        # dear side's median
     low_count: int
     high_count: int
-    spread: float      # p75/p25 of the whole series, the statistic that fired
+    spread: float      # p75/p25 of the whole series
+    tails: float = 0.0 # p90/p10, which catches a lopsided split the middle
+                       # half cannot see
 
 
 def _quantile(sorted_values: Sequence[float], pct: float) -> float:
@@ -191,7 +193,8 @@ def _quantile(sorted_values: Sequence[float], pct: float) -> float:
 
 
 def comps_split(values: Sequence[float], min_spread: float = 2.0,
-                min_share: float = 0.25, min_sample: int = 8) -> Optional[CompsSplit]:
+                min_share: float = 0.25, min_sample: int = 8,
+                tail_spread: float = 4.0) -> Optional[CompsSplit]:
     """Detect two cards' sales pooled into one series, or return None.
 
     PPT reads grades out of eBay listing titles, and a title gives the grade
@@ -199,13 +202,21 @@ def comps_split(values: Sequence[float], min_spread: float = 2.0,
     and Unlimited sales averaged together, and the number it reports is one no
     copy sells for.
 
-    Detected on p75/p25, the width of the middle half. That needs no clean gap
-    between the clusters, which matters because realistic sale-to-sale noise
-    fills any gap in: over 3,000 trials at 40 sales a card, a single card with
-    up to 35% noise reads 1.55x and a card climbing 60% across the window reads
-    1.44x, while two cards 2.5x apart read 2.43x. Two cards less than about 2x
-    apart cannot be told from one noisy card, which is also where mispricing
-    one as the other costs least.
+    Two triggers, because one statistic cannot see both shapes.
+
+    p75/p25, the width of the middle half, needs no clean gap between the
+    clusters -- which matters, since realistic sale-to-sale noise fills any gap
+    in. But it only sees a split near 50/50: Celebi's dear printing was 4 sales
+    of 16, sitting entirely above p75, and read 1.27x while being three times
+    the price of the other twelve.
+
+    p90/p10 catches that lopsided case. Over 3,000 trials at 30 sales a card,
+    firing on either trigger: a single card at 15-25% noise fires 0.00% of the
+    time, at 35% noise 1.93%, one climbing 60% across the window 0.00% -- while
+    two cards 4x apart fire 100% at 50/50 and 97.3% at 75/25, which the
+    middle-half test alone missed almost entirely. A genuinely volatile card
+    (45% noise) trips it 23% of the time; that card's price is not trustworthy
+    either way.
 
     The cut is the largest ratio gap that still leaves `min_share` of the sales
     on each side, so a lone outlier cannot define a cluster.
@@ -215,10 +226,12 @@ def comps_split(values: Sequence[float], min_spread: float = 2.0,
         return None
     ordered = sorted(values)
     p25, p75 = _quantile(ordered, 0.25), _quantile(ordered, 0.75)
-    if p25 <= 0:
+    p10, p90 = _quantile(ordered, 0.10), _quantile(ordered, 0.90)
+    if p25 <= 0 or p10 <= 0:
         return None
     spread = p75 / p25
-    if spread < min_spread:
+    tails = p90 / p10
+    if spread < min_spread and tails < tail_spread:
         return None
 
     floor_n = max(1, int(len(ordered) * min_share))
@@ -236,7 +249,8 @@ def comps_split(values: Sequence[float], min_spread: float = 2.0,
         return None
     return CompsSplit(boundary=boundary,
                       low=statistics.median(low), high=statistics.median(high),
-                      low_count=len(low), high_count=len(high), spread=spread)
+                      low_count=len(low), high_count=len(high), spread=spread,
+                      tails=tails)
 
 
 def percentile(points: Sequence[Point], pct: float, days: int = 90,

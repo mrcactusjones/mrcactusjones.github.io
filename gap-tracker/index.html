@@ -216,7 +216,12 @@ function score(row, s) {
   const floor = net9 - cost, upside = net10 - cost;
   // Every reason Python withholds confidence for, in the same order.
   const fresh = row.psa9_sale_age_days == null || row.psa9_sale_age_days <= s.maxAge;
-  const confident = row.sales_9 >= s.comps &&
+  // The provider's comp count covers a window of its own. `observed_sales_9`
+  // is what the stored sales actually show, and a price we cannot check is a
+  // price to distrust.
+  const visible = row.observed_sales_9 == null ||
+                  row.sales_9 < s.comps || row.observed_sales_9 >= T.min_sales_9;
+  const confident = row.sales_9 >= s.comps && visible &&
                     (row.psa10 == null || row.sales_10 >= T.min_sales_10) &&
                     fresh &&
                     (row.psa9_confidence || "").toLowerCase() !== "low" &&

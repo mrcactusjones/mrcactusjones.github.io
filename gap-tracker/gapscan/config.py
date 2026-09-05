@@ -99,6 +99,9 @@ class Thresholds:
     # graded "price" can be two printings averaged. p75/p25 this wide means two
     # populations; below ~2x a real card's noise is indistinguishable.
     comps_split_spread: float = 2.0
+    # p90/p10. The middle-half test only sees a split near 50/50; a dear
+    # printing that is a quarter of the sales sits entirely above p75.
+    comps_split_tail_spread: float = 4.0
     comps_split_min_share: float = 0.25  # each side must hold this much of the sales
     comps_split_min_sample: int = 8      # fewer sales than this cannot show a split
     min_mix_sample: int = 5          # graded sales needed before inferring a grade mix

@@ -75,7 +75,7 @@ def _gap_pairs(raw: list, psa9: list, days: int = 90,
             for _, r, g in trends.gap_inputs(raw, psa9, days=days, today=today)]
 
 
-def _comps_splits(priced: list, cfg: Config) -> dict:
+def _comps_splits(priced: list, cfg: Config, observed: dict | None = None) -> dict:
     """card_id -> CompsSplit for every card whose graded sales are two cards.
 
     Reads the stored PSA 9 sales rather than the quote, because a split is only
@@ -89,6 +89,7 @@ def _comps_splits(priced: list, cfg: Config) -> dict:
     if not db.PATH.exists():
         return {}
     splits = {}
+    observed = {} if observed is None else observed
     today = date.today()
     with db.session() as conn:
         for entry, _ in priced:
@@ -101,12 +102,21 @@ def _comps_splits(priced: list, cfg: Config) -> dict:
             # The recent window, not the whole series: a cluster median drawn
             # from sales a year old is not a price you can transact at today.
             recent = trends.window(sales, SPLIT_WINDOW_DAYS, today)
+            # A thin window is not evidence of one card, it is absence of
+            # evidence -- and sparse expensive cards are where a pooled price
+            # does the most damage. Celebi had four sales in ninety days and
+            # sixteen in total, and the check simply never ran.
+            basis = recent
+            if len(recent) < cfg.thresholds.comps_split_min_sample:
+                basis = sales
             split = trends.comps_split(
-                [v for _, v in recent], cfg.thresholds.comps_split_spread,
+                [v for _, v in basis], cfg.thresholds.comps_split_spread,
                 cfg.thresholds.comps_split_min_share,
-                cfg.thresholds.comps_split_min_sample)
+                cfg.thresholds.comps_split_min_sample,
+                cfg.thresholds.comps_split_tail_spread)
             if split is not None:
                 splits[entry["id"]] = split
+            observed[entry["id"]] = len(recent)
     return splits
 
 
@@ -195,13 +205,16 @@ def build(universe: dict, store: Store, cfg: Config,
                        Quote(**cached["quote"])))
 
     set_medians = _set_multiples(priced, cfg.thresholds.min_set_sample)
-    splits = _comps_splits(priced, cfg)
+    observed_sales: dict[str, int] = {}
+    splits = _comps_splits(priced, cfg, observed_sales)
 
     for entry, quote in priced:
         cached = {"fetched_at": entry.get("_fetched_at")}
         # Two printings pooled into one graded price. You buy a raw copy at the
         # raw price, which is the common printing, so the cheap cluster is what
         # you can actually count on -- price the floor from that and say so.
+        # What we can see, against what the provider claims.
+        quote.observed_sales_9 = observed_sales.get(entry["id"])
         split = splits.get(entry["id"])
         split_reasons = []
         blended = quote.psa9
@@ -243,6 +256,7 @@ def build(universe: dict, store: Store, cfg: Config,
             "cgc9": quote.cgc9,
             "cgc10": quote.cgc10,
             "psa9_confidence": quote.psa9_confidence,
+            "observed_sales_9": quote.observed_sales_9,
             "psa9_outlier": quote.psa9_outlier,
             # The page cannot compute this: it needs the whole set.
             "multiple_outlier": bool(multiple_reasons),

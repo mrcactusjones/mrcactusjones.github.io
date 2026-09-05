@@ -29,6 +29,10 @@ class Quote:
     psa8: Optional[float] = None
     sales_9: int = 0
     sales_10: int = 0
+    # PSA 9 sales we can actually see in the window, as opposed to the count
+    # the provider reports over a window of its own. None when no history is
+    # stored for the card.
+    observed_sales_9: Optional[int] = None
     as_of: Optional[str] = None
     source: Optional[str] = None
     psa9_confidence: Optional[str] = None
@@ -260,6 +264,14 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
                            "the grades are not being told apart")
     if quote.sales_9 < thresholds.min_sales_9:
         reasons.append(f"only {quote.sales_9} PSA 9 comps (want {thresholds.min_sales_9}+)")
+    elif (quote.observed_sales_9 is not None
+            and quote.observed_sales_9 < thresholds.min_sales_9):
+        # The provider's count covers a window of its own choosing. This is
+        # what we can see, and a price we cannot check is a price to distrust:
+        # Celebi passed on 37 claimed comps with four visible sales behind it.
+        reasons.append(
+            f"provider claims {quote.sales_9} PSA 9 comps but only "
+            f"{quote.observed_sales_9} sale(s) are visible in the window")
     if quote.psa10 is not None and quote.sales_10 < thresholds.min_sales_10:
         reasons.append(f"only {quote.sales_10} PSA 10 comps (want {thresholds.min_sales_10}+)")
     stale = days_since(quote.psa9_last_sale)

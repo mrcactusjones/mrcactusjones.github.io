@@ -862,3 +862,44 @@ class MissingUpsideTest(unittest.TestCase):
         verdict = self._judge(psa10=300.0)
         self.assertTrue(any("priced above" in r for r in verdict.reasons),
                         verdict.reasons)
+
+
+class VisibleCompsTest(unittest.TestCase):
+    """A price we cannot check is a price to distrust.
+
+    Celebi passed the comp-count gate on the provider's claim of 37 PSA 9
+    sales while four were visible in the window, and went to the top of the
+    ranking on a floor computed from a blend of two printings.
+    """
+
+    def setUp(self):
+        self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
+                              sale_fee_pct=0.1325, ship_out=5.0,
+                              raw_premium_pct=0.15, use_fee_tiers=False)
+        self.th = Thresholds(min_graded_sales=0, min_sales_9=5)
+
+    def _judge(self, **kw):
+        quote = Quote(raw=50.0, psa9=400.0, psa10=1200.0, sales_9=37, sales_10=10,
+                      psa9_last_sale="2026-09-01", **kw)
+        return evaluate(quote, self.econ, self.th)
+
+    def test_a_claim_the_stored_sales_cannot_support_costs_confidence(self):
+        verdict = self._judge(observed_sales_9=4)
+        self.assertFalse(verdict.confident)
+        self.assertTrue(any("visible in the window" in r for r in verdict.reasons),
+                        verdict.reasons)
+
+    def test_enough_visible_sales_pass(self):
+        self.assertTrue(self._judge(observed_sales_9=20).confident)
+
+    def test_no_stored_history_is_not_held_against_a_card(self):
+        """Free-tier runs hold no series at all; that is not evidence."""
+        self.assertTrue(self._judge(observed_sales_9=None).confident)
+
+    def test_the_thin_claim_reason_is_not_duplicated(self):
+        """When the provider's own count is already too low, say it once."""
+        quote = Quote(raw=50.0, psa9=400.0, sales_9=2, observed_sales_9=1,
+                      psa9_last_sale="2026-09-01")
+        reasons = evaluate(quote, self.econ, self.th).reasons
+        self.assertEqual(sum(1 for r in reasons if "comps" in r or "visible" in r), 1,
+                         reasons)
