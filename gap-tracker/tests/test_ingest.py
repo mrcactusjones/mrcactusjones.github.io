@@ -82,3 +82,47 @@ class SnapshotCollisionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SnapshotReaderTest(unittest.TestCase):
+    """Day-over-day comparison reads the dated ranking files.
+
+    `daily_metrics` existed for this and was never written to, so it always
+    read back empty; the dated snapshots `rank` already saves hold the same
+    fields and years of history.
+    """
+
+    def setUp(self):
+        import tempfile
+        from gapscan.store import Store
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store = Store(Path(self.tmp.name))
+        self.store.history.mkdir(parents=True, exist_ok=True)
+
+    def _write(self, day, rows):
+        import json
+        (self.store.history / f"{day}.json").write_text(
+            json.dumps({"date": day, "rows": rows}))
+
+    def test_dates_come_back_oldest_first(self):
+        for day in ("2026-09-05", "2026-09-01", "2026-09-03"):
+            self._write(day, [])
+        self.assertEqual(self.store.snapshot_dates(),
+                         ["2026-09-01", "2026-09-03", "2026-09-05"])
+
+    def test_a_snapshot_keeps_the_verdict(self):
+        """load_history drops it; a diff needs it."""
+        self._write("2026-09-05", [{"id": "base1-4", "verdict": "no_brainer",
+                                    "floor_profit": 120.0}])
+        snap = self.store.load_snapshot("2026-09-05")
+        self.assertEqual(snap["base1-4"]["verdict"], "no_brainer")
+
+    def test_a_missing_or_corrupt_day_is_empty_not_an_error(self):
+        self.assertEqual(self.store.load_snapshot("2026-01-01"), {})
+        (self.store.history / "2026-09-06.json").write_text("{not json")
+        self.assertEqual(self.store.load_snapshot("2026-09-06"), {})
+
+    def test_rows_without_an_id_are_skipped(self):
+        self._write("2026-09-05", [{"verdict": "dead"}, {"id": "ok", "verdict": "dead"}])
+        self.assertEqual(list(self.store.load_snapshot("2026-09-05")), ["ok"])

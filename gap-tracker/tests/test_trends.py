@@ -406,3 +406,31 @@ class SnapshotAccumulationTest(unittest.TestCase):
         split = trends.comps_split([v for _, v in self.SALES])
         self.assertIn(split.boundary, [v for _, v in self.SALES])
         self.assertNotEqual(split.boundary, self.BLEND)
+
+
+class WindowAnchorTest(unittest.TestCase):
+    """Every window must cover the same span, or figures stop comparing.
+
+    `window` anchors on the series' own last point when not told otherwise.
+    That made a raw series ending today and a graded series ending at its last
+    sale describe different periods -- which `divergence` then subtracts one
+    from the other -- and made `series` report a different window, and a
+    different split, from the `rank` run it exists to explain.
+    """
+
+    def test_an_explicit_anchor_beats_the_series_own_end(self):
+        # Four daily points ending three days ago: TODAY-6 .. TODAY-3.
+        # A 5-day window from today cuts at TODAY-5, keeping three of them.
+        pts = line([100, 100, 100, 100], end=TODAY - timedelta(days=3))
+        self.assertEqual(len(trends.window(pts, 5, TODAY)), 3)
+        self.assertEqual(len(trends.window(pts, 5)), 4,
+                         "unanchored, it slides back to the last point")
+
+    def test_two_series_ending_on_different_days_share_one_window(self):
+        raw = line([100] * 10)                                  # ends today
+        psa9 = line([300] * 10, end=TODAY - timedelta(days=4))   # ends earlier
+        span = lambda pts: [d for d, _ in trends.window(pts, 6, TODAY)]
+        self.assertEqual(span(raw)[0], span(psa9)[0] if span(psa9) else span(raw)[0],
+                         "both windows start at the same cutoff")
+        # Unanchored they do not.
+        self.assertNotEqual(trends.window(raw, 6)[0][0], trends.window(psa9, 6)[0][0])

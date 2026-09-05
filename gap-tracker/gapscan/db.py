@@ -49,22 +49,6 @@ CREATE INDEX IF NOT EXISTS idx_points_card_grade
 CREATE INDEX IF NOT EXISTS idx_points_date ON price_points (date);
 
 -- What the model concluded on a given day, so verdict changes are auditable.
-CREATE TABLE IF NOT EXISTS daily_metrics (
-    card_id      TEXT NOT NULL,
-    date         TEXT NOT NULL,
-    raw          REAL,
-    psa9         REAL,
-    psa10        REAL,
-    all_in       REAL,
-    floor_profit REAL,
-    floor_roi    REAL,
-    upside       REAL,
-    verdict      TEXT,
-    confident    INTEGER,
-    PRIMARY KEY (card_id, date)
-);
-CREATE INDEX IF NOT EXISTS idx_metrics_date ON daily_metrics (date);
-
 CREATE TABLE IF NOT EXISTS runs (
     started_at TEXT PRIMARY KEY,
     finished_at TEXT,
@@ -130,19 +114,6 @@ def insert_points(conn: sqlite3.Connection,
     return cur.rowcount
 
 
-def insert_metrics(conn: sqlite3.Connection, row: dict) -> None:
-    conn.execute(
-        """INSERT INTO daily_metrics (card_id, date, raw, psa9, psa10, all_in,
-                                      floor_profit, floor_roi, upside, verdict, confident)
-           VALUES (:card_id, :date, :raw, :psa9, :psa10, :all_in,
-                   :floor_profit, :floor_roi, :upside, :verdict, :confident)
-           ON CONFLICT(card_id, date) DO UPDATE SET
-               raw=excluded.raw, psa9=excluded.psa9, psa10=excluded.psa10,
-               all_in=excluded.all_in, floor_profit=excluded.floor_profit,
-               floor_roi=excluded.floor_roi, upside=excluded.upside,
-               verdict=excluded.verdict, confident=excluded.confident""", row)
-
-
 def series(conn: sqlite3.Connection, card_id: str, grade: str) -> list[tuple[str, float]]:
     return [(r["date"], r["price"]) for r in conn.execute(
         "SELECT date, price FROM price_points WHERE card_id=? AND grade=? ORDER BY date",
@@ -200,7 +171,6 @@ def stats(conn: sqlite3.Connection) -> dict:
     return {
         "cards": one("SELECT COUNT(*) FROM cards"),
         "price_points": one("SELECT COUNT(*) FROM price_points"),
-        "metric_days": one("SELECT COUNT(DISTINCT date) FROM daily_metrics"),
         "earliest": one("SELECT MIN(date) FROM price_points"),
         "latest": one("SELECT MAX(date) FROM price_points"),
     }

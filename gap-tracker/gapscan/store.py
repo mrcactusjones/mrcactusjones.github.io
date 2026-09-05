@@ -105,6 +105,27 @@ class Store:
         _atomic_write(out, {"date": day, "rows": slim})
         return out
 
+    def snapshot_dates(self) -> list[str]:
+        """Every day a ranking was snapshotted, oldest first."""
+        if not self.history.exists():
+            return []
+        return sorted(path.stem for path in self.history.glob("*.json"))
+
+    def load_snapshot(self, day: str) -> dict[str, dict]:
+        """One day's ranking, card id -> its row.
+
+        `load_history` keeps only the floor, which is all the streak needs.
+        A day-over-day comparison needs the verdict too, so it reads the file.
+        """
+        path = self.history / f"{day}.json"
+        if not path.exists():
+            return {}
+        try:
+            blob = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            return {}
+        return {row["id"]: row for row in blob.get("rows", []) if row.get("id")}
+
     def load_history(self) -> dict[str, list[dict]]:
         """card_id -> [{date, floor_profit, ...}] oldest first."""
         series: dict[str, list[dict]] = {}

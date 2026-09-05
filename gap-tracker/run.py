@@ -595,9 +595,16 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
 
     # Analysis reads real sales, so show what it reads -- not the mix, which
     # is what made a blended snapshot look like a sale in the first place.
+    from datetime import date
+
     with db.session() as conn:
         points, origin = db.sales_series(conn, args.card, args.grade)
-    recent = trends.window(points, args.days)
+    # Anchored on today, like `rank`. Left to itself `window` anchors on the
+    # series' own last point, so this command would report a different window
+    # from the one it exists to explain -- and on a split card, a different
+    # split.
+    today = date.today()
+    recent = trends.window(points, args.days, today)
     keep = {(d, v) for d, v in recent}
 
     note = ("" if origin == "history" else
@@ -614,19 +621,19 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
 
     print()
     for days in sorted({30, 90, args.days}):
-        move = trends.change_pct(points, days)
-        n = trends.observations(points, days)
+        move = trends.change_pct(points, days, today)
+        n = trends.observations(points, days, today)
         shown = f"{move * 100:+.1f}%" if move is not None else "n/a"
         print(f"  {days:>3}d change {shown:>8}  from {n} point(s)"
               + ("" if n >= 4 else "  (under the 4-point minimum)"))
 
-    vol = trends.volatility(points, args.days)
+    vol = trends.volatility(points, args.days, today)
     if vol is not None:
         print(f"  volatility  {vol * 100:>7.1f}%  sale-to-sale")
 
     # The question this command exists to answer: is this one card's prices,
     # or two cards' sales sharing a title-parsed grade?
-    split = trends.comps_split([v for _, v in trends.window(points, args.days)],
+    split = trends.comps_split([v for _, v in recent],
                                cfg.thresholds.comps_split_spread,
                                cfg.thresholds.comps_split_min_share,
                                cfg.thresholds.comps_split_min_sample)
@@ -644,10 +651,97 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
         # other way round, `window` re-anchors on the filtered series' last
         # point and quietly covers a different span.
         cheap = [p for p in recent if p[1] <= split.boundary]
-        move = trends.change_pct(cheap, args.days)
+        move = trends.change_pct(cheap, args.days, today)
         print(f"    cheap side alone: {args.days}d change "
               + (f"{move * 100:+.1f}%" if move is not None else "n/a")
               + f", from {len(cheap)} sale(s)")
+    return 0
+
+
+# Best-to-worst, so a move between them has a direction.
+VERDICT_RANK = {"dead": 0, "ten_or_bust": 1, "floor_positive": 2, "no_brainer": 3}
+
+
+def cmd_diff(args, cfg: Config, store: Store) -> int:
+    """What changed since the previous ranking. Spends no credits.
+
+    This is what makes the tool something that tells you to look, rather than
+    something you remember to open.
+    """
+    days = store.snapshot_dates()
+    if len(days) < 2:
+        print(f"Only {len(days)} ranking snapshot(s) so far -- `rank` writes one "
+              f"a day, and a diff needs two.")
+        return 1
+    later = args.date or days[-1]
+    if later not in days:
+        print(f"No snapshot for {later}. Have: {', '.join(days[-7:])}")
+        return 1
+    earlier = args.against or days[days.index(later) - 1]
+    if earlier not in days:
+        print(f"No snapshot for {earlier}. Have: {', '.join(days[-7:])}")
+        return 1
+
+    before, after = store.load_snapshot(earlier), store.load_snapshot(later)
+    universe = store.load_universe()
+
+    def label(card_id: str) -> str:
+        entry = universe.get(card_id) or {}
+        name = entry.get("name")
+        if not name:
+            return card_id
+        return f"{name} ({entry.get('set_name')} {entry.get('number')})"
+
+    print(f"{earlier} -> {later}\n")
+
+    moves = []
+    for card_id, row in after.items():
+        was = before.get(card_id)
+        if was is None:
+            continue
+        old_v, new_v = was.get("verdict"), row.get("verdict")
+        if old_v != new_v:
+            moves.append((VERDICT_RANK.get(new_v, 0) - VERDICT_RANK.get(old_v, 0),
+                          card_id, old_v, new_v))
+    for direction, arrow in ((1, "up"), (-1, "down")):
+        group = [m for m in moves if (m[0] > 0) == (direction > 0)]
+        group.sort(key=lambda m: -abs(m[0]))
+        if group:
+            print(f"  {len(group)} moved {arrow}")
+            for _, card_id, old_v, new_v in group[:args.top]:
+                print(f"    {old_v:>14} -> {new_v:<14} {label(card_id)}")
+            if len(group) > args.top:
+                print(f"    ... and {len(group) - args.top} more")
+            print()
+
+    shifts = [(row["floor_profit"] - before[cid]["floor_profit"], cid)
+              for cid, row in after.items()
+              if cid in before and row.get("floor_profit") is not None
+              and before[cid].get("floor_profit") is not None]
+    shifts.sort(key=lambda s: -abs(s[0]))
+    big = [s for s in shifts if abs(s[0]) >= args.min_move]
+    if big:
+        print(f"  {len(big)} floor(s) moved ${args.min_move:,.0f} or more")
+        for delta, card_id in big[:args.top]:
+            now = after[card_id]["floor_profit"]
+            print(f"    {delta:>+10,.2f}  to ${now:>9,.2f}  {label(card_id)}")
+        if len(big) > args.top:
+            print(f"    ... and {len(big) - args.top} more")
+        print()
+
+    entered = [c for c in after if c not in before]
+    left = [c for c in before if c not in after]
+    for group, verb in ((entered, "entered the ranking"), (left, "dropped out")):
+        if group:
+            print(f"  {len(group)} card(s) {verb}")
+            for card_id in group[:args.top]:
+                print(f"    {label(card_id)}")
+            if len(group) > args.top:
+                print(f"    ... and {len(group) - args.top} more")
+            print()
+
+    if not moves and not big and not entered and not left:
+        print("  nothing moved.")
     return 0
 
 
@@ -940,6 +1034,14 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("diff", help="what changed since the previous ranking")
+    p.add_argument("--date", help="the later snapshot, default the newest")
+    p.add_argument("--against", help="the earlier snapshot, default the one before")
+    p.add_argument("--top", type=int, default=10, help="rows to show per section")
+    p.add_argument("--min-move", type=float, default=25.0,
+                   dest="min_move", help="floor change worth reporting")
+    p.set_defaults(func=cmd_diff)
 
     p = sub.add_parser("population", help="test population access (2 credits)")
     p.set_defaults(func=cmd_population)
