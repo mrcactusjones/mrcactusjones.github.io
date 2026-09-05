@@ -70,6 +70,13 @@ for (const row of data.rows) {
     `floor mismatch ${row.id}: js=${js.floor} py=${row.floor_profit}`);
   assert.ok(Math.abs(js.upside - row.upside_profit) < 0.01,
     `upside mismatch ${row.id}: js=${js.upside} py=${row.upside_profit}`);
+  // With no PSA 10 comps both sides leave upside equal to the floor, so the
+  // numbers agree while the pages disagree about what they mean. The flag is
+  // what the display keys off, so it has to match too.
+  if (row.upside_known != null) {
+    assert.strictEqual(js.upsideKnown, row.upside_known,
+      `upside_known mismatch ${row.id}: js=${js.upsideKnown} py=${row.upside_known}`);
+  }
   assert.ok(Math.abs(js.cost - row.all_in) < 0.01, `all-in mismatch ${row.id}`);
   if (row.breakeven_p10 == null) assert.strictEqual(js.be, null, `be mismatch ${row.id}`);
   else assert.ok(Math.abs(js.be - row.breakeven_p10) < 1e-6, `be mismatch ${row.id}`);

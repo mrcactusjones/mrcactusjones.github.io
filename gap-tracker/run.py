@@ -23,8 +23,10 @@ from gapscan import ingest
 from gapscan import rank as rank_mod
 from gapscan import watchlist as watchlist_mod
 from gapscan import scan as scan_mod
+from gapscan import trends
 from gapscan.catalog import build as build_catalog
 from gapscan.catalog import merge_universe
+from gapscan.catalog import sweep_targets
 from gapscan.providers.ppt import PAGE_MAX
 from gapscan.config import Config, FIXTURES, ROOT, SEEDS
 from gapscan.providers.mock import MockProvider
@@ -160,9 +162,13 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
               f"      re-run `backfill` to populate it.")
     for row in rankings["rows"][:args.top]:
         flag = " " if row["confident"] else "?"
+        # With no PSA 10 comps the model refuses to invent upside and leaves it
+        # equal to the floor. Printing that number twice reads as "no upside at
+        # a 10", which is a claim about the market rather than about our data.
+        at10 = (f"${row['upside_profit']:>8.2f} at 10" if row.get("upside_known", True)
+                else f"{'--':>9} at 10")
         print(f" {flag} {row.get('conviction', 0):>5.0f}  ${row['floor_profit']:>8.2f} floor  "
-              f"${row['upside_profit']:>8.2f} at 10  "
-              f"{row['name']} ({row['set_name']} {row['number']})")
+              f"{at10}  {row['name']} ({row['set_name']} {row['number']})")
     return 0
 
 
@@ -405,12 +411,8 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         return 1
 
     wanted = [s.strip() for s in args.sets.split(",")] if args.sets else None
-    sets: list[str] = []
-    for entry in sorted(universe.values(), key=lambda e: -e.get("priority", 0)):
-        name = entry.get("set_name")
-        if name and name not in sets and (not wanted or name in wanted):
-            sets.append(name)
-    if not sets:
+    targets = sweep_targets(universe, load_seeds().get("sets", []), wanted)
+    if not targets:
         print("No matching sets in the universe.")
         return 1
 
@@ -431,29 +433,35 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         print('  { "budget": { "daily_credits": 20000 } }')
         return 1
     provider = get_provider(args, cfg)
-    print(f"{len(sets)} set(s), {args.limit} cards/page, {args.days} days of history")
+    pinned = sum(1 for t in targets if t.set_id)
+    print(f"{len(targets)} set(s) ({pinned} by set id, {len(targets) - pinned} by "
+          f"name), {args.limit} cards/page, {args.days} days of history")
     print(f"budget {budget} credits; each page costs {per_page}\n")
 
-    cards = points = discovered = 0
+    cards = points = discovered = repinned = 0
+    stop = False
     with db.session() as conn:
-        for set_name in sets:
+        for target in targets:
+            if stop:
+                break
             offset = 0
             while True:
                 if provider.credits_used + per_page > budget:
                     print(f"  budget reached ({provider.credits_used}/{budget})")
-                    set_name = None
+                    stop = True
                     break
                 try:
                     records, _ = provider.fetch_batch(
-                        set_name, days=args.days, limit=args.limit, offset=offset,
+                        target.set_name, set_id=target.set_id,
+                        days=args.days, limit=args.limit, offset=offset,
                         min_price=None if args.all_prices else cfg.thresholds.raw_price_min,
                         max_price=None if args.all_prices else cfg.thresholds.raw_price_max)
                 except OutOfCredits as exc:
                     print(f"  stopping: {exc}")
-                    set_name = None
+                    stop = True
                     break
                 except PPTError as exc:
-                    print(f"  ! {set_name} @{offset}: {exc}")
+                    print(f"  ! {target.label} @{offset}: {exc}")
                     break
                 if not records:
                     break
@@ -472,17 +480,20 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                             "number": entry["number"], "set_id": "sweep",
                             "set_name": entry["set_name"], "rarity": entry["rarity"],
                             "raw_hint": None, "priority": 0,
-                            "seed_reason": f"found sweeping {set_name}",
+                            "seed_reason": f"found sweeping {target.label}",
                             "image": None, "tier": "candidate", "source": "sweep",
                         }
                         discovered += 1
+                    # Pin PPT's own set id so the next sweep can address this
+                    # set exactly instead of guessing at its name.
+                    repinned += ingest.pin_set(universe[card_id], record)
                     # Keep the JSON cache in step so ranking works unchanged.
                     quote = ingest.extract_quote(record)
                     if quote.psa9 is not None or quote.psa10 is not None:
                         store.save_quote(card_id, {
                             "id": card_id, "fetched_at": store_now(), "miss": False,
                             "quote": quote.__dict__, "provider": provider.name})
-                print(f"  {set_name} @{offset}: {len(records)} cards, "
+                print(f"  {target.label} @{offset}: {len(records)} cards, "
                       f"{provider.credits_used} credits used")
                 # Advance by what the server actually returned. Using the
                 # requested limit stopped every set after one page, because the
@@ -490,8 +501,6 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                 offset += len(records)
                 if len(records) < min(args.limit, PAGE_MAX):
                     break
-            if set_name is None:
-                break
         stats = db.stats(conn)
 
     store.save_universe(universe)
@@ -499,6 +508,9 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
           f"({provider.credits_used} credits)")
     if discovered:
         print(f"universe grew by {discovered} card(s) found while sweeping")
+    if repinned:
+        print(f"pinned {repinned} card(s) to PPT's own set id; the next sweep "
+              f"addresses those sets exactly instead of by name")
     print(f"database: {stats['cards']} cards, {stats['price_points']} points, "
           f"{stats['earliest']} to {stats['latest']}")
     print("Next: run.py rank")
@@ -518,8 +530,7 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
         print("No trend data yet -- run `backfill` to load price history.")
         return 1
 
-    scored.sort(key=lambda r: (r.get("floor_days_held_90d", 0),
-                               r.get("floor_profit", 0)), reverse=True)
+    scored = trends.by_durability(scored)
 
     def pct(value):
         return f"{value * 100:+.0f}%" if value is not None else "     -"
@@ -536,10 +547,17 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
         move = row.get("psa9_90d")
         if move is None:
             move = row.get("psa9_30d")
-        print(f"{held:>7} {row.get('floor_streak', 0):>6}d ${row['floor_profit']:>9.2f} "
+        # The floor is the whole test, so an underwater one is marked in the
+        # row rather than left for the reader to notice the minus sign.
+        mark = " " if row.get("floor_profit", 0) > 0 else "v"
+        print(f"{mark}{held:>6} {row.get('floor_streak', 0):>6}d ${row['floor_profit']:>9.2f} "
               f"{pct(move):>7} {pct(row.get('divergence_30d')):>8}  "
               f"{row['name']} ({row['set_name']} {row['number']})")
 
+    sunk = sum(1 for r in scored[:args.top] if r.get("floor_profit", 0) <= 0)
+    if sunk:
+        print(f"\n{sunk} row(s) marked 'v' are under water today; a long hold "
+              f"there describes a collapse, not an opportunity.")
     thin = sum(1 for r in scored if r.get("psa9_90d") is None)
     if thin:
         print(f"\n{thin} of {len(scored)} cards have too few graded sales for a "

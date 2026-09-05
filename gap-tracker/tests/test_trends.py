@@ -169,3 +169,40 @@ class TestWorstCaseFloor(unittest.TestCase):
         old_crash = line([-500], end=TODAY - timedelta(days=200))
         recent = line([100, 100, 100])
         self.assertAlmostEqual(trends.worst(old_crash + recent, 90, TODAY), 100)
+
+
+class DurabilityOrderTest(unittest.TestCase):
+    """`trends` ranked durable losses beside durable wins.
+
+    Eight of the first full sweep's top twenty had a negative floor. Sorting
+    on days-held alone made "held 36/38" read as an endorsement of a card that
+    is under water today.
+    """
+
+    @staticmethod
+    def _row(name, floor, held):
+        return {"name": name, "floor_profit": floor, "floor_days_held_90d": held}
+
+    def test_a_live_floor_outranks_a_longer_held_dead_one(self):
+        rows = [self._row("collapsed", -154.14, 36), self._row("live", 45.40, 20)]
+        self.assertEqual([r["name"] for r in trends.by_durability(rows)],
+                         ["live", "collapsed"])
+
+    def test_among_live_floors_the_better_held_one_wins(self):
+        rows = [self._row("thin", 500.0, 5), self._row("durable", 100.0, 35)]
+        self.assertEqual([r["name"] for r in trends.by_durability(rows)],
+                         ["durable", "thin"])
+
+    def test_days_held_ties_break_on_the_floor(self):
+        rows = [self._row("small", 10.0, 30), self._row("big", 900.0, 30)]
+        self.assertEqual([r["name"] for r in trends.by_durability(rows)],
+                         ["big", "small"])
+
+    def test_underwater_rows_are_kept_not_dropped(self):
+        """A collapse is often the more interesting story; it just isn't a buy."""
+        rows = [self._row("collapsed", -154.14, 36)]
+        self.assertEqual(len(trends.by_durability(rows)), 1)
+
+    def test_a_zero_floor_is_not_live(self):
+        rows = [self._row("zero", 0.0, 40), self._row("live", 1.0, 1)]
+        self.assertEqual([r["name"] for r in trends.by_durability(rows)][0], "live")

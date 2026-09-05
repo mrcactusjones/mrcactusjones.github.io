@@ -223,6 +223,8 @@ function score(row, s) {
                     !row.psa9_outlier &&
                     // A 9 above a 10 means pooled comps, not an opportunity.
                     !(row.psa10 != null && row.psa9 > row.psa10 * T.grade_inversion_slack) &&
+                    // Equal is the same fault: one price wearing two grades.
+                    !(row.psa10 != null && row.psa9 === row.psa10) &&
                     // Computed server-side: it needs the whole set.
                     !row.multiple_outlier &&
                     // Printings worth very different amounts, graded as one pool.
@@ -241,6 +243,7 @@ function score(row, s) {
   const floorSeries = (row.gap_points || []).map(
     ([raw, psa9]) => netOf(psa9, s) - allIn(raw, s, psa9));
   return { ...row, cost, floor, upside, confident, verdict, floorSeries,
+           upsideKnown: row.psa10 != null,
            floorRoi: floor / cost, be: breakevenP10(cost, net9, net10),
            ev: expectedValue(row, s, cost, net9, net10),
            worst: worstFloor(floorSeries),
@@ -281,7 +284,9 @@ const COLS = [
   { k:"sales_per_month", t:"Sales/mo", fmt:r => r.sales_per_month == null ? "—" :
       `<span class="num" title="PSA 9 sales per month, from the counts and the window they cover">${
         r.sales_per_month.toFixed(1)}</span>` },
-  { k:"upside", t:"At 10",      fmt:r => signed(r.upside) },
+  // No PSA 10 comps means the model has no upside to show, not that the card
+  // has none. Repeating the floor here would state the second.
+  { k:"upside", t:"At 10",      fmt:r => r.upsideKnown ? signed(r.upside) : "—" },
   { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
       `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
   { k:"gem_rate", t:"Gem %", fmt:r => r.gem_rate == null ? "—" :

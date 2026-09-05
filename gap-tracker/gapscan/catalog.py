@@ -12,6 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .config import FIXTURES, Thresholds
@@ -27,6 +28,83 @@ USER_AGENT = "gap-tracker/0.1 (personal research tool)"
 _UNAUTHED_INTERVAL = 1.2
 _AUTHED_INTERVAL = 0.25
 _last_call = 0.0
+
+
+@dataclass(frozen=True)
+class SweepTarget:
+    """One `backfill` query: a set, addressed the most exact way we can."""
+
+    label: str
+    priority: int = 0
+    set_id: str | None = None
+    set_name: str | None = None
+    aliases: frozenset = field(default_factory=frozenset)
+
+
+def sweep_targets(universe: dict, seeds: list[dict] | None = None,
+                  wanted: list[str] | None = None) -> list[SweepTarget]:
+    """Which sets `backfill` should sweep, each addressed exactly once.
+
+    The API's `set` filter matches names loosely and PPT's names are not the
+    seed list's, so "Delta Species" and "EX Delta Species" were two queries
+    returning one set -- each billed in full. A set whose cards carry a pinned
+    `ppt_set_id` is therefore addressed by that id, and the names that resolve
+    to it stop being targets in their own right. Only a set nothing has ever
+    fetched falls back to a name.
+
+    Seeded sets are included even when no card in the universe claims them, so
+    a failed catalog build cannot silently drop one from the crawl -- which is
+    how `Expedition` went missing from a full sweep.
+    """
+    by_id: dict[str, list] = {}          # set_id -> [priority, label, aliases]
+    by_name: dict[str, list] = {}        # set_name -> [priority, covered by an id]
+
+    for entry in universe.values():
+        name = entry.get("set_name")
+        set_id = entry.get("ppt_set_id")
+        priority = entry.get("priority") or 0
+        if set_id:
+            label = entry.get("ppt_set_name") or name or set_id
+            slot = by_id.setdefault(set_id, [priority, label, set()])
+            if priority > slot[0]:
+                slot[0], slot[1] = priority, label
+            slot[2].update(n for n in (name, entry.get("ppt_set_name")) if n)
+        if name:
+            slot = by_name.setdefault(name, [priority, False])
+            slot[0] = max(slot[0], priority)
+            slot[1] = slot[1] or bool(set_id)
+
+    for seed in seeds or []:
+        name = seed.get("name")
+        if not name:
+            continue
+        slot = by_name.setdefault(name, [seed.get("priority") or 0, False])
+        slot[0] = max(slot[0], seed.get("priority") or 0)
+
+    # A set's priority is the highest claimed under any of its names. Without
+    # this a pinned set drops to the priority of whichever cards happened to
+    # carry the id -- often the ones the sweep discovered, all at zero -- and
+    # the seed list's ordering quietly stops applying.
+    targets = []
+    for set_id, (priority, label, aliases) in by_id.items():
+        aliases = aliases | {label}
+        priority = max([priority] + [by_name[a][0] for a in aliases if a in by_name])
+        targets.append(SweepTarget(label=label, priority=priority, set_id=set_id,
+                                   aliases=frozenset(aliases)))
+    targets += [
+        SweepTarget(label=name, priority=priority, set_name=name,
+                    aliases=frozenset({name}))
+        for name, (priority, covered) in by_name.items() if not covered
+    ]
+
+    if wanted:
+        want = {w.strip().casefold() for w in wanted if w.strip()}
+        targets = [t for t in targets
+                   if want & {alias.casefold() for alias in t.aliases}]
+
+    # Priority first, then name, so a run's order is reproducible.
+    targets.sort(key=lambda t: (-t.priority, t.label))
+    return targets
 
 
 def _get(path: str, params: dict) -> dict:

@@ -811,3 +811,54 @@ class TestVariantContamination(unittest.TestCase):
 
     def test_missing_variant_data_flags_nothing(self):
         self.assertTrue(evaluate(self._quote(None), self.econ, self.th).confident)
+
+
+class MissingUpsideTest(unittest.TestCase):
+    """A card with no PSA 10 comps must not read as a card with no upside.
+
+    Three of the top five rows on the first full sweep showed "at 10" equal to
+    the floor. The model was right to refuse to invent a number; the display
+    was wrong to present the refusal as a market fact.
+    """
+
+    def setUp(self):
+        self.econ = Economics(grading_fee=20.0, sub_ship_per_card=5.0,
+                              sale_fee_pct=0.1325, ship_out=5.0,
+                              raw_premium_pct=0.15, use_fee_tiers=False)
+        self.th = Thresholds(min_graded_sales=0)
+
+    def _judge(self, **kw):
+        quote = Quote(raw=50.0, psa9=400.0, sales_9=20, sales_10=10,
+                      psa9_last_sale="2026-09-01", **kw)
+        return evaluate(quote, self.econ, self.th)
+
+    def test_no_psa_10_is_flagged_rather_than_scored_as_zero_upside(self):
+        verdict = self._judge(psa10=None)
+        self.assertFalse(verdict.upside_known)
+        self.assertEqual(verdict.upside_profit, verdict.floor_profit,
+                         "the fallback itself is right: don't invent upside")
+
+    def test_a_missing_psa_10_does_not_cost_the_card_its_verdict(self):
+        """The floor test uses the 9. Missing 10s are not evidence against it."""
+        with_ten = self._judge(psa10=1200.0)
+        without = self._judge(psa10=None)
+        self.assertEqual(without.verdict, "no_brainer")
+        self.assertEqual(without.verdict, with_ten.verdict)
+        self.assertTrue(without.confident)
+        self.assertEqual(without.floor_profit, with_ten.floor_profit)
+
+    def test_a_present_psa_10_is_known_upside(self):
+        self.assertTrue(self._judge(psa10=1200.0).upside_known)
+
+    def test_a_psa_10_equal_to_the_psa_9_is_pooled_comps(self):
+        """Not missing data -- one price wearing two grade labels."""
+        verdict = self._judge(psa10=400.0)
+        self.assertTrue(verdict.upside_known)
+        self.assertFalse(verdict.confident)
+        self.assertTrue(any("not being told apart" in r for r in verdict.reasons),
+                        verdict.reasons)
+
+    def test_an_inverted_pair_still_reads_as_inversion_not_equality(self):
+        verdict = self._judge(psa10=300.0)
+        self.assertTrue(any("priced above" in r for r in verdict.reasons),
+                        verdict.reasons)

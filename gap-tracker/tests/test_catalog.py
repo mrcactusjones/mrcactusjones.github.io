@@ -370,3 +370,93 @@ class TestSetMultipleOutlier(unittest.TestCase):
         self.assertEqual(
             self.reasons({"set_name": "Unknown"}, self.Quote(raw=1.0, psa9=999.0), {}, th),
             [])
+
+
+class SweepTargetTest(unittest.TestCase):
+    """One set, one query.
+
+    PPT's set names are not the seed list's -- "Delta Species" and "EX Delta
+    Species" are one set -- and a full sweep paid for seven such pairs twice,
+    18% of the run. Targets are keyed on PPT's own set id so the aliases
+    cannot come apart again.
+    """
+
+    SEEDS = [{"name": "Delta Species", "priority": 8},
+             {"name": "Expedition", "priority": 8}]
+
+    @staticmethod
+    def _entry(set_name, set_id=None, ppt_name=None, priority=0):
+        entry = {"set_name": set_name, "priority": priority}
+        if set_id:
+            entry["ppt_set_id"] = set_id
+            entry["ppt_set_name"] = ppt_name or set_name
+        return entry
+
+    def test_two_names_for_one_set_become_one_target(self):
+        universe = {
+            "a": self._entry("Delta Species", "1450", "EX Delta Species", 8),
+            "b": self._entry("EX Delta Species", "1450", "EX Delta Species"),
+        }
+        targets = catalog.sweep_targets(universe, [])
+        self.assertEqual([(t.set_id, t.set_name) for t in targets], [("1450", None)])
+
+    def test_a_pinned_set_is_never_also_swept_by_name(self):
+        universe = {"a": self._entry("Aquapolis", "1397", priority=10)}
+        targets = catalog.sweep_targets(universe, [])
+        self.assertEqual(len(targets), 1)
+        self.assertIsNone(targets[0].set_name, "the name query is the fuzzy one")
+
+    def test_an_unfetched_set_still_falls_back_to_its_name(self):
+        universe = {"a": self._entry("Shining Fates", priority=3)}
+        targets = catalog.sweep_targets(universe, [])
+        self.assertEqual([(t.set_id, t.set_name) for t in targets],
+                         [(None, "Shining Fates")])
+
+    def test_a_seeded_set_is_swept_even_with_no_cards_for_it(self):
+        """Expedition was seeded, catalogued nothing, and silently never swept."""
+        targets = catalog.sweep_targets({}, self.SEEDS)
+        self.assertIn("Expedition", [t.set_name for t in targets])
+
+    def test_a_seed_does_not_re_add_a_set_already_pinned(self):
+        universe = {"a": self._entry("Delta Species", "1450", "EX Delta Species", 8)}
+        targets = catalog.sweep_targets(universe, self.SEEDS)
+        self.assertEqual(sorted(t.label for t in targets),
+                         ["EX Delta Species", "Expedition"])
+
+    def test_the_filter_accepts_either_spelling(self):
+        universe = {"a": self._entry("Delta Species", "1450", "EX Delta Species", 8)}
+        for spelling in ("Delta Species", "ex delta species"):
+            targets = catalog.sweep_targets(universe, [], [spelling])
+            self.assertEqual([t.set_id for t in targets], ["1450"], spelling)
+
+    def test_priority_leads_and_ties_are_stable(self):
+        universe = {
+            "a": self._entry("Zzz", priority=1),
+            "b": self._entry("Aquapolis", "1397", priority=10),
+            "c": self._entry("Aaa", priority=1),
+        }
+        targets = catalog.sweep_targets(universe, [])
+        self.assertEqual([t.label for t in targets], ["Aquapolis", "Aaa", "Zzz"])
+
+    def test_a_set_takes_the_highest_priority_among_its_cards(self):
+        universe = {
+            "a": self._entry("Delta Species", "1450", "EX Delta Species", 0),
+            "b": self._entry("Delta Species", "1450", "EX Delta Species", 100),
+        }
+        self.assertEqual(catalog.sweep_targets(universe, [])[0].priority, 100)
+
+    def test_a_pinned_set_keeps_the_priority_claimed_under_its_other_names(self):
+        """Cards a sweep discovers sit at priority 0 and are the ones that
+        carry the id. Without folding in the names, pinning a set silently
+        demoted it to the back of the crawl."""
+        universe = {
+            "seeded": self._entry("Base Set", priority=10),      # catalogued, unpinned
+            "swept": self._entry("Base Set", "1", "Base", 0),    # discovered, pinned
+        }
+        targets = catalog.sweep_targets(universe, [])
+        self.assertEqual([(t.set_id, t.priority) for t in targets], [("1", 10)])
+
+    def test_a_seed_priority_reaches_a_set_that_is_already_pinned(self):
+        universe = {"a": self._entry("Delta Species", "1450", "EX Delta Species", 0)}
+        seeds = [{"name": "Delta Species", "priority": 8}]
+        self.assertEqual(catalog.sweep_targets(universe, seeds)[0].priority, 8)

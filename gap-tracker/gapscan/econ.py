@@ -179,6 +179,8 @@ class Verdict:
     floor_roi: float
     upside_profit: float         # profit if it comes back a 10
     upside_roi: float
+    upside_known: bool           # False when there are no PSA 10 comps at all,
+                                 # in which case upside_* repeat the floor
     breakeven_p10: Optional[float]  # P(10) needed to break even when the 9 loses
     confident: bool
     reasons: list[str]
@@ -247,10 +249,15 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
     reasons: list[str] = list(extra_reasons or [])
     # A 9 worth more than a 10 cannot happen in a market that grades honestly;
     # it means sales from different cards landed in one bucket.
-    if (quote.psa10 is not None
-            and quote.psa9 > quote.psa10 * thresholds.grade_inversion_slack):
-        reasons.append(
-            f"PSA 9 (${quote.psa9:,.0f}) priced above PSA 10 (${quote.psa10:,.0f})")
+    if quote.psa10 is not None:
+        if quote.psa9 > quote.psa10 * thresholds.grade_inversion_slack:
+            reasons.append(
+                f"PSA 9 (${quote.psa9:,.0f}) priced above PSA 10 (${quote.psa10:,.0f})")
+        elif quote.psa9 == quote.psa10:
+            # Not missing data -- one price wearing two grade labels, which is
+            # what pooled comps look like when every sale lands in one bucket.
+            reasons.append(f"PSA 9 and PSA 10 both ${quote.psa9:,.0f}; "
+                           "the grades are not being told apart")
     if quote.sales_9 < thresholds.min_sales_9:
         reasons.append(f"only {quote.sales_9} PSA 9 comps (want {thresholds.min_sales_9}+)")
     if quote.psa10 is not None and quote.sales_10 < thresholds.min_sales_10:
@@ -322,6 +329,7 @@ def evaluate(quote: Quote, econ: Economics, thresholds: Thresholds,
         floor_roi=floor_roi,
         upside_profit=upside_profit,
         upside_roi=upside_profit / all_in,
+        upside_known=quote.psa10 is not None,
         breakeven_p10=breakeven_probability(all_in, net9, net10),
         confident=confident,
         reasons=reasons,

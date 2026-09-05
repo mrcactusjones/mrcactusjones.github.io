@@ -33,6 +33,25 @@ def card_from_record(record: dict, universe: dict | None = None) -> dict:
     }
 
 
+def pin_set(entry: dict, record: dict) -> bool:
+    """Record PPT's own set identity on a universe entry. True if it changed.
+
+    Set *names* are aliased: the seed list calls a set "Delta Species" and PPT
+    calls it "EX Delta Species", so sweeping by name fetches the same set twice
+    and pays twice. The numeric id is exact and rides along in every record, so
+    pinning it here lets the next sweep target sets rather than spellings.
+    """
+    set_id = record.get("setId")
+    if set_id is None:
+        return False
+    set_id = str(set_id)
+    changed = entry.get("ppt_set_id") != set_id
+    entry["ppt_set_id"] = set_id
+    if record.get("setName"):
+        entry["ppt_set_name"] = record["setName"]
+    return changed
+
+
 def ingest_record(conn: sqlite3.Connection, record: dict, universe: dict | None = None,
                   today: str | None = None) -> tuple[str, int]:
     """Store one card's history and today's prices. Returns (card_id, points)."""

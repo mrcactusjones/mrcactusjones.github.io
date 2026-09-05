@@ -52,7 +52,9 @@ class MockProvider:
         return Quote(
             raw=round(raw, 2),
             psa9=round(raw * mult9, 2),
-            psa10=round(raw * mult10, 2),
+            # No PSA 10 sales means no PSA 10 price -- real for scarce cards,
+            # and the case where the model has to refuse to invent upside.
+            psa10=round(raw * mult10, 2) if n10 else None,
             psa8=round(raw * mult9 * 0.55, 2) if rng.random() < 0.7 else None,
             sales_9=n9,
             sales_10=n10,
@@ -70,13 +72,24 @@ class MockProvider:
             source="mock",
         )
 
-    def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
+    # The live API's set ids are opaque numbers. Ours encodes the name so a
+    # sweep by id and a sweep by name produce the same cards -- otherwise the
+    # demo's output would change the moment set ids got pinned.
+    SET_ID_PREFIX = "mockset-"
+
+    def fetch_batch(self, set_name: str | None = None, days: int = 180, limit: int = 100,
                     offset: int = 0, min_price: float | None = None,
-                    max_price: float | None = None) -> tuple[list[dict], int]:
+                    max_price: float | None = None,
+                    set_id: str | None = None) -> tuple[list[dict], int]:
         """Fake set page, shaped like the real response including history."""
         from datetime import timedelta
 
         from ..store import utcnow
+        if set_id:
+            set_name = set_id[len(self.SET_ID_PREFIX):] if \
+                set_id.startswith(self.SET_ID_PREFIX) else set_id
+        if not set_name:
+            raise ValueError("fetch_batch needs a set_id or a set_name")
         if offset:
             return [], 0
         rng = self._rng(f"{set_name}|batch")
@@ -94,6 +107,7 @@ class MockProvider:
             records.append({
                 "id": f"mock{index}", "externalCatalogId": f"{set_name}-{index}",
                 "setName": set_name, "cardNumber": str(index),
+                "setId": f"{self.SET_ID_PREFIX}{set_name}",
                 "name": f"Mock {index}", "rarity": "Rare Holo",
                 "tcgPlayerId": str(10000 + index),
                 "prices": {"market": round(base, 2)},

@@ -221,3 +221,16 @@ def summarise(raw: Sequence[Point], psa9: Sequence[Point], psa10: Sequence[Point
         "floor_points": len(floor),
         "history_days": len({d for d, _ in raw} | {d for d, _ in psa9}),
     }
+
+
+def by_durability(rows: list[dict]) -> list[dict]:
+    """Order trend rows: live floors first, then by how well each has held.
+
+    A floor that held 36 of 38 observations and is under water today is a
+    collapse. That is worth seeing -- it is often the more interesting story --
+    but ranking it beside a floor that is still positive makes "held 36/38"
+    read as an endorsement of a card you would lose money on.
+    """
+    return sorted(rows, key=lambda r: (r.get("floor_profit", 0) > 0,
+                                       r.get("floor_days_held_90d", 0),
+                                       r.get("floor_profit", 0)), reverse=True)

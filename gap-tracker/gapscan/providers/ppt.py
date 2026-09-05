@@ -679,19 +679,26 @@ class PPTProvider:
     #   includeEbay includeBoth days limitDays fetchAllInSet language
     #   lightweight printing condition maxDataPoints includeCardmarket
     # Notably there is no `page` -- pagination is by offset.
-    def fetch_batch(self, set_name: str, days: int = 180, limit: int = 100,
+    def fetch_batch(self, set_name: str | None = None, days: int = 180, limit: int = 100,
                     offset: int = 0, min_price: float | None = None,
-                    max_price: float | None = None) -> tuple[list[dict], int]:
+                    max_price: float | None = None,
+                    set_id: str | None = None) -> tuple[list[dict], int]:
         """A page of a set, with graded prices and history.
+
+        Prefer `set_id`: the `set` name filter is fuzzy, so "Delta Species" and
+        "EX Delta Species" are two queries returning one set, each billed in
+        full. The id is exact.
 
         Billing is per card requested, so narrowing to the price band we would
         keep anyway means far fewer pages to cover the cards worth having --
         the filtering is a cost saving, not just a convenience.
         """
+        if not set_id and not set_name:
+            raise ValueError("fetch_batch needs a set_id or a set_name")
         # Asking for more than the server returns is billed anyway.
         limit = min(limit, PAGE_MAX)
         params = {
-            "set": set_name,
+            "setId" if set_id else "set": set_id or set_name,
             "limit": limit,
             "offset": offset,
             "includeEbay": "true",
