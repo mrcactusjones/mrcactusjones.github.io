@@ -229,6 +229,10 @@ function score(row, s) {
                     !row.multiple_outlier &&
                     // Printings worth very different amounts, graded as one pool.
                     !(row.variant_spread && row.variant_spread > T.variant_spread_factor) &&
+                    // Graded sales that are two cards. row.psa9 has already
+                    // been repriced to the cheaper of them server-side, so the
+                    // arithmetic here needs no change -- only the confidence.
+                    !row.comps_split &&
                     row.raw >= T.raw_price_min && row.raw <= T.raw_price_max;
   let verdict;
   // Thresholds come from the config, not from constants baked in here: a
@@ -271,6 +275,13 @@ const COLS = [
   { k:"raw",    t:"Raw",        fmt:r => money(r.raw) },
   { k:"psa9",   t:"PSA 9",      fmt:r => money(r.psa9) },
   { k:"psa10",  t:"PSA 10",     fmt:r => money(r.psa10) },
+  // When the provider's number was two cards averaged, show what it said and
+  // what we used instead, so the adjustment is visible rather than silent.
+  { k:"psa9_blended", t:"Blend", fmt:r => r.psa9_blended == null ? "—" :
+      `<span class="num neg" title="provider reported $${r.psa9_blended.toFixed(2)} from ${
+        (r.comps_split_counts || []).join(" + ")} sales in two clusters ($${
+        (r.comps_split_low ?? 0).toFixed(0)} and $${(r.comps_split_high ?? 0).toFixed(0)}); ${
+        ""}priced off the cheaper">${money(r.psa9_blended)}</span>` },
   { k:"cost",   t:"All-in",     fmt:r => money(r.cost) },
   { k:"floor",  t:"Floor @ 9",  fmt:r => signed(r.floor) },
   { k:"floorRoi",t:"Floor ROI", fmt:r => pct(r.floorRoi) },

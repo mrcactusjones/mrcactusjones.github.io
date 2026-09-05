@@ -8,6 +8,7 @@ without a database.
 from __future__ import annotations
 
 import statistics
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Optional, Sequence
 
@@ -169,6 +170,73 @@ def worst(points: Sequence[Point], days: int = 90,
     """The lowest value in the window -- the bad day you have to survive."""
     recent = window(points, days, today)
     return min(v for _, v in recent) if recent else None
+
+
+@dataclass(frozen=True)
+class CompsSplit:
+    """Two cards' graded sales pooled into one series."""
+
+    boundary: float    # the cut between them; sales at or below it are the cheap one
+    low: float         # cheap side's median -- what a common copy actually fetches
+    high: float        # dear side's median
+    low_count: int
+    high_count: int
+    spread: float      # p75/p25 of the whole series, the statistic that fired
+
+
+def _quantile(sorted_values: Sequence[float], pct: float) -> float:
+    index = min(len(sorted_values) - 1,
+                max(0, int(round(pct * (len(sorted_values) - 1)))))
+    return sorted_values[index]
+
+
+def comps_split(values: Sequence[float], min_spread: float = 2.0,
+                min_share: float = 0.25, min_sample: int = 8) -> Optional[CompsSplit]:
+    """Detect two cards' sales pooled into one series, or return None.
+
+    PPT reads grades out of eBay listing titles, and a title gives the grade
+    but not the printing -- so a Jungle Vaporeon's PSA 9 "price" is 1st Edition
+    and Unlimited sales averaged together, and the number it reports is one no
+    copy sells for.
+
+    Detected on p75/p25, the width of the middle half. That needs no clean gap
+    between the clusters, which matters because realistic sale-to-sale noise
+    fills any gap in: over 3,000 trials at 40 sales a card, a single card with
+    up to 35% noise reads 1.55x and a card climbing 60% across the window reads
+    1.44x, while two cards 2.5x apart read 2.43x. Two cards less than about 2x
+    apart cannot be told from one noisy card, which is also where mispricing
+    one as the other costs least.
+
+    The cut is the largest ratio gap that still leaves `min_share` of the sales
+    on each side, so a lone outlier cannot define a cluster.
+    """
+    values = [v for v in values if v and v > 0]
+    if len(values) < min_sample:
+        return None
+    ordered = sorted(values)
+    p25, p75 = _quantile(ordered, 0.25), _quantile(ordered, 0.75)
+    if p25 <= 0:
+        return None
+    spread = p75 / p25
+    if spread < min_spread:
+        return None
+
+    floor_n = max(1, int(len(ordered) * min_share))
+    best_ratio, boundary = 0.0, None
+    for i in range(floor_n - 1, len(ordered) - floor_n):
+        ratio = ordered[i + 1] / ordered[i]
+        if ratio > best_ratio:
+            best_ratio, boundary = ratio, ordered[i]
+    if boundary is None:
+        return None
+
+    low = [v for v in ordered if v <= boundary]
+    high = [v for v in ordered if v > boundary]
+    if not low or not high:
+        return None
+    return CompsSplit(boundary=boundary,
+                      low=statistics.median(low), high=statistics.median(high),
+                      low_count=len(low), high_count=len(high), spread=spread)
 
 
 def percentile(points: Sequence[Point], pct: float, days: int = 90,

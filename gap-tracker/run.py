@@ -608,6 +608,25 @@ def cmd_series(args, cfg: Config, store: Store) -> int:
         shown = f"{move * 100:+.1f}%" if move is not None else "n/a"
         print(f"  {days:>3}d change {shown:>8}  from {n} point(s)"
               + ("" if n >= 4 else "  (under the 4-point minimum)"))
+
+    vol = trends.volatility(points, args.days)
+    if vol is not None:
+        print(f"  volatility  {vol * 100:>7.1f}%  sale-to-sale")
+
+    # The question this command exists to answer: is this one card's prices,
+    # or two cards' sales sharing a title-parsed grade?
+    split = trends.comps_split([v for _, v in trends.window(points, args.days)],
+                               cfg.thresholds.comps_split_spread,
+                               cfg.thresholds.comps_split_min_share,
+                               cfg.thresholds.comps_split_min_sample)
+    if split is None:
+        print("  reads as one card's sales")
+    else:
+        print(f"\n  TWO CARDS POOLED (spread {split.spread:.2f}x, "
+              f"cut at ${split.boundary:,.2f})")
+        print(f"    {split.low_count} sale(s) near ${split.low:,.2f}  <- the floor "
+              f"is priced from these")
+        print(f"    {split.high_count} sale(s) near ${split.high:,.2f}")
     return 0
 
 

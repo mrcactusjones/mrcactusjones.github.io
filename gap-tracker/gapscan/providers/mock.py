@@ -104,6 +104,12 @@ class MockProvider:
                     stamp = (utcnow() - timedelta(days=(points - step) * 3)).date()
                     series[stamp.isoformat()] = round(value, 2)
                 return series
+            def pooled(start, points=days // 3):
+                """Two printings' sales interleaved under one grade."""
+                cheap, dear = walk(start), walk(start * 2.8)
+                return {stamp: (dear[stamp] if i % 2 else price)
+                        for i, (stamp, price) in enumerate(sorted(cheap.items()))}
+
             records.append({
                 "id": f"mock{index}", "externalCatalogId": f"{set_name}-{index}",
                 "setName": set_name, "cardNumber": str(index),
@@ -126,7 +132,14 @@ class MockProvider:
                                  "medianPrice": round(base * mult9 * 0.5, 2)},
                     },
                     "priceHistory": {
-                        "psa9": walk(base * mult9),
+                        # Every third card's PSA 9 sales are two printings
+                        # pooled, the way a WOTC holo's 1st Edition and
+                        # Unlimited sales arrive under one title-parsed grade.
+                        # Without this the demo never exercises the split
+                        # detector and the page could drift from the model
+                        # unnoticed.
+                        "psa9": (pooled(base * mult9) if index % 3 == 0
+                                 else walk(base * mult9)),
                         "psa10": walk(base * mult10),
                     },
                     "dateRangeStart": (utcnow() - timedelta(

@@ -7,6 +7,9 @@ from .econ import (Quote, days_since, evaluate, mix_from_population,
 from .scan import coverage
 from .store import Store, age_days, iso, utcnow
 
+# The window the split is judged over, matching the trend analytics.
+SPLIT_WINDOW_DAYS = 90
+
 
 def _streak(series: list[dict], threshold: float) -> int:
     """Consecutive days, counting back from today, clearing the threshold.
@@ -64,7 +67,49 @@ def _gap_pairs(raw: list, psa9: list, days: int = 90) -> list[list]:
             for _, r, g in trends.gap_inputs(raw, psa9, days=days)]
 
 
-def _attach_trends(rows: list[dict], cfg: Config) -> int:
+def _comps_splits(priced: list, cfg: Config) -> dict:
+    """card_id -> CompsSplit for every card whose graded sales are two cards.
+
+    Reads the stored PSA 9 sales rather than the quote, because a split is only
+    visible across a series of sales -- the provider hands us one blended
+    number that hides it.
+
+    Silently returns nothing when there is no database, so the free-tier
+    workflow is unaffected, exactly as `_attach_trends` already guards.
+    """
+    from . import db, trends
+    if not db.PATH.exists():
+        return {}
+    splits = {}
+    with db.session() as conn:
+        for entry, _ in priced:
+            # The recent window, not the whole series: a cluster median drawn
+            # from sales a year old is not a price you can transact at today.
+            recent = trends.window(db.series(conn, entry["id"], "psa9"), SPLIT_WINDOW_DAYS)
+            split = trends.comps_split(
+                [v for _, v in recent], cfg.thresholds.comps_split_spread,
+                cfg.thresholds.comps_split_min_share,
+                cfg.thresholds.comps_split_min_sample)
+            if split is not None:
+                splits[entry["id"]] = split
+    return splits
+
+
+def cheap_variant_price(quoted: float, split) -> float:
+    """What a common copy of a two-printing card actually fetches.
+
+    You buy a raw copy at the raw price, which is the common printing, so the
+    cheap cluster is what you can count on -- not the blend, which is a number
+    no copy sells for.
+
+    Never upward: the cluster is a median of past sales while the quote is the
+    provider's current figure, and taking the higher of the two would let a
+    contamination warning inflate a floor. That is the opposite of the point.
+    """
+    return round(min(quoted, split.low), 2)
+
+
+def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) -> int:
     """Fold price-history analytics onto the ranked rows.
 
     Silently does nothing when there is no database yet, so the free-tier
@@ -78,6 +123,13 @@ def _attach_trends(rows: list[dict], cfg: Config) -> int:
         for row in rows:
             raw = db.series(conn, row["id"], "raw")
             psa9 = db.series(conn, row["id"], "psa9")
+            split = (splits or {}).get(row["id"])
+            if split is not None:
+                # Keep only the cheap variant's sales. The headline floor is
+                # priced from them, so the floor history, the worst case and
+                # the sparkline have to be too -- otherwise the page and the
+                # table describe two different cards.
+                psa9 = [p for p in psa9 if p[1] <= split.boundary]
             if len(raw) < 2 and len(psa9) < 2:
                 continue
             psa10 = db.series(conn, row["id"], "psa10")
@@ -118,16 +170,33 @@ def build(universe: dict, store: Store, cfg: Config,
                        Quote(**cached["quote"])))
 
     set_medians = _set_multiples(priced, cfg.thresholds.min_set_sample)
+    splits = _comps_splits(priced, cfg)
 
     for entry, quote in priced:
         cached = {"fetched_at": entry.get("_fetched_at")}
+        # Two printings pooled into one graded price. You buy a raw copy at the
+        # raw price, which is the common printing, so the cheap cluster is what
+        # you can actually count on -- price the floor from that and say so.
+        split = splits.get(entry["id"])
+        split_reasons = []
+        blended = quote.psa9
+        if split is not None and quote.psa9 is not None:
+            quote.psa9 = cheap_variant_price(quote.psa9, split)
+            split_reasons.append(
+                f"graded sales split in two: {split.low_count} near "
+                f"${split.low:,.0f} and {split.high_count} near ${split.high:,.0f}; "
+                f"priced off the cheaper, not the ${blended:,.0f} blend")
         # A real population report if we have one, otherwise the free proxy.
         mix = (mix_from_population(quote.population)
                or mix_from_sales(quote.psa_sales_mix, cfg.thresholds.min_mix_sample,
                                  cfg.thresholds.sales_mix_min_low))
+        # Judged after repricing, against medians built before it. The test is
+        # one-sided (only a multiple far *above* the set's norm is flagged), so
+        # a repriced card can only draw fewer flags, never a spurious one --
+        # and it already carries the split reason.
         multiple_reasons = _multiple_reasons(entry, quote, set_medians, cfg.thresholds)
         verdict = evaluate(quote, cfg.econ, cfg.thresholds, mix=mix,
-                           extra_reasons=multiple_reasons)
+                           extra_reasons=multiple_reasons + split_reasons)
         if verdict is None:
             continue
 
@@ -153,6 +222,13 @@ def build(universe: dict, store: Store, cfg: Config,
             # The page cannot compute this: it needs the whole set.
             "multiple_outlier": bool(multiple_reasons),
             "variant_spread": quote.variant_spread,
+            # What the provider reported, and the two cards behind it.
+            "comps_split": split is not None,
+            "psa9_blended": blended if split is not None else None,
+            "comps_split_low": split.low if split else None,
+            "comps_split_high": split.high if split else None,
+            "comps_split_counts": ([split.low_count, split.high_count]
+                                   if split else None),
             "printings": quote.printings,
             "psa9_sale_age_days": (round(age, 1)
                                    if (age := days_since(quote.psa9_last_sale)) is not None
@@ -199,7 +275,7 @@ def build(universe: dict, store: Store, cfg: Config,
     # to be inferred from an unchanged ranking.
     stale_variants = sum(1 for _, quote in priced if quote.printings is None)
 
-    with_trends = _attach_trends(rows, cfg)
+    with_trends = _attach_trends(rows, cfg, splits)
 
     # Scored last: conviction reads the trend fields, so it has to run after
     # the history is folded in.

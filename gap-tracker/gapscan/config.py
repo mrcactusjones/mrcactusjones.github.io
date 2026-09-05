@@ -95,6 +95,12 @@ class Thresholds:
     min_set_sample: int = 8          # cards needed before a set median means anything
     set_multiple_factor: float = 4.0 # graded/raw multiple this far past the set's
                                      # median marks comps from another card
+    # PPT reads grades off eBay titles, which carry no printing, so one card's
+    # graded "price" can be two printings averaged. p75/p25 this wide means two
+    # populations; below ~2x a real card's noise is indistinguishable.
+    comps_split_spread: float = 2.0
+    comps_split_min_share: float = 0.25  # each side must hold this much of the sales
+    comps_split_min_sample: int = 8      # fewer sales than this cannot show a split
     min_mix_sample: int = 5          # graded sales needed before inferring a grade mix
     sales_mix_min_low: float = 0.15  # assumed floor on grading below a 9, when
                                      # the mix comes from sales rather than a

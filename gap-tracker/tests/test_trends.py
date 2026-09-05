@@ -1,6 +1,7 @@
 """Trend maths. These decide which gaps look real, so they must not flatter noise."""
 from __future__ import annotations
 
+import random
 import sys
 import unittest
 from datetime import date, timedelta
@@ -8,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from gapscan import trends
+from gapscan import rank, trends
 
 TODAY = date(2026, 9, 4)
 
@@ -257,3 +258,111 @@ class DurabilityOrderTest(unittest.TestCase):
     def test_a_zero_floor_is_not_live(self):
         rows = [self._row("zero", 0.0, 40), self._row("live", 1.0, 1)]
         self.assertEqual([r["name"] for r in trends.by_durability(rows)][0], "live")
+
+
+# Vaporeon (Jungle 12), every PSA 9 sale the tracker had stored on 2026-09-05.
+# Two printings under one title-parsed grade: this is the case the detector
+# exists for, so it is checked in rather than described.
+VAPOREON_PSA9 = [
+    312.50, 500.00, 356.45, 1093.00, 660.25, 499.99, 300.00, 795.77, 599.99,
+    999.00, 390.00, 299.00, 1165.00, 300.00, 1026.00, 502.00, 791.67, 798.88,
+    789.99, 867.11, 340.00, 1029.00, 1200.00, 305.00, 354.49, 424.99, 345.00,
+    400.00, 399.99, 890.00, 329.99, 1200.00, 330.00, 1000.00, 325.00, 764.22,
+    349.99, 334.36, 280.00, 1100.00, 337.26, 375.00, 394.58, 899.00, 1150.00,
+    850.00, 1000.00, 871.10, 379.99, 906.51, 656.00, 1067.50, 1050.00, 365.00,
+    306.26,
+]
+
+
+def _noisy(n, spread, seed, base=400.0, climb=0.0):
+    """One card's sales: lognormal noise, optionally trending."""
+    rng = random.Random(seed)
+    return [base * (1 + climb * i / max(1, n - 1)) * rng.lognormvariate(0, spread)
+            for i in range(n)]
+
+
+class CompsSplitTest(unittest.TestCase):
+    """Two cards' sales pooled under one grade.
+
+    PPT reads grades off eBay listing titles, and a title carries the grade but
+    not the printing. So a WOTC holo's PSA 9 "price" can be its 1st Edition and
+    Unlimited sales averaged into a number no copy sells for -- and the floor
+    is computed from it.
+    """
+
+    def test_the_card_that_exposed_this(self):
+        split = trends.comps_split(VAPOREON_PSA9)
+        self.assertIsNotNone(split, "55 real sales, 2.6x apart, must split")
+        self.assertAlmostEqual(split.low, 347.50, delta=5)
+        self.assertAlmostEqual(split.high, 906.51, delta=20)
+        self.assertEqual([split.low_count, split.high_count], [28, 27])
+        # The provider reported $510.50 -- between the two, and neither.
+        self.assertLess(split.low, 510.50)
+        self.assertGreater(split.high, 510.50)
+
+    def test_one_card_with_ordinary_noise_does_not_split(self):
+        for spread in (0.15, 0.25, 0.35):
+            for seed in range(12):
+                self.assertIsNone(trends.comps_split(_noisy(40, spread, seed)),
+                                  f"spread={spread} seed={seed}")
+
+    def test_a_climbing_card_does_not_split(self):
+        """A trend widens the spread without there being two cards."""
+        for seed in range(12):
+            self.assertIsNone(
+                trends.comps_split(_noisy(40, 0.25, seed, climb=0.6)), seed)
+
+    def test_two_cards_far_apart_are_caught(self):
+        for mult in (2.5, 3.0, 4.0):
+            for seed in range(8):
+                pooled = (_noisy(22, 0.20, seed)
+                          + _noisy(18, 0.20, seed + 100, base=400.0 * mult))
+                split = trends.comps_split(pooled)
+                self.assertIsNotNone(split, f"{mult}x seed={seed}")
+                # The cheap side must be recovered near its true $400 median.
+                self.assertAlmostEqual(split.low, 400.0, delta=60,
+                                       msg=f"{mult}x seed={seed}")
+
+    def test_too_few_sales_to_judge(self):
+        self.assertIsNone(trends.comps_split([100, 100, 400, 400]))
+        self.assertIsNone(trends.comps_split(VAPOREON_PSA9[:7]))
+
+    def test_a_lone_outlier_cannot_be_a_cluster(self):
+        """One absurd sale is not a second card; min_share keeps it out."""
+        self.assertIsNone(trends.comps_split([100.0] * 30 + [9999.0]))
+
+    def test_zero_and_missing_prices_are_ignored(self):
+        self.assertIsNone(trends.comps_split([0, None, 0, None] * 4))
+
+    def test_the_threshold_is_honoured(self):
+        """Below min_spread nothing fires, however it is configured."""
+        pooled = _noisy(20, 0.10, 3) + _noisy(20, 0.10, 4, base=1200.0)
+        self.assertIsNotNone(trends.comps_split(pooled, min_spread=2.0))
+        self.assertIsNone(trends.comps_split(pooled, min_spread=99.0))
+
+
+class CheapVariantPriceTest(unittest.TestCase):
+    """The floor of a two-printing card is priced off the cheap one."""
+
+    @staticmethod
+    def _split(low, high=1000.0):
+        return trends.CompsSplit(boundary=(low + high) / 2, low=low, high=high,
+                                 low_count=20, high_count=18, spread=2.6)
+
+    def test_the_cheap_cluster_replaces_the_blend(self):
+        # Vaporeon: the provider blends two printings into $510.50.
+        self.assertEqual(rank.cheap_variant_price(510.50, self._split(347.50)),
+                         347.50)
+
+    def test_it_never_raises_a_price(self):
+        """A contamination warning must not make a card look better.
+
+        The cluster is a median of past sales; the quote is today's figure. On
+        a card whose price has run up, the cluster can sit above the quote.
+        """
+        self.assertEqual(rank.cheap_variant_price(300.00, self._split(347.50)),
+                         300.00)
+
+    def test_it_rounds_to_cents(self):
+        self.assertEqual(rank.cheap_variant_price(999.0, self._split(347.499)),
+                         347.50)
