@@ -161,3 +161,49 @@ class FindByNumberTest(unittest.TestCase):
         full = [self._rec(str(i)) for i in range(25)]
         watchlist.find_by_number(self._pager([full] * 4), self.ENTRY, 1, 25)
         self.assertEqual(self.calls, [0])
+
+
+class SetNameNarrowsCandidatesTest(unittest.TestCase):
+    """A hand-set `set_name` is how you choose between number matches.
+
+    Card numbers repeat across sets, so the resolver found four Meowth #106s
+    and could not choose. It printed "put its set name in watchlist.json" --
+    and then ignored the field, because `candidates_for` filtered on number
+    alone. The message asked for something no code path acted on.
+    """
+
+    # The four the resolver actually returned for Meowth #106.
+    RECORDS = [
+        {"cardNumber": "106/149", "setName": "Boundaries Crossed", "name": "Meowth"},
+        {"cardNumber": "106/146", "setName": "Legends Awakened", "name": "Meowth"},
+        {"cardNumber": "106/146", "setName": "Burger King Promos", "name": "Meowth"},
+        {"cardNumber": "106/094", "setName": "ME02: Phantasmal Flames", "name": "Meowth"},
+    ]
+
+    def test_without_a_set_name_every_number_match_is_a_candidate(self):
+        hits = watchlist.candidates_for({"number": "106"}, self.RECORDS)
+        self.assertEqual(len(hits), 4)
+
+    def test_a_set_name_picks_exactly_one(self):
+        hits = watchlist.candidates_for(
+            {"number": "106", "set_name": "ME02: Phantasmal Flames"}, self.RECORDS)
+        self.assertEqual([r["setName"] for r in hits], ["ME02: Phantasmal Flames"])
+
+    def test_the_match_is_forgiving_about_case_and_spacing(self):
+        hits = watchlist.candidates_for(
+            {"number": "106", "set_name": "  me02:  phantasmal flames "}, self.RECORDS)
+        self.assertEqual(len(hits), 1)
+
+    def test_a_set_name_matching_nothing_returns_nothing(self):
+        """A typo is worth surfacing, not worth silently dropping the filter."""
+        hits = watchlist.candidates_for(
+            {"number": "106", "set_name": "Phantasmal Flame"}, self.RECORDS)
+        self.assertEqual(hits, [])
+
+    def test_the_set_filter_does_not_loosen_the_number_match(self):
+        hits = watchlist.candidates_for(
+            {"number": "107", "set_name": "ME02: Phantasmal Flames"}, self.RECORDS)
+        self.assertEqual(hits, [])
+
+    def test_an_entry_with_no_number_matches_nothing(self):
+        self.assertEqual(watchlist.candidates_for({}, self.RECORDS), [])

@@ -469,6 +469,21 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
         if len(hits) == 1:
             watchlist_mod.apply_resolution(entry, hits[0])
             print(f"  OK  {label}\n        -> {watchlist_mod.summarise(hits[0])}")
+        elif not hits and entry.get("set_name"):
+            # A set name that matches nothing is a different problem from a
+            # card that is not there, and it should read differently.
+            print(f"  --  {label}: nothing numbered {entry['number']} in "
+                  f"\"{entry['set_name']}\" among {len(records)} hit(s)")
+            seen = []
+            for record in records:
+                name = record.get("setName")
+                if name and name not in seen:
+                    seen.append(name)
+            if seen:
+                print(f"        sets seen ({len(seen)}): {', '.join(seen[:8])}"
+                      + (" ..." if len(seen) > 8 else ""))
+            print(f"        check the set_name spelling against those, or drop "
+                  f"it to see every candidate again")
         elif not hits:
             print(f"  --  {label}: no result with that number "
                   f"among {len(records)} hit(s)")
@@ -490,8 +505,10 @@ def cmd_watchlist(args, cfg: Config, store: Store) -> int:
                       f"{args.pages * 2}, or set set_name by hand from "
                       f"`run.py probe --search \"{entry['name']}\"`")
         else:
-            print(f"  ??  {label}: {len(hits)} candidates -- pick one and put its "
-                  f"set name in watchlist.json")
+            print(f"  ??  {label}: {len(hits)} candidates. Add the exact set "
+                  f"name of the one you want to that entry in "
+                  f"seeds/watchlist.json:")
+            print(f'        "set_name": "<one of the sets below>"')
             for record in hits[:8]:
                 print(f"        {watchlist_mod.summarise(record)}")
 

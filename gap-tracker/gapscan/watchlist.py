@@ -67,10 +67,28 @@ def is_resolved(entry: dict) -> bool:
 
 
 def candidates_for(entry: dict, records: list[dict]) -> list[dict]:
-    """Records whose card number matches the entry's."""
+    """Records whose card number matches the entry's, and its set if one is set.
+
+    Card numbers repeat across sets -- Meowth #106 exists in Phantasmal
+    Flames, Boundaries Crossed, Legends Awakened and a Burger King promo -- so
+    the number alone leaves the resolver with several candidates and no way to
+    choose. A hand-set `set_name` is how you choose, and until now nothing
+    read it: the tool printed "put its set name in watchlist.json" and then
+    ignored the field.
+
+    Returns nothing when a `set_name` matches none of the number-matched
+    records, rather than falling back to all of them. A set name that matches
+    nothing is a typo worth surfacing, not a filter worth dropping.
+    """
     want = _norm_number(entry.get("number"))
-    return [r for r in records
-            if want and _norm_number(r.get("cardNumber") or r.get("number")) == want]
+    if not want:
+        return []
+    hits = [r for r in records
+            if _norm_number(r.get("cardNumber") or r.get("number")) == want]
+    wanted_set = _norm(entry.get("set_name") or "")
+    if wanted_set:
+        hits = [r for r in hits if _norm(r.get("setName") or "") == wanted_set]
+    return hits
 
 
 def find_by_number(fetch_page, entry: dict, pages: int,
