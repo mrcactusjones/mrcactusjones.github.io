@@ -51,6 +51,16 @@ CREATE INDEX IF NOT EXISTS idx_points_card_grade
 CREATE INDEX IF NOT EXISTS idx_points_date ON price_points (date);
 
 -- What the model concluded on a given day, so verdict changes are auditable.
+-- Which PPT set a name query actually resolved to. A name target can only
+-- retire itself when one of its own cards gets pinned, and a card outside the
+-- price band is never returned to be pinned -- so one unreachable card kept a
+-- set being swept twice indefinitely. This records the answer from the query.
+CREATE TABLE IF NOT EXISTS set_aliases (
+    name    TEXT PRIMARY KEY,
+    set_id  TEXT,
+    seen_at TEXT
+);
+
 -- What the provider itself said when it refused. Our credit ledger is an
 -- estimate of a counter we do not hold; this is the counter answering.
 CREATE TABLE IF NOT EXISTS api_limits (
@@ -224,6 +234,22 @@ def limit_active(conn: sqlite3.Connection, kind: str = "daily",
     if resets.tzinfo is None:
         resets = resets.replace(tzinfo=timezone.utc)
     return row if resets > (now or utcnow()) else None
+
+
+def record_set_alias(conn: sqlite3.Connection, name: str, set_id: str) -> None:
+    """Remember that a `set=<name>` query returned cards from this set id."""
+    conn.execute(
+        """INSERT INTO set_aliases (name, set_id, seen_at) VALUES (?, ?, ?)
+           ON CONFLICT(name) DO UPDATE SET
+               set_id=excluded.set_id, seen_at=excluded.seen_at""",
+        (name, str(set_id), iso(utcnow())))
+
+
+def set_aliases(conn: sqlite3.Connection) -> dict[str, str]:
+    """name -> set id, for every name a sweep has resolved."""
+    return {r["name"]: r["set_id"]
+            for r in conn.execute("SELECT name, set_id FROM set_aliases")
+            if r["set_id"]}
 
 
 def credits_spent_since(conn: sqlite3.Connection, since: str) -> int:

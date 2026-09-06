@@ -235,3 +235,56 @@ class RefusalRecordTest(unittest.TestCase):
         from gapscan.providers.ppt import OutOfCredits
         exc = OutOfCredits("gone", "2026-09-06T00:00:00.000Z", "detail")
         self.assertEqual(exc.resets_at, "2026-09-06T00:00:00.000Z")
+
+
+class RetireStaleTest(unittest.TestCase):
+    """Dropping the catalogue must not drop a ranked card.
+
+    pokemontcg.io's ids disagree with PPT's, so a catalogued card and its
+    swept twin were two entries and only the swept one was ever pinned. The
+    catalogued ones are being retired -- but losing a card `rank` is ranking
+    would be far worse than carrying a few dead rows.
+    """
+
+    def setUp(self):
+        import tempfile
+        from gapscan.store import Store
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store = Store(Path(self.tmp.name))
+
+    def _retire(self, universe, dry_run=False):
+        import run as cli
+        return cli._retire_stale(universe, self.store, dry_run=dry_run)
+
+    def test_a_catalogued_card_no_sweep_reached_is_dropped(self):
+        n, kept = self._retire({"ex11-1": {"source": "api"}})
+        self.assertEqual((n, kept), (1, {}))
+
+    def test_a_priced_card_survives_whatever_its_source(self):
+        self.store.save_quote("ex11-3", {"id": "ex11-3", "quote": {"raw": 10.0}})
+        n, kept = self._retire({"ex11-3": {"source": "api"}})
+        self.assertEqual(n, 0)
+        self.assertIn("ex11-3", kept)
+
+    def test_a_pinned_card_survives(self):
+        """A sweep reached it, so it is a real card in PPT's catalogue."""
+        n, kept = self._retire({"ex11-2": {"source": "api", "ppt_set_id": "1450"}})
+        self.assertEqual(n, 0)
+        self.assertIn("ex11-2", kept)
+
+    def test_swept_cards_are_never_touched(self):
+        n, kept = self._retire({"ppt-9": {"source": "sweep"}})
+        self.assertEqual(n, 0)
+        self.assertIn("ppt-9", kept)
+
+    def test_a_dry_run_counts_without_removing(self):
+        universe = {"ex11-1": {"source": "api"}, "ppt-9": {"source": "sweep"}}
+        n, kept = self._retire(universe, dry_run=True)
+        self.assertEqual(n, 1)
+        self.assertEqual(len(kept), 2)
+
+    def test_watchlist_cards_are_not_catalogued_and_stay(self):
+        n, kept = self._retire({"me02-106": {"source": "manual"}})
+        self.assertEqual(n, 0)
+        self.assertIn("me02-106", kept)

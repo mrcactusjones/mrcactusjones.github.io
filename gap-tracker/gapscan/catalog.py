@@ -7,27 +7,14 @@ Paid credits are only ever spent on graded prices, in scan.py.
 from __future__ import annotations
 
 import json
-import os
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .config import FIXTURES, Thresholds
 
-API = "https://api.pokemontcg.io/v2"
-PAGE_SIZE = 250
-USER_AGENT = "gap-tracker/0.1 (personal research tool)"
 
 
-# Unauthenticated pokemontcg.io throttles aggressively, and it surfaces as
-# intermittent 500s rather than clean 429s. Pace the requests; a free API key
-# from dev.pokemontcg.io raises the ceiling and lets us go faster.
-_UNAUTHED_INTERVAL = 1.2
-_AUTHED_INTERVAL = 0.25
-_last_call = 0.0
 
 
 @dataclass(frozen=True)
@@ -42,7 +29,8 @@ class SweepTarget:
 
 
 def sweep_targets(universe: dict, seeds: list[dict] | None = None,
-                  wanted: list[str] | None = None) -> list[SweepTarget]:
+                  wanted: list[str] | None = None,
+                  aliases: dict[str, str] | None = None) -> list[SweepTarget]:
     """Which sets `backfill` should sweep, each addressed exactly once.
 
     The API's `set` filter matches names loosely and PPT's names are not the
@@ -73,6 +61,14 @@ def sweep_targets(universe: dict, seeds: list[dict] | None = None,
             slot = by_name.setdefault(name, [priority, False])
             slot[0] = max(slot[0], priority)
             slot[1] = slot[1] or bool(set_id)
+
+    # A name a sweep has already resolved to a set id is covered whether or
+    # not any of its own cards were pinned. One card outside the price band is
+    # never returned, never pinned, and kept its whole set on the crawl.
+    for name, set_id in (aliases or {}).items():
+        if set_id in by_id and name in by_name:
+            by_name[name][1] = True
+            by_id[set_id][2].add(name)
 
     for seed in seeds or []:
         name = seed.get("name")
@@ -107,68 +103,6 @@ def sweep_targets(universe: dict, seeds: list[dict] | None = None,
     return targets
 
 
-def _get(path: str, params: dict) -> dict:
-    global _last_call
-    key = os.environ.get("POKEMONTCG_API_KEY")
-    interval = _AUTHED_INTERVAL if key else _UNAUTHED_INTERVAL
-    wait = interval - (time.monotonic() - _last_call)
-    if wait > 0:
-        time.sleep(wait)
-
-    url = f"{API}/{path}?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    if key:
-        req.add_header("X-Api-Key", key)
-    try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
-            return json.loads(resp.read().decode())
-    finally:
-        _last_call = time.monotonic()
-
-
-class SetFetchError(Exception):
-    """One set could not be fetched. Never fatal: the build skips it."""
-
-
-def fetch_set(set_id: str, retries: int = 4) -> list[dict]:
-    """All cards in a set, following pagination.
-
-    pokemontcg.io returns intermittent 500s, so server errors and timeouts are
-    retried with backoff. A 4xx means the request itself is wrong -- usually a
-    bad set id -- and is reported immediately rather than retried.
-    """
-    out: list[dict] = []
-    page = 1
-    while True:
-        blob = None
-        last_error = "unknown"
-        for attempt in range(retries):
-            try:
-                blob = _get("cards", {"q": f"set.id:{set_id}",
-                                      "pageSize": PAGE_SIZE, "page": page})
-                break
-            except urllib.error.HTTPError as exc:
-                last_error = f"HTTP {exc.code} {exc.reason}"
-                if 400 <= exc.code < 500 and exc.code != 429:
-                    raise SetFetchError(last_error) from exc
-                retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                if retry_after and str(retry_after).isdigit():
-                    time.sleep(min(int(retry_after), 60))
-                    continue
-            except (urllib.error.URLError, TimeoutError) as exc:
-                last_error = str(getattr(exc, "reason", exc))
-            if attempt < retries - 1:
-                time.sleep(3 * (2 ** attempt))  # 3s, 6s, 12s
-        if blob is None:
-            raise SetFetchError(last_error)
-
-        cards = blob.get("data") or []
-        out.extend(cards)
-        if len(cards) < PAGE_SIZE:
-            return out
-        page += 1
-
-
 def raw_price(card: dict) -> float | None:
     """Best available raw market price, preferring the printing people grade."""
     prices = ((card.get("tcgplayer") or {}).get("prices")) or {}
@@ -196,30 +130,27 @@ def _named_bonus(card: dict, named: list[dict]) -> tuple[int, str | None]:
     return 0, None
 
 
-def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
-          verify_sets: bool = False, only: set[str] | None = None) -> tuple[dict, dict]:
-    """Return (universe, meta). Universe is keyed by pokemontcg.io card id."""
+def build(seeds: dict, thresholds: Thresholds, fixture: Path,
+          only: set[str] | None = None) -> tuple[dict, dict]:
+    """Return (universe, meta) from the offline fixture. Demo only.
+
+    This used to fetch pokemontcg.io. Its card ids disagree with PPT's, which
+    made every catalogued card a duplicate of its swept twin and kept seven
+    set names on the crawl at 1,125 credits a run; it also 500'd on one to
+    three sets every time. Live cards come from sweeps now. The fixture path
+    survives because `demo` needs a universe with no network and no key.
+    """
     rarities = {r.lower() for r in seeds.get("rarities", [])}
     named = seeds.get("cards", [])
     universe: dict[str, dict] = {}
     empty_sets: list[str] = []
-    failed_sets: dict[str, str] = {}
     skipped = {"rarity": 0, "no_price": 0, "price_band": 0}
 
     wanted = [e for e in seeds.get("sets", []) if not only or e["id"] in only]
     for entry in wanted:
         set_id = entry["id"]
-        if fixture is not None:
-            cards = [c for c in json.loads(fixture.read_text())
-                     if (c.get("set") or {}).get("id") == set_id]
-        else:
-            try:
-                cards = fetch_set(set_id)
-            except SetFetchError as exc:
-                # One flaky or misnamed set must not throw away the whole run.
-                failed_sets[set_id] = str(exc)
-                print(f"  ! {set_id}: {exc} (skipped)")
-                continue
+        cards = [c for c in json.loads(fixture.read_text())
+                 if (c.get("set") or {}).get("id") == set_id]
         if not cards:
             empty_sets.append(set_id)
             continue
@@ -258,18 +189,10 @@ def build(seeds: dict, thresholds: Thresholds, fixture: Path | None = None,
     meta = {
         "sets_requested": len(wanted),
         "empty_sets": empty_sets,
-        "failed_sets": failed_sets,
         "skipped": skipped,
         "universe_size": len(universe),
-        "source": "fixture" if fixture else "api.pokemontcg.io",
+        "source": "fixture",
     }
-    if verify_sets and empty_sets:
-        print("WARNING: these set ids returned no cards -- check them against "
-              "pokemontcg.io: " + ", ".join(empty_sets))
-    if failed_sets:
-        print(f"WARNING: {len(failed_sets)} set(s) failed and were skipped. "
-              f"Retry just those with:  run.py catalog --sets "
-              + ",".join(failed_sets))
     return universe, meta
 
 

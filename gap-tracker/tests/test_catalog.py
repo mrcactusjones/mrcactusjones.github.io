@@ -32,89 +32,41 @@ SEEDS = {
 }
 
 
-class TestFetchResilience(unittest.TestCase):
-    def test_client_error_is_not_retried(self):
-        with mock.patch.object(catalog, "_get", side_effect=_http_error(404)) as get:
-            with self.assertRaises(catalog.SetFetchError):
-                catalog.fetch_set("nosuchset", retries=4)
-        self.assertEqual(get.call_count, 1, "a 404 means a bad set id; don't retry it")
+class TestFixtureBuild(unittest.TestCase):
+    """`build` is fixture-only now -- the network path it had is gone.
 
-    def test_server_error_is_retried_then_reported(self):
-        with mock.patch.object(catalog, "_get", side_effect=_http_error(500)) as get, \
-             mock.patch.object(catalog.time, "sleep"):
-            with self.assertRaises(catalog.SetFetchError) as ctx:
-                catalog.fetch_set("base5", retries=4)
-        self.assertEqual(get.call_count, 4)
-        self.assertIn("500", str(ctx.exception))
+    pokemontcg.io's card ids disagree with PPT's, so every catalogued card
+    duplicated its swept twin and kept seven set names on the crawl. Live
+    cards come from sweeps; this path exists so `demo` needs no network.
+    """
 
-    def test_retry_after_header_is_honoured_without_burning_an_attempt(self):
-        responses = [_http_error(429, {"Retry-After": "5"}),
-                     {"data": [_card("base5", 1)]}]
-        def side_effect(*_a, **_k):
-            item = responses.pop(0)
-            if isinstance(item, Exception):
-                raise item
-            return item
-        with mock.patch.object(catalog, "_get", side_effect=side_effect), \
-             mock.patch.object(catalog.time, "sleep") as sleep:
-            cards = catalog.fetch_set("base5", retries=4)
-        self.assertEqual(len(cards), 1)
-        self.assertIn(5, [c.args[0] for c in sleep.call_args_list],
-                      "should wait exactly what Retry-After asked for")
-
-    def test_absurd_retry_after_is_capped(self):
-        with mock.patch.object(catalog, "_get",
-                               side_effect=_http_error(429, {"Retry-After": "9999"})), \
-             mock.patch.object(catalog.time, "sleep") as sleep:
-            with self.assertRaises(catalog.SetFetchError):
-                catalog.fetch_set("base5", retries=2)
-        self.assertTrue(all(c.args[0] <= 60 for c in sleep.call_args_list))
-
-    def test_retry_succeeds_after_a_transient_failure(self):
-        responses = [_http_error(500), {"data": [_card("base5", 1)]}]
-        def side_effect(*_a, **_k):
-            item = responses.pop(0)
-            if isinstance(item, Exception):
-                raise item
-            return item
-        with mock.patch.object(catalog, "_get", side_effect=side_effect), \
-             mock.patch.object(catalog.time, "sleep"):
-            cards = catalog.fetch_set("base5", retries=4)
-        self.assertEqual(len(cards), 1)
-
-
-class TestBuildSkipsFailures(unittest.TestCase):
-    def test_one_bad_set_does_not_sink_the_build(self):
-        def fake_fetch(set_id, retries=4):
-            if set_id == "flaky":
-                raise catalog.SetFetchError("HTTP 500 Internal Server Error")
-            return [_card(set_id, 1), _card(set_id, 2)]
-
-        with mock.patch.object(catalog, "fetch_set", side_effect=fake_fetch):
-            universe, meta = catalog.build(SEEDS, Thresholds())
-
-        self.assertEqual(len(universe), 4, "both healthy sets should be present")
-        self.assertIn("flaky", meta["failed_sets"])
-        self.assertNotIn("good1", meta["failed_sets"])
-        self.assertTrue(all(e["source"] == "api" for e in universe.values()))
-
-    def test_only_filter_limits_the_build(self):
-        with mock.patch.object(catalog, "fetch_set",
-                               side_effect=lambda s, retries=4: [_card(s, 1)]) as fetch:
-            universe, meta = catalog.build(SEEDS, Thresholds(), only={"good2"})
-        self.assertEqual([c[0][0] for c in fetch.call_args_list], ["good2"])
-        self.assertEqual(len(universe), 1)
-        self.assertEqual(meta["sets_requested"], 1)
+    def _fixture(self, cards):
+        import json, tempfile
+        tmp = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump(cards, tmp)
+        tmp.close()
+        self.addCleanup(lambda: Path(tmp.name).unlink(missing_ok=True))
+        return Path(tmp.name)
 
     def test_price_band_filters_out_of_range_cards(self):
         th = Thresholds(raw_price_min=10.0, raw_price_max=100.0)
-        def fake_fetch(set_id, retries=4):
-            return [_card(set_id, 1, price=5.0), _card(set_id, 2, price=50.0),
-                    _card(set_id, 3, price=5000.0)]
-        with mock.patch.object(catalog, "fetch_set", side_effect=fake_fetch):
-            universe, meta = catalog.build(SEEDS, th)
+        fixture = self._fixture(
+            [_card("good1", 1, price=5.0), _card("good1", 2, price=50.0),
+             _card("good1", 3, price=5000.0)])
+        universe, meta = catalog.build(SEEDS, th, fixture)
         self.assertTrue(all(10.0 <= e["raw_hint"] <= 100.0 for e in universe.values()))
-        self.assertEqual(meta["skipped"]["price_band"], 6)
+        self.assertEqual(meta["skipped"]["price_band"], 2)
+
+    def test_only_filter_limits_the_build(self):
+        fixture = self._fixture([_card("good1", 1), _card("good2", 1)])
+        universe, meta = catalog.build(SEEDS, Thresholds(), fixture, only={"good2"})
+        self.assertEqual(len(universe), 1)
+        self.assertEqual(meta["sets_requested"], 1)
+
+    def test_the_network_fetcher_is_gone(self):
+        """Its absence is the point of the change, so assert it."""
+        for name in ("fetch_set", "SetFetchError", "_get"):
+            self.assertFalse(hasattr(catalog, name), name)
 
 
 if __name__ == "__main__":
@@ -460,3 +412,43 @@ class SweepTargetTest(unittest.TestCase):
         universe = {"a": self._entry("Delta Species", "1450", "EX Delta Species", 0)}
         seeds = [{"name": "Delta Species", "priority": 8}]
         self.assertEqual(catalog.sweep_targets(universe, seeds)[0].priority, 8)
+
+    def test_a_name_a_sweep_resolved_stops_being_a_target(self):
+        """The case pinning alone cannot reach.
+
+        A name target retires when one of its own cards gets pinned. A card
+        outside the price band is never returned and never pinned, so one
+        unreachable card kept seven sets on the crawl indefinitely -- 15
+        duplicate pages a run. The query's own answer settles it.
+        """
+        universe = {
+            # Swept cards, pinned, under PPT's name for the set.
+            "ppt-1": self._entry("EX Delta Species", "1450"),
+            # A catalogued card under the seed name that no sweep ever returns.
+            "ex11-9": self._entry("Delta Species", priority=8),
+        }
+        without = catalog.sweep_targets(universe, [])
+        self.assertIn("Delta Species", [t.set_name for t in without],
+                      "unpinned name is still a target, as before")
+
+        with_alias = catalog.sweep_targets(universe, [], None,
+                                           {"Delta Species": "1450"})
+        self.assertEqual([(t.set_id, t.set_name) for t in with_alias],
+                         [("1450", None)])
+
+    def test_the_alias_carries_the_seed_priority_to_the_id(self):
+        universe = {
+            "ppt-1": self._entry("EX Delta Species", "1450"),
+            "ex11-9": self._entry("Delta Species", priority=8),
+        }
+        target = catalog.sweep_targets(universe, [], None,
+                                       {"Delta Species": "1450"})[0]
+        self.assertEqual(target.priority, 8)
+        self.assertIn("Delta Species", target.aliases)
+
+    def test_an_alias_to_an_untargeted_id_changes_nothing(self):
+        """A stale alias must not silently drop a set from the crawl."""
+        universe = {"ex11-9": self._entry("Delta Species", priority=8)}
+        targets = catalog.sweep_targets(universe, [], None,
+                                        {"Delta Species": "9999"})
+        self.assertEqual([t.set_name for t in targets], ["Delta Species"])

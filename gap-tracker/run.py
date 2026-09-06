@@ -95,34 +95,71 @@ def get_provider(args, cfg: Config):
 
 
 def cmd_catalog(args, cfg: Config, store: Store) -> int:
-    fixture = FIXTURES / "catalog.json" if args.fixture else None
-    only = set(args.sets.split(",")) if getattr(args, "sets", None) else None
-    if fixture is None:
-        keyed = "yes" if os.environ.get("POKEMONTCG_API_KEY") else "no (slower, expect 500s)"
-        print(f"pokemontcg.io key: {keyed}")
-    universe, meta = build_catalog(load_seeds(), cfg.thresholds, fixture=fixture,
-                                   verify_sets=True, only=only)
-    if not universe:
-        print("No candidates matched. Check set ids and the raw price band.")
-        return 1
+    """Fold the watchlist into the universe. No network, no key.
 
-    source = "fixture" if fixture else "api"
-    existing = store.load_universe()
-    # Never mix demo cards into a live universe, or vice versa.
-    merged = merge_universe(existing, universe, source)
-    for card_id, entry in existing.items():
-        if card_id in merged and entry.get("tier"):
-            merged[card_id]["tier"] = entry["tier"]
+    This used to build the universe from pokemontcg.io. That layer cost more
+    than it gave: its card ids disagree with PPT's, so a catalogued card and
+    its swept twin became two entries, only the swept one was ever pinned to
+    a set id, and the catalogued one kept its set name alive as a sweep target
+    of its own -- seven sets fetched twice, 1,125 credits a run, forever. It
+    also 500'd on one to three sets every time it ran.
+
+    Cards now come from sweeps alone, which is where 966 of them already came
+    from. `sweep_targets` unions the seed set names, so a seeded set is still
+    crawled with no catalogued cards behind it.
+    """
+    if args.fixture:
+        fixture = FIXTURES / "catalog.json"
+        universe, meta = build_catalog(load_seeds(), cfg.thresholds, fixture=fixture)
+        existing = store.load_universe()
+        merged = merge_universe(existing, universe, "fixture")
+        for card_id, entry in existing.items():
+            if card_id in merged and entry.get("tier"):
+                merged[card_id]["tier"] = entry["tier"]
+    else:
+        merged = dict(store.load_universe())
+        meta = {}
 
     watch_blob = watchlist_mod.load()
     watchlist_mod.save(watch_blob)          # persist any migrated resolutions
-    merged.update(watchlist_mod.to_universe(watch_blob))
+    watch_cards = watchlist_mod.to_universe(watch_blob)
+    merged.update(watch_cards)
+
+    retired = 0
+    if getattr(args, "retire_stale", False):
+        retired, merged = _retire_stale(merged, store, dry_run=args.dry_run)
+
     store.save_universe(merged, meta)
-    kept = len(merged) - len(universe)
-    print(f"universe: {len(merged)} candidates ({len(universe)} from this run"
-          + (f", {kept} kept from earlier runs" if kept else "") + f") [{source}]")
-    print(f"  filtered out: {meta['skipped']}")
+    print(f"universe: {len(merged)} cards; {len(watch_cards)} from the watchlist")
+    if retired:
+        verb = "would retire" if args.dry_run else "retired"
+        print(f"  {verb} {retired} catalogued card(s) no sweep ever priced")
+    seeds = load_seeds().get("sets", [])
+    print(f"  {len(seeds)} seeded set(s) are swept by name until pinned; "
+          f"cards come from `backfill`")
     return 0
+
+
+def _retire_stale(universe: dict, store: Store,
+                  dry_run: bool = False) -> tuple[int, dict]:
+    """Drop catalogued entries no sweep has ever reached.
+
+    A card pokemontcg.io knows and PPT does not is unrankable -- it has no
+    graded prices and never will -- but it keeps its set name alive as a sweep
+    target. Anything with a cached quote stays regardless of where it came
+    from: losing a ranked card to a cleanup would be far worse than carrying a
+    few dead rows.
+    """
+    keep, dropped = {}, 0
+    for card_id, entry in universe.items():
+        catalogued = entry.get("source") in ("api", "fixture")
+        pinned = bool(entry.get("ppt_set_id"))
+        priced = store.load_quote(card_id) is not None
+        if catalogued and not pinned and not priced:
+            dropped += 1
+            continue
+        keep[card_id] = entry
+    return dropped, (universe if dry_run else keep)
 
 
 def cmd_scan(args, cfg: Config, store: Store) -> int:
@@ -489,7 +526,9 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         return 1
 
     wanted = [s.strip() for s in args.sets.split(",")] if args.sets else None
-    targets = sweep_targets(universe, load_seeds().get("sets", []), wanted)
+    with db.session() as conn:
+        aliases = db.set_aliases(conn)
+    targets = sweep_targets(universe, load_seeds().get("sets", []), wanted, aliases)
     if not targets:
         print("No matching sets in the universe.")
         return 1
@@ -533,6 +572,7 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
     print(f"budget {budget} credits; each page costs {per_page}\n")
 
     cards = points = discovered = repinned = 0
+    resolved: dict[str, str] = {}   # set name queried -> the id it returned
     stop = False
     started_at = store_now()
     with db.session() as conn:
@@ -585,6 +625,10 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
                     # Pin PPT's own set id so the next sweep can address this
                     # set exactly instead of guessing at its name.
                     repinned += ingest.pin_set(universe[card_id], record)
+                    # And record what this *query* resolved to, which is the
+                    # only signal for a name whose own cards never come back.
+                    if target.set_name and record.get("setId") is not None:
+                        resolved[target.set_name] = str(record["setId"])
                     # Keep the JSON cache in step so ranking works unchanged.
                     quote = ingest.extract_quote(record)
                     if quote.psa9 is not None or quote.psa10 is not None:
@@ -602,6 +646,8 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
         # Logged before the summary and whatever the outcome: a run that
         # stopped on an exhausted allowance still spent what it spent, and
         # that is exactly the run whose cost the next one needs to know.
+        for name, set_id in resolved.items():
+            db.record_set_alias(conn, name, set_id)
         db.record_run(conn, started_at, provider.credits_used, cards,
                       f"backfill {len(targets)} set(s)")
         stats = db.stats(conn)
@@ -614,6 +660,9 @@ def cmd_backfill(args, cfg: Config, store: Store) -> int:
     if repinned:
         print(f"pinned {repinned} card(s) to PPT's own set id; the next sweep "
               f"addresses those sets exactly instead of by name")
+    if resolved:
+        print(f"resolved {len(resolved)} set name(s) to an id: "
+              f"{', '.join(sorted(resolved))}")
     print(f"database: {stats['cards']} cards, {stats['price_points']} points, "
           f"{stats['earliest']} to {stats['latest']}")
     print("Next: run.py rank")
@@ -924,8 +973,7 @@ def cmd_status(args, cfg: Config, store: Store) -> int:
     import json as _json
 
     print("keys")
-    for name, label in (("PPT_API_KEY", "pokemonpricetracker"),
-                        ("POKEMONTCG_API_KEY", "pokemontcg.io")):
+    for name, label in (("PPT_API_KEY", "pokemonpricetracker"),):
         value = os.environ.get(name)
         shown = f"...{value[-4:]}" if value else "MISSING"
         print(f"  {label:<22} {shown}")
@@ -1130,9 +1178,12 @@ def main() -> int:
         p.add_argument("--log", action="store_true",
                        help="also append output to data/logs/<date>.log")
 
-    p = sub.add_parser("catalog", help="rebuild the candidate universe (free)")
+    p = sub.add_parser("catalog", help="fold the watchlist into the universe (free)")
     p.add_argument("--fixture", action="store_true", help="use the offline fixture")
-    p.add_argument("--sets", help="comma-separated set ids to rebuild, e.g. base5,gym1")
+    p.add_argument("--retire-stale", action="store_true", dest="retire_stale",
+                   help="drop catalogued cards no sweep has ever priced")
+    p.add_argument("--dry-run", action="store_true", dest="dry_run",
+                   help="with --retire-stale, count them without removing any")
     add_log(p)
     p.set_defaults(func=cmd_catalog)
 

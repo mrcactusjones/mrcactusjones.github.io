@@ -29,11 +29,13 @@ python3 run.py scan --provider ppt --dry-run    # shows what it would fetch, spe
 python3 run.py probe --card base1-4             # 1 card: confirms the field mapping
 ```
 
-If `catalog` reports skipped sets (pokemontcg.io throws intermittent 500s),
-retry just those — the rest of the universe is kept:
+`catalog` costs nothing and touches no network: it folds resolved watchlist
+entries into the universe. Cards come from `backfill`, which sweeps the sets
+named in `seeds/community.json` and pins each to PokemonPriceTracker's own
+set id.
 
 ```bash
-python3 run.py catalog --sets base5,gym1
+python3 run.py catalog --retire-stale --dry-run
 ```
 
 If `probe` 404s, the endpoint has moved. Find the live one, no credits spent:
@@ -337,13 +339,13 @@ provisional it is.
 run.py                  CLI
 gapscan/config.py       cost model, thresholds, budget (override in config.json)
 gapscan/econ.py         the money math + verdicts
-gapscan/catalog.py      free universe build from pokemontcg.io
+gapscan/catalog.py      sweep targets, and the demo fixture build
 gapscan/scan.py         budget-aware rolling scanner
 gapscan/rank.py         ranking, snapshots, watchlist promotion
 gapscan/providers/      mock (offline) and ppt (real) price sources
 scripts/                run-daily wrappers + Windows Task Scheduler installer
 seeds/community.json    curated bootstrap: which sets/cards get credits first
-fixtures/catalog.json   offline stand-in for pokemontcg.io so demo needs no network
+fixtures/catalog.json   card data so `demo` needs no network and no key
 index.html              dashboard; recomputes client-side as you move the sliders
 .env                    git-ignored: your API key (copy .env.example)
 data/                   git-ignored: cache, rankings, daily history, logs
@@ -391,9 +393,10 @@ The dashboard sliders do the same thing live, without touching the data.
   instead of hard-coding paths — it should survive most response shapes. If it
   returns nothing, run `python3 run.py probe --card base1-4` to dump the raw
   response, then either fix the endpoint or pin exact paths in `EXPLICIT_PATHS`.
-- **Set ids in `seeds/community.json` are unverified** against the live
-  pokemontcg.io catalog. `run.py catalog` prints a warning naming any set id
-  that returns zero cards.
+- **Set names in `seeds/community.json` are the sweep's targets.** A name is
+  swept until a sweep resolves it to a PokemonPriceTracker set id, after which
+  the id is used and the name retires. A name that matches nothing simply
+  returns no cards.
 - **PSA only.** PokemonPriceTracker carries PSA 8/9/10; there's no CGC or TAG
   data at any tier. TAG in particular has too little volume for a meaningful
   gap. Adding CGC means a second provider (PriceCharting, paid).
