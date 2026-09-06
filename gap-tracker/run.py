@@ -215,12 +215,28 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
 
 
 def cmd_daily(args, cfg: Config, store: Store) -> int:
+    """One scheduled run: fold the watchlist, refresh prices, rank, report.
+
+    Refreshes with a *shallow* sweep. The deep history is already stored and
+    re-fetching a year of it every night buys nothing -- what a daily run needs
+    is the last few days of sales and today's prices. It ends with `diff`,
+    because a log that says only "it ran" is a log nobody reads.
+    """
     if args.rebuild_catalog or not store.load_universe():
         if cmd_catalog(args, cfg, store):
             return 1
-    if cmd_scan(args, cfg, store):
+    # A sweep that fetches nothing -- allowance spent, provider refusing -- is
+    # not a reason to skip the rest. The ranking and the diff read stored data
+    # and are the whole point of the run; a night with no new prices should
+    # still say what changed rather than producing no output at all.
+    if cmd_backfill(args, cfg, store):
+        print("  (no new prices this run; ranking what is already stored)")
+    if cmd_rank(args, cfg, store):
         return 1
-    return cmd_rank(args, cfg, store)
+    # A first run has only one snapshot and nothing to compare; that is not a
+    # failure of the run.
+    cmd_diff(args, cfg, store)
+    return 0
 
 
 def cmd_probe(args, cfg: Config, store: Store) -> int:
@@ -1199,14 +1215,26 @@ def main() -> int:
     add_log(p)
     p.set_defaults(func=cmd_rank)
 
-    p = sub.add_parser("daily", help="catalog (if needed) + scan + rank")
+    p = sub.add_parser("daily", help="watchlist + shallow sweep + rank + diff")
     add_provider(p)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--budget", type=int)
     p.add_argument("--top", type=int, default=15)
     p.add_argument("--rebuild-catalog", action="store_true")
     p.add_argument("--fixture", action="store_true")
-    p.add_argument("--sets", help="comma-separated set ids to rebuild")
+    p.add_argument("--sets", help="comma-separated set names to sweep")
+    # A shallow refresh: the deep history is stored, and a nightly re-fetch of
+    # a year of it costs the same as fetching a week and tells you no more.
+    p.add_argument("--days", type=int, default=7, help="history depth to refresh")
+    p.add_argument("--limit", type=int, default=25, help="cards per page")
+    p.add_argument("--all-prices", action="store_true", dest="all_prices",
+                   help="ignore the raw price band")
+    p.add_argument("--retire-stale", action="store_true", dest="retire_stale",
+                   help=argparse.SUPPRESS)
+    p.add_argument("--date", help=argparse.SUPPRESS)
+    p.add_argument("--against", help=argparse.SUPPRESS)
+    p.add_argument("--min-move", type=float, default=25.0, dest="min_move",
+                   help=argparse.SUPPRESS)
     add_log(p)
     p.set_defaults(func=cmd_daily)
 
@@ -1237,7 +1265,11 @@ def main() -> int:
 
     p = sub.add_parser("backfill", help="sweep sets and store price history")
     add_provider(p)
-    p.add_argument("--days", type=int, default=180, help="history depth to request")
+    # 365, not 180: fetch_batch bills `limit * 3` and the `days` parameter
+    # does not enter the cost at all, so asking for half the available window
+    # was leaving evidence on the table for no saving. Cards near the
+    # comp-count floor live or die on this.
+    p.add_argument("--days", type=int, default=365, help="history depth to request")
     p.add_argument("--limit", type=int, default=25,
                    help=f"cards per page (server returns at most {PAGE_MAX})")
     p.add_argument("--sets", help="comma-separated set names, default all")
