@@ -462,6 +462,51 @@ class PooledUpsideTest(unittest.TestCase):
         self.assertEqual(rank.upside_price(None, self._split(400.0, 5000.0),
                                            psa9=840.0), (None, False))
 
+    def test_a_contradictory_ten_must_not_buy_confidence(self):
+        """The regression this class was extended for.
+
+        `evaluate` guards three checks on `psa10 is not None` -- the PSA 10
+        comp count, the 9-above-10 inversion and the two-grades-one-price
+        equality. Blanking the price to report an unknown upside dropped all
+        three, so a card with too few PSA 10 comps came out *more* confident
+        than before the contamination was found: Koga's Ditto rose from
+        floor_positive to no_brainer on the strength of a warning.
+        """
+        from gapscan.config import Economics, Thresholds
+        from gapscan.econ import Quote, evaluate
+        from datetime import datetime, timedelta, timezone
+        econ, th = Economics(), Thresholds()
+        fresh = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+
+        def judge(psa10, sales_10, extra=()):
+            q = Quote(raw=60.0, psa9=400.0, psa10=psa10, sales_9=20,
+                      sales_10=sales_10, psa9_last_sale=fresh,
+                      psa_sales_mix={"9": 20, "10": sales_10})
+            return evaluate(q, econ, th, extra_reasons=list(extra))
+
+        # Two PSA 10 comps is below min_sales_10, so the card is not confident.
+        before = judge(900.0, 2)
+        self.assertFalse(before.confident)
+
+        # Blanking the price alone silently restores it. Asserted directly so
+        # the trap is documented rather than only guarded against.
+        self.assertTrue(judge(None, 2).confident)
+
+        # The reason `build` attaches is what holds the line.
+        after = judge(None, 2, extra=["the cheaper cluster of PSA 10 sales "
+                                      "($350) is not above the PSA 9 price"])
+        self.assertFalse(after.confident)
+        self.assertNotEqual(after.verdict, "no_brainer")
+
+    def test_a_ten_equal_to_the_nine_is_unusable_too(self):
+        """Equality is the same absence of upside, and `evaluate` would read
+        it as the provider failing to tell the grades apart -- which is true
+        of a blend and false of our own repricing."""
+        price, unusable = rank.upside_price(2000.0, self._split(840.0, 5000.0),
+                                            psa9=840.0)
+        self.assertIsNone(price)
+        self.assertTrue(unusable)
+
     def test_what_it_does_to_rayquaza(self):
         """The card the review was found on, end to end.
 

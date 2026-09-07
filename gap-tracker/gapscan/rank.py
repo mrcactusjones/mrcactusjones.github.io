@@ -157,16 +157,21 @@ def upside_price(quoted: float | None, split, psa9: float | None) -> tuple:
     printing; if it grades a 10 it is a 10 of *that* printing.
 
     Returns (price, unusable). `unusable` means the cheap cluster of 10s came
-    in below the PSA 9 price. A 10 is never worth less than a 9 of the same
-    printing, so that says the two grades were cut across different
-    populations -- most likely the 9s are pooled too and the detector missed
-    them. Neither number can price an upside then, and the honest answer is
-    that we do not know it, not a number picked from the two.
+    in at or below the PSA 9 price. A 10 is never worth more-or-less the same
+    as a 9 of the same printing, so that says the two grades were cut across
+    different populations -- most likely the 9s are pooled too and the detector
+    missed them. Neither number can price an upside then, and the honest answer
+    is that we do not know it, not a number picked from the two.
+
+    Equality goes down the same path deliberately. `evaluate` reads two equal
+    grade prices as "the grades are not being told apart", which is true of a
+    provider blend and false of our own repricing -- and either way a 10 worth
+    exactly the 9 carries no upside to report.
     """
     if split is None or quoted is None:
         return quoted, False
     priced = cheap_variant_price(quoted, split)
-    if psa9 is not None and priced < psa9:
+    if psa9 is not None and priced <= psa9:
         return None, True
     return priced, False
 
@@ -274,6 +279,21 @@ def build(universe: dict, store: Store, cfg: Config,
         # 9 is clean. Label the upside, do not demote the floor -- the same call
         # already made for a card with no PSA 10 comps at all.
         quote.psa10, upside_unusable = upside_price(quote.psa10, split10, quote.psa9)
+        if upside_unusable:
+            # This one *does* cost the card its confidence, unlike a plain
+            # pooled 10. A cheap cluster of 10s at or under the 9 is evidence
+            # about the 9: the likeliest explanation is that the 9s are pooled
+            # too and the detector could not see it, which puts the floor in
+            # doubt rather than just the upside.
+            #
+            # Saying so is also what stops a warning from flattering a card.
+            # `evaluate` guards three checks on `psa10 is not None`, so blanking
+            # the price silently dropped all three -- and Koga's Ditto rose
+            # from floor_positive to no_brainer on a contamination finding.
+            split_reasons.append(
+                f"the cheaper cluster of PSA 10 sales (${split10.low:,.0f}) is "
+                f"not above the PSA 9 price (${quote.psa9:,.0f}); the two "
+                f"grades are not describing the same printing")
         # A real population report if we have one, otherwise the free proxy.
         mix = (mix_from_population(quote.population)
                or mix_from_sales(quote.psa_sales_mix, cfg.thresholds.min_mix_sample,

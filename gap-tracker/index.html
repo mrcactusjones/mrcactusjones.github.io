@@ -254,6 +254,10 @@ function score(row, s) {
                     // been repriced to the cheaper of them server-side, so the
                     // arithmetic here needs no change -- only the confidence.
                     !row.comps_split &&
+                    // A cheap cluster of 10s at or under the 9 is evidence
+                    // about the 9, not just the 10: blanking the PSA 10 price
+                    // must not buy a card the confidence its comps just lost.
+                    !row.upside_unusable &&
                     row.raw >= T.raw_price_min && row.raw <= T.raw_price_max;
   let verdict;
   // Thresholds come from the config, not from constants baked in here: a
