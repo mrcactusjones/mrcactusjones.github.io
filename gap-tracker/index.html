@@ -296,7 +296,14 @@ const COLS = [
       (r.confident ? "" : ` <span class="flag" title="Thin, stale or low-confidence comps — provisional">⚠</span>`) },
   { k:"raw",    t:"Raw",        fmt:r => money(r.raw) },
   { k:"psa9",   t:"PSA 9",      fmt:r => money(r.psa9) },
-  { k:"psa10",  t:"PSA 10",     fmt:r => money(r.psa10) },
+  // The 10s are pooled across printings for the same reason the 9s are -- one
+  // eBay title, no printing on it -- so they get the same treatment, and the
+  // blend is shown rather than quietly replaced.
+  { k:"psa10",  t:"PSA 10",     fmt:r => r.psa10_blended == null ? money(r.psa10) :
+      `<span class="num neg" title="provider reported $${r.psa10_blended.toFixed(2)} from ${
+        (r.comps_split_10_counts || []).join(" + ")} PSA 10 sales in two clusters ($${
+        (r.comps_split_10_low ?? 0).toFixed(0)} and $${(r.comps_split_10_high ?? 0).toFixed(0)}); ${
+        ""}priced off the cheaper">${money(r.psa10)}</span>` },
   // A card just under a fee-tier cap pays materially more if it prices up:
   // $69 separates the two sides of the $1,499 line on the same trade.
   { k:"headroom", t:"Fee room", fmt:r => r.headroom == null ? "—" :
@@ -324,8 +331,12 @@ const COLS = [
       `<span class="num" title="PSA 9 sales per month, from the counts and the window they cover">${
         r.sales_per_month.toFixed(1)}</span>` },
   // No PSA 10 comps means the model has no upside to show, not that the card
-  // has none. Repeating the floor here would state the second.
-  { k:"upside", t:"At 10",      fmt:r => r.upsideKnown ? signed(r.upside) : "—" },
+  // has none. Repeating the floor here would state the second. A contradictory
+  // comp is a third case again, and reads differently.
+  { k:"upside", t:"At 10",      fmt:r => r.upsideKnown ? signed(r.upside) :
+      r.upside_unusable
+        ? `<span class="flag" title="The cheap cluster of PSA 10 sales came in below the PSA 9 price. A 10 is never worth less than a 9 of the same printing, so the two grades were cut across different populations and neither can price an upside.">?</span>`
+        : "—" },
   { k:"be",     t:"B/E P(10)",  fmt:r => r.be == null ? "—" :
       `<span class="num">${(r.be*100).toFixed(0)}%</span>` },
   { k:"gem_rate", t:"Gem %", fmt:r => r.gem_rate == null ? "—" :

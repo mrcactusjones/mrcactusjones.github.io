@@ -83,6 +83,7 @@ than daily JSON snapshots.
 python3 run.py backfill --provider ppt --days 180   # sweep sets, store history
 python3 run.py rank                                 # trends attach automatically
 python3 run.py trends --top 20                      # rank by how long a gap held
+python3 run.py splits                               # does the pooling check reach the top?
 ```
 
 Costs, at 3 credits a card (base + graded + history):
@@ -256,8 +257,35 @@ and the floor is left alone: we genuinely do not know which printing those
 sales were, and adjusting the number would be inventing an answer rather than
 reporting the uncertainty.
 
-All four come from the same root cause: the provider matches graded sales by
-reading listing titles. The checks don't fix that; they mark where it shows.
+**Two printings visible in the sales themselves.** Where the flags above infer
+pooling from a card's *variants*, this one reads it out of the graded sales:
+a series that separates into two clusters is two cards being averaged. The
+floor is then priced off the cheaper cluster — you buy one raw copy of the
+common printing, so that is what you can count on — and the card cannot be a
+no-brainer.
+
+Both grades get the same treatment, and for the same reason: PPT reads the 9
+and the 10 out of the same listing titles, so if the 9s are pooled the 10s are
+too. Repricing only the 9 costed a cheap-variant submission against blended
+proceeds — it overstated the upside and, because break-even divides by
+`net10 - net9`, understated the gem rate the card needs.
+
+A pooled 10 does *not* cost the card its confident status. The ranking is
+floor-at-9, and how the 10s are comped says nothing about whether the 9 is
+clean; the adjustment is labelled instead. The one case that stops the model
+is a cheap cluster of 10s landing *below* the PSA 9 price: a 10 is never worth
+less than a 9 of the same printing, so the grades were cut across different
+populations, and the upside is reported as unknown rather than picked from the
+two.
+
+`run.py splits` says whether the check is reaching the cards being
+recommended. It needs a run of sales to see two clusters in, and expensive
+cards sell rarely — which is exactly where a pooled price does the most
+damage — so the count of cards flagged means little without knowing how many
+it could not run on at all.
+
+All of these come from the same root cause: the provider matches graded sales
+by reading listing titles. The checks don't fix that; they mark where it shows.
 
 ### Grading fees
 

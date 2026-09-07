@@ -197,6 +197,14 @@ def cmd_rank(args, cfg: Config, store: Store) -> int:
         print(f"note: {pooled} card(s) have graded sales that are two printings "
               f"pooled;\n      those are priced off the cheaper and cannot be "
               f"no-brainers.")
+    pooled10 = rankings.get("comps_split_10_cards", 0)
+    if pooled10:
+        unusable = rankings.get("upside_unusable_cards", 0)
+        print(f"note: {pooled10} card(s) have PSA 10 sales pooled the same way; "
+              f"the upside is\n      priced off the cheaper cluster too."
+              + (f" On {unusable} of them the cheap 10s came in\n"
+                 f"      below the 9, so the upside is reported as unknown "
+                 f"rather than guessed." if unusable else ""))
     stale = rankings.get("stale_variant_data", 0)
     if stale:
         print(f"note: {stale} card(s) were fetched before printing data was "
@@ -755,6 +763,87 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_splits(args, cfg: Config, store: Store) -> int:
+    """Does the two-printings check actually reach the cards we recommend?
+
+    Spends no credits. The detector needs a run of sales to see two clusters
+    in, and expensive cards sell rarely -- which is exactly where a pooled
+    price does the most damage. So "85 cards flagged" says nothing on its own:
+    what matters is whether the check could even run on the cards at the top
+    of the ranking, or only on the well-comped ones further down.
+
+    Reports, per grade: how many ranked cards had enough sales for the check to
+    run, how many it skipped as too thin, and how many it fired on -- overall,
+    and again over the top of the ranking by floor profit.
+    """
+    from datetime import date
+
+    from gapscan import db
+    from gapscan.rank import SPLIT_WINDOW_DAYS, _split_for
+
+    import json as _json
+    path = store.root / "rankings.json"
+    if not path.exists():
+        print("No rankings yet -- run `rank` first.")
+        return 1
+    rankings = _json.loads(path.read_text())
+    if not rankings.get("rows"):
+        print("The ranking is empty -- run `rank` first.")
+        return 1
+    if not db.PATH.exists():
+        print("No price history stored yet -- run `backfill` first.")
+        return 1
+
+    rows = rankings["rows"]
+    ranked = sorted(rows, key=lambda r: r.get("floor_profit") or float("-inf"),
+                    reverse=True)
+    min_sample = cfg.thresholds.comps_split_min_sample
+    today = date.today()
+
+    # card_id -> {grade: (ran, fired)}. One pass over the database for both
+    # grades and every cut of the table below.
+    seen: dict[str, dict] = {}
+    with db.session() as conn:
+        for row in ranked:
+            per = {}
+            for grade in ("psa9", "psa10"):
+                sales, _ = db.sales_series(conn, row["id"], grade)
+                split, _ = _split_for(conn, row["id"], grade, cfg, today)
+                per[grade] = (len(sales) >= min_sample, split is not None,
+                              len(sales))
+            seen[row["id"]] = per
+
+    def report(label, subset):
+        print(f"\n{label} ({len(subset)} cards)")
+        for grade in ("psa9", "psa10"):
+            ran = [r for r in subset if seen[r["id"]][grade][0]]
+            fired = [r for r in ran if seen[r["id"]][grade][1]]
+            thin = len(subset) - len(ran)
+            share = (100 * len(ran) / len(subset)) if subset else 0
+            print(f"  {grade:<6} check ran on {len(ran):>4} ({share:>3.0f}%), "
+                  f"too thin on {thin:>4}, split found on {len(fired):>4}")
+
+    print(f"Two-printings check, {SPLIT_WINDOW_DAYS}-day window falling back to "
+          f"full history,\nneeding {min_sample}+ sales to run at all.")
+    report("Every ranked card", ranked)
+    for size in (25, 50):
+        if len(ranked) > size:
+            report(f"Top {size} by floor profit", ranked[:size])
+
+    # The line that decides whether this is a problem: a check that never runs
+    # on the cards being recommended is not protecting anything.
+    top = ranked[:25]
+    blind = [r for r in top if not seen[r["id"]]["psa9"][0]]
+    if blind:
+        print(f"\n{len(blind)} of the top 25 have too few PSA 9 sales for the "
+              f"check to run:")
+        for row in blind[:10]:
+            n = seen[row["id"]]["psa9"][2]
+            print(f"  {n:>2} sale(s)  {row.get('name')} "
+                  f"({row.get('set_name')} {row.get('number')})")
+    return 0
+
+
 def cmd_series(args, cfg: Config, store: Store) -> int:
     """Print the stored price points behind a trend. Spends no credits.
 
@@ -1305,6 +1394,9 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("splits", help="does the two-printings check reach the top? (free)")
+    p.set_defaults(func=cmd_splits)
 
     p = sub.add_parser("diff", help="what changed since the previous ranking")
     p.add_argument("--date", help="the later snapshot, default the newest")

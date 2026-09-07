@@ -420,6 +420,73 @@ class CheapVariantPriceTest(unittest.TestCase):
                          347.50)
 
 
+class PooledUpsideTest(unittest.TestCase):
+    """The 10 is pooled across printings for exactly the same reason the 9 is.
+
+    PPT reads both grades out of eBay listing titles, and a title carries no
+    printing. Repricing only the 9 costed a cheap-variant submission against
+    blended proceeds: it overstated the upside and, because break-even divides
+    by (net10 - net9), understated the gem rate the card needs.
+    """
+
+    @staticmethod
+    def _split(low, high):
+        return trends.CompsSplit(boundary=(low + high) / 2, low=low, high=high,
+                                 low_count=12, high_count=6, spread=2.6)
+
+    def test_the_cheap_cluster_replaces_the_blend(self):
+        price, unusable = rank.upside_price(9928.0, self._split(3200.0, 12000.0),
+                                            psa9=840.0)
+        self.assertEqual(price, 3200.0)
+        self.assertFalse(unusable)
+
+    def test_no_split_leaves_the_quote_alone(self):
+        self.assertEqual(rank.upside_price(2500.0, None, psa9=800.0),
+                         (2500.0, False))
+
+    def test_it_never_raises_a_price(self):
+        """Same one-sided rule as the floor: a warning cannot improve a card."""
+        price, unusable = rank.upside_price(2000.0, self._split(3200.0, 12000.0),
+                                            psa9=800.0)
+        self.assertEqual(price, 2000.0)
+        self.assertFalse(unusable)
+
+    def test_a_ten_below_the_nine_is_reported_as_unknown_not_guessed(self):
+        """A 10 under a 9 means the grades were cut on different populations."""
+        price, unusable = rank.upside_price(900.0, self._split(400.0, 5000.0),
+                                            psa9=840.0)
+        self.assertIsNone(price)
+        self.assertTrue(unusable)
+
+    def test_a_missing_ten_stays_missing(self):
+        self.assertEqual(rank.upside_price(None, self._split(400.0, 5000.0),
+                                           psa9=840.0), (None, False))
+
+    def test_what_it_does_to_rayquaza(self):
+        """The card the review was found on, end to end.
+
+        Floor priced off the cheap cluster, upside off the blend, is the state
+        being fixed: the break-even gem rate reads far lower than it is.
+        """
+        from gapscan.config import Economics
+        from gapscan.econ import breakeven_probability
+        econ = Economics()
+        raw, psa9 = 195.99, 1536.0          # 9 already cut to the cheap cluster
+        cost = econ.all_in(raw, psa9)
+        net9 = econ.net_proceeds(psa9)
+        pooled = econ.net_proceeds(11500.0)                 # the blended 10
+        cheap = econ.net_proceeds(rank.upside_price(
+            11500.0, self._split(3400.0, 14000.0), psa9)[0])
+        self.assertLess(cheap, pooled)
+        was = breakeven_probability(cost, net9, pooled)
+        now = breakeven_probability(cost, net9, cheap)
+        # Both are already-profitable floors, so break-even is zero either way;
+        # what must move is the upside the page reports.
+        self.assertGreater(pooled - cost, 8000)
+        self.assertLess(cheap - cost, 3000)
+        self.assertEqual((was, now), (0.0, 0.0))
+
+
 class SnapshotAccumulationTest(unittest.TestCase):
     """A blended snapshot is not a sale, and one lands on every run.
 

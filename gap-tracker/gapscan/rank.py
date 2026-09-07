@@ -75,17 +75,51 @@ def _gap_pairs(raw: list, psa9: list, days: int = 90,
             for _, r, g in trends.gap_inputs(raw, psa9, days=days, today=today)]
 
 
-def _comps_splits(priced: list, cfg: Config, observed: dict | None = None) -> dict:
-    """card_id -> CompsSplit for every card whose graded sales are two cards.
+def _split_for(conn, card_id: str, grade: str, cfg: Config, today: date):
+    """(CompsSplit or None, sales seen in the window) for one card and grade."""
+    from . import db, trends
+    # Real sales only. A snapshot is the provider's blended figure -- the very
+    # number a split is hiding inside -- and one lands in the series on every
+    # run, so including them would let the detector cut the clusters at a point
+    # that is not data, then stop firing altogether once enough of them piled up.
+    sales, _ = db.sales_series(conn, card_id, grade)
+    # The recent window, not the whole series: a cluster median drawn from sales
+    # a year old is not a price you can transact at today.
+    recent = trends.window(sales, SPLIT_WINDOW_DAYS, today)
+    # A thin window is not evidence of one card, it is absence of evidence --
+    # and sparse expensive cards are where a pooled price does the most damage.
+    # Celebi had four sales in ninety days and sixteen in total, and the check
+    # simply never ran.
+    basis = recent if len(recent) >= cfg.thresholds.comps_split_min_sample else sales
+    split = trends.comps_split(
+        [v for _, v in basis], cfg.thresholds.comps_split_spread,
+        cfg.thresholds.comps_split_min_share,
+        cfg.thresholds.comps_split_min_sample,
+        cfg.thresholds.comps_split_tail_spread)
+    return split, len(recent)
 
-    Reads the stored PSA 9 sales rather than the quote, because a split is only
+
+def _comps_splits(priced: list, cfg: Config, observed: dict | None = None) -> dict:
+    """card_id -> {"psa9": CompsSplit|None, "psa10": CompsSplit|None}.
+
+    Reads the stored sales rather than the quote, because a split is only
     visible across a series of sales -- the provider hands us one blended
     number that hides it.
+
+    Both grades, because PPT reads both out of the same eBay titles and a title
+    carries no printing. If the 9s are two printings pooled, the 10s are too,
+    and repricing only the 9 leaves the upside quoting a blend against a
+    cheap-variant cost -- overstating the profit and understating the gem rate
+    a card needs, on exactly the cards already known to be contaminated.
+
+    Each grade is cut on its own series. The 9's boundary is an absolute dollar
+    figure drawn from 9s, and 10s sit above it, so reusing it would file every
+    10 under "dear".
 
     Silently returns nothing when there is no database, so the free-tier
     workflow is unaffected, exactly as `_attach_trends` already guards.
     """
-    from . import db, trends
+    from . import db
     if not db.PATH.exists():
         return {}
     splits = {}
@@ -93,30 +127,11 @@ def _comps_splits(priced: list, cfg: Config, observed: dict | None = None) -> di
     today = date.today()
     with db.session() as conn:
         for entry, _ in priced:
-            # Real sales only. A snapshot is the provider's blended figure --
-            # the very number a split is hiding inside -- and one lands in the
-            # series on every run, so including them would let the detector
-            # cut the clusters at a point that is not data, then stop firing
-            # altogether once enough of them piled up.
-            sales, _ = db.sales_series(conn, entry["id"], "psa9")
-            # The recent window, not the whole series: a cluster median drawn
-            # from sales a year old is not a price you can transact at today.
-            recent = trends.window(sales, SPLIT_WINDOW_DAYS, today)
-            # A thin window is not evidence of one card, it is absence of
-            # evidence -- and sparse expensive cards are where a pooled price
-            # does the most damage. Celebi had four sales in ninety days and
-            # sixteen in total, and the check simply never ran.
-            basis = recent
-            if len(recent) < cfg.thresholds.comps_split_min_sample:
-                basis = sales
-            split = trends.comps_split(
-                [v for _, v in basis], cfg.thresholds.comps_split_spread,
-                cfg.thresholds.comps_split_min_share,
-                cfg.thresholds.comps_split_min_sample,
-                cfg.thresholds.comps_split_tail_spread)
-            if split is not None:
-                splits[entry["id"]] = split
-            observed[entry["id"]] = len(recent)
+            nine, seen = _split_for(conn, entry["id"], "psa9", cfg, today)
+            ten, _ = _split_for(conn, entry["id"], "psa10", cfg, today)
+            if nine is not None or ten is not None:
+                splits[entry["id"]] = {"psa9": nine, "psa10": ten}
+            observed[entry["id"]] = seen
     return splits
 
 
@@ -132,6 +147,28 @@ def cheap_variant_price(quoted: float, split) -> float:
     contamination warning inflate a floor. That is the opposite of the point.
     """
     return round(min(quoted, split.low), 2)
+
+
+def upside_price(quoted: float | None, split, psa9: float | None) -> tuple:
+    """The PSA 10 price to judge an upside on, and whether it is usable at all.
+
+    Same rule as the floor: when the 10s are two printings pooled, take the
+    cheap cluster, and never upward. You buy one raw copy of the common
+    printing; if it grades a 10 it is a 10 of *that* printing.
+
+    Returns (price, unusable). `unusable` means the cheap cluster of 10s came
+    in below the PSA 9 price. A 10 is never worth less than a 9 of the same
+    printing, so that says the two grades were cut across different
+    populations -- most likely the 9s are pooled too and the detector missed
+    them. Neither number can price an upside then, and the honest answer is
+    that we do not know it, not a number picked from the two.
+    """
+    if split is None or quoted is None:
+        return quoted, False
+    priced = cheap_variant_price(quoted, split)
+    if psa9 is not None and priced < psa9:
+        return None, True
+    return priced, False
 
 
 def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) -> int:
@@ -153,7 +190,8 @@ def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) ->
             # flattens every trend computed from them.
             raw = db.series(conn, row["id"], "raw")
             psa9, _ = db.sales_series(conn, row["id"], "psa9")
-            split = (splits or {}).get(row["id"])
+            pair = (splits or {}).get(row["id"]) or {}
+            split = pair.get("psa9")
             if split is not None:
                 # Keep only the cheap variant's sales. The headline floor is
                 # priced from them, so the floor history, the worst case and
@@ -163,6 +201,11 @@ def _attach_trends(rows: list[dict], cfg: Config, splits: dict | None = None) ->
             if len(raw) < 2 and len(psa9) < 2:
                 continue
             psa10, _ = db.sales_series(conn, row["id"], "psa10")
+            # Same cut on the 10s, for the same reason: psa10_30d and
+            # divergence_30d otherwise average two populations and call the
+            # result a trend.
+            if pair.get("psa10") is not None:
+                psa10 = [p for p in psa10 if p[1] <= pair["psa10"].boundary]
             floor = trends.gap_series(raw, psa9, cfg.econ.all_in, cfg.econ.net_proceeds)
             # One anchor for every window. Left to itself each series anchors
             # on its own last observation, so a raw series ending today and a
@@ -215,15 +258,22 @@ def build(universe: dict, store: Store, cfg: Config,
         # you can actually count on -- price the floor from that and say so.
         # What we can see, against what the provider claims.
         quote.observed_sales_9 = observed_sales.get(entry["id"])
-        split = splits.get(entry["id"])
+        pair = splits.get(entry["id"]) or {}
+        split, split10 = pair.get("psa9"), pair.get("psa10")
         split_reasons = []
         blended = quote.psa9
+        blended10 = quote.psa10
         if split is not None and quote.psa9 is not None:
             quote.psa9 = cheap_variant_price(quote.psa9, split)
             split_reasons.append(
                 f"graded sales split in two: {split.low_count} near "
                 f"${split.low:,.0f} and {split.high_count} near ${split.high:,.0f}; "
                 f"priced off the cheaper, not the ${blended:,.0f} blend")
+        # The 10 gets the same treatment, and deliberately adds no reason: the
+        # ranking is floor-at-9, and a pooled 10 says nothing about whether the
+        # 9 is clean. Label the upside, do not demote the floor -- the same call
+        # already made for a card with no PSA 10 comps at all.
+        quote.psa10, upside_unusable = upside_price(quote.psa10, split10, quote.psa9)
         # A real population report if we have one, otherwise the free proxy.
         mix = (mix_from_population(quote.population)
                or mix_from_sales(quote.psa_sales_mix, cfg.thresholds.min_mix_sample,
@@ -262,12 +312,25 @@ def build(universe: dict, store: Store, cfg: Config,
             "multiple_outlier": bool(multiple_reasons),
             "variant_spread": quote.variant_spread,
             # What the provider reported, and the two cards behind it.
+            # `comps_split` stays the PSA 9's -- the page and `diff` read it as
+            # the reason a floor was repriced, and that is still what it means.
+            # The 10's split is reported alongside under its own names.
             "comps_split": split is not None,
             "psa9_blended": blended if split is not None else None,
             "comps_split_low": split.low if split else None,
             "comps_split_high": split.high if split else None,
             "comps_split_counts": ([split.low_count, split.high_count]
                                    if split else None),
+            "comps_split_10": split10 is not None,
+            "psa10_blended": blended10 if split10 is not None else None,
+            "comps_split_10_low": split10.low if split10 else None,
+            "comps_split_10_high": split10.high if split10 else None,
+            "comps_split_10_counts": ([split10.low_count, split10.high_count]
+                                      if split10 else None),
+            # The cheap cluster of 10s came in under the PSA 9 price, so there
+            # is no upside we can stand behind. Not a missing comp -- a
+            # contradictory one, and worth saying differently.
+            "upside_unusable": upside_unusable,
             "printings": quote.printings,
             "psa9_sale_age_days": (round(age, 1)
                                    if (age := days_since(quote.psa9_last_sale)) is not None
@@ -350,6 +413,8 @@ def build(universe: dict, store: Store, cfg: Config,
         "trend_coverage": with_trends,
         "stale_variant_data": stale_variants,
         "comps_split_cards": sum(1 for row in rows if row.get("comps_split")),
+        "comps_split_10_cards": sum(1 for row in rows if row.get("comps_split_10")),
+        "upside_unusable_cards": sum(1 for row in rows if row.get("upside_unusable")),
         "scoring": {"weights": cfg.scoring.weights,
                     "roi_full": cfg.scoring.roi_full,
                     "depth_full": cfg.scoring.depth_full,
