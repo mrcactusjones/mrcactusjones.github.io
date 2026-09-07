@@ -952,3 +952,65 @@ class FeeTierTest(unittest.TestCase):
         flat = Economics(use_fee_tiers=False)
         self.assertFalse(flat.above_modelled_range(999999.0))
         self.assertIsNone(flat.tier_headroom(1400.0))
+
+
+class GradedPriceIsTheConservativeOneTest(unittest.TestCase):
+    """`smartMarketPrice` is a short-window figure and can outrun the sales.
+
+    Rayquaza ex δ's said `method: 30day_filtered_weighted` and read $2,801
+    against a $1,536 median across all 27 of its PSA 9 sales. That doubled its
+    floor and put it top of the ranking. A number describing the downside must
+    not be the cheeriest one on offer.
+    """
+
+    from gapscan.providers.ppt import _grade_block as _block
+
+    # Exactly what PPT returned for ex15-97's psa9.
+    RAYQUAZA = {
+        "count": 27, "averagePrice": 1589.142222222222, "medianPrice": 1536,
+        "minPrice": 699.99, "maxPrice": 3199.99, "marketPrice7Day": 3124.995,
+        "marketTrend": "up", "lastSaleDate": "2026-09-05T00:00:00.000Z",
+        "smartMarketPrice": {"price": 2801.44, "confidence": "medium",
+                             "method": "30day_filtered_weighted", "daysUsed": 30},
+    }
+
+    def test_the_median_wins_when_the_smart_price_outruns_it(self):
+        price, confidence, last, count = GradedPriceIsTheConservativeOneTest._block(
+            self.RAYQUAZA)
+        self.assertEqual(price, 1536)
+        self.assertEqual((confidence, count), ("medium", 27))
+        self.assertEqual(last, "2026-09-05T00:00:00.000Z")
+
+    def test_the_smart_price_wins_when_it_is_the_lower(self):
+        """It is the better estimate; it just must not be used to inflate."""
+        block = {"medianPrice": 1000.0, "count": 5,
+                 "smartMarketPrice": {"price": 800.0, "confidence": "high"}}
+        self.assertEqual(GradedPriceIsTheConservativeOneTest._block(block)[0], 800.0)
+
+    def test_a_smart_price_with_no_median_to_check_it_still_stands(self):
+        block = {"count": 1, "smartMarketPrice": {"price": 800.0, "confidence": "low"}}
+        self.assertEqual(GradedPriceIsTheConservativeOneTest._block(block)[0], 800.0)
+
+    def test_the_median_alone_is_used_when_there_is_no_smart_price(self):
+        self.assertEqual(
+            GradedPriceIsTheConservativeOneTest._block({"medianPrice": 1000.0})[0],
+            1000.0)
+
+    def test_average_remains_the_last_resort(self):
+        self.assertEqual(
+            GradedPriceIsTheConservativeOneTest._block({"averagePrice": 42.0})[0], 42.0)
+
+    def test_an_empty_block_yields_nothing(self):
+        self.assertEqual(GradedPriceIsTheConservativeOneTest._block({}),
+                         (None, None, None, 0))
+        self.assertEqual(GradedPriceIsTheConservativeOneTest._block(None),
+                         (None, None, None, 0))
+
+    def test_the_floor_this_produces_for_the_real_card(self):
+        """The whole point: $1,762 was not a floor the sales supported."""
+        econ = Economics()
+        raw, was, now = 195.99, 2801.44, 1536.0
+        before = econ.net_proceeds(was) - econ.all_in(raw, was)
+        after = econ.net_proceeds(now) - econ.all_in(raw, now)
+        self.assertGreater(before, 1800)
+        self.assertLess(after, 1000)

@@ -249,17 +249,32 @@ def pick_match(results: list[dict], card: dict) -> tuple[dict | None, str]:
 def _grade_block(block) -> tuple[float | None, str | None, str | None, int]:
     """(price, confidence, last_sale, count) for one grade.
 
-    Prefers the provider's own weighted estimate over a raw average: with one
-    or two sales, `averagePrice` is just that sale, while smartMarketPrice is
-    filtered and carries a confidence rating.
+    `smartMarketPrice` is the provider's own weighted estimate, and it is the
+    right starting point: with one or two sales `averagePrice` is just that
+    sale, while the smart price is filtered and carries a confidence rating.
+
+    But it is computed over a short recent window -- Rayquaza ex δ's said
+    `method: 30day_filtered_weighted` -- so on a card the provider marks
+    trending up it sits well above what the sales as a whole support: $2,801
+    against a $1,536 median across all 27 of them, which doubled the card's
+    floor and put it top of the ranking.
+
+    So: the lower of the smart price and the median. Never let the optimistic
+    figure raise a floor, but keep it where it is the conservative one, and
+    where there is no median to check it against. Same rule as the pooled
+    printings -- a number meant to describe the downside must not be the
+    cheeriest one available.
     """
     if not isinstance(block, dict):
         return None, None, None, 0
     smart = block.get("smartMarketPrice") or {}
     price = _as_number(smart.get("price"))
     confidence = smart.get("confidence")
+    median = _as_number(block.get("medianPrice"))
     if price is None:
-        price = _as_number(block.get("medianPrice"))
+        price = median
+    elif median is not None:
+        price = min(price, median)
     if price is None:
         price = _as_number(block.get("averagePrice"))
     count = int(_as_number(block.get("count")) or 0)
