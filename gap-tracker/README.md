@@ -287,6 +287,45 @@ it could not run on at all.
 All of these come from the same root cause: the provider matches graded sales
 by reading listing titles. The checks don't fix that; they mark where it shows.
 
+#### What the range test cannot do
+
+The cluster check needs 8+ sales, and `splits` showed it running on 9 of the
+top 25 by floor profit for PSA 9 and 0 of 25 for PSA 10. Expensive cards sell
+rarely, so thin comps is both where a pooled price does the most damage and
+where it cannot be seen.
+
+`salesByGrade` carries `minPrice`/`maxPrice`/`count` on every card regardless
+of history depth, which makes a range test the obvious way to cover them. It
+was simulated at 20-40,000 trials a cell and rejected before any of it was
+written:
+
+- The null distribution grows with the sample. One printing at sigma=0.35
+  shows `max/min` of 1.7 at three sales and 4.1 at thirty, so no fixed
+  threshold is meaningful across `n`. Rayquaza's much-quoted 4.6x range sits
+  inside the 95th percentile for a single *clean* printing at eight sales.
+- Calibrated per `n` the power is real -- 84-94% detection of a 4x split at
+  5-8 sales, 5% false positives -- but it needs the card's own scatter, and
+  with min, max and count alone that cannot be estimated. `max/min` *is* the
+  only dispersion statistic available, and it is the thing under test.
+- `mean/median` is less scatter-sensitive but far weaker: 47-59% detection
+  where `max/min` reaches 97%.
+
+So it came down to whether real cards cluster tightly enough for one global
+threshold. `splits` measures that, and on 297 cards with 12+ unsplit sales:
+
+    sigma  p10 0.17   p25 0.23   median 0.30   p75 0.39   p90 0.49
+
+A 3.0x spread. A threshold calibrated to 5% false positives at the median card
+fires on 45% of perfectly clean cards at the p90 -- and across the real spread
+averages 15% false positives against 91% detection. On the 16 blind top-25
+cards that is roughly two clean cards flagged for every genuinely split one
+found.
+
+The check that would cover the thin cards is therefore worse than nothing, and
+none of this is currently reaching a recommendation: all 16 of those cards are
+already unconfident for other reasons. Knowing the printing is the only real
+fix, and that means a listing, not a statistic.
+
 ### Grading fees
 
 PSA paused all four Value tiers on 2026-06-02 under a 14-million-card backlog,
