@@ -835,12 +835,60 @@ def cmd_splits(args, cfg: Config, store: Store) -> int:
     top = ranked[:25]
     blind = [r for r in top if not seen[r["id"]]["psa9"][0]]
     if blind:
+        # Thin comps are not the only guard. `evaluate` already withholds
+        # confidence for a price it cannot see enough sales behind, among
+        # others -- so what matters is how many of these are being presented
+        # as trustworthy despite the check being unable to run.
+        unflagged = [r for r in blind if r.get("confident")]
+        verdict = (f"{len(unflagged)} of those are still marked confident, so "
+                   f"nothing else caught them either"
+                   if unflagged else
+                   "all of those are already unconfident for other reasons, so "
+                   "the\nblind spot is not currently reaching a recommendation")
         print(f"\n{len(blind)} of the top 25 have too few PSA 9 sales for the "
-              f"check to run:")
+              f"check to run;\n{verdict}:")
         for row in blind[:10]:
             n = seen[row["id"]]["psa9"][2]
-            print(f"  {n:>2} sale(s)  {row.get('name')} "
+            mark = "!" if row.get("confident") else " "
+            print(f" {mark}{n:>2} sale(s)  {row.get('name')} "
                   f"({row.get('set_name')} {row.get('number')})")
+        if unflagged:
+            print("  (! = confident despite the pooling check being blind on it)")
+
+    # Whether a range test could ever cover the thin cards turns entirely on
+    # how much a single printing's own sales scatter. Simulation says a
+    # threshold on max/min detects 84-94% of 4x splits at 5-8 sales -- but
+    # only if that scatter is known: one calibrated at sigma=0.25 and applied
+    # to a card at sigma=0.45 fires on 60% of perfectly clean cards. With
+    # min, max and count alone the scatter cannot be estimated, so the only
+    # way it works is if real cards cluster tightly around one value. That is
+    # measurable here, on the cards deep enough to measure.
+    import math, statistics
+    sigmas = []
+    with db.session() as conn:
+        for row in ranked:
+            if seen[row["id"]]["psa9"][2] < 12 or row.get("comps_split"):
+                continue    # too thin to measure, or known to be two cards
+            sales, _ = db.sales_series(conn, row["id"], "psa9")
+            logs = [math.log(v) for _, v in sales if v and v > 0]
+            if len(logs) >= 12:
+                sigmas.append(statistics.pstdev(logs))
+    if len(sigmas) >= 20:
+        sigmas.sort()
+        def q(p): return sigmas[min(len(sigmas) - 1, int(len(sigmas) * p))]
+        print(f"\nScatter of a single printing's own PSA 9 sales, measured on "
+              f"the {len(sigmas)}\ncards with 12+ sales that the check says are "
+              f"*not* split:")
+        print(f"  sigma  p10 {q(0.10):.2f}   p25 {q(0.25):.2f}   median "
+              f"{q(0.50):.2f}   p75 {q(0.75):.2f}   p90 {q(0.90):.2f}")
+        spread = q(0.90) / q(0.10) if q(0.10) > 0 else float("inf")
+        print(f"  p90/p10 = {spread:.1f}x")
+        print("  A single threshold can only work if this is narrow. At 2x or"
+              "\n  more, a cutoff honest for the quiet half of the table fires "
+              "on\n  clean cards in the loud half.")
+    else:
+        print(f"\nNot enough deep, unsplit cards ({len(sigmas)}) to measure how "
+              f"much a\nsingle printing's sales scatter; need 20+.")
     return 0
 
 
