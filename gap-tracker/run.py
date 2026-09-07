@@ -763,6 +763,94 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_buy(args, cfg: Config, store: Store) -> int:
+    """The shortlist, with what you would need to know before acting on it.
+
+    `rank` orders by floor profit regardless of verdict, so the cards it prints
+    first are not necessarily the ones that pass every check. This prints only
+    the verdict asked for -- no-brainers by default -- and for each one the
+    figures a purchase actually turns on: what you pay, what it costs all in,
+    what it clears at a 9, how long the capital is tied up, and whether the
+    floor has held.
+
+    It spends no credits and adds no analysis. Everything here was computed by
+    `rank`; this only selects and lays it out.
+    """
+    import json as _json
+
+    path = store.root / "rankings.json"
+    if not path.exists():
+        print("No rankings yet -- run `rank` first.")
+        return 1
+    payload = _json.loads(path.read_text())
+    rows = [r for r in payload.get("rows", []) if r.get("verdict") == args.verdict]
+    if not rows:
+        counts = payload.get("verdict_counts", {})
+        print(f"No cards with verdict '{args.verdict}'. Counts: {counts}")
+        return 1
+    rows.sort(key=lambda r: r.get("floor_profit") or 0, reverse=True)
+
+    generated = payload.get("generated_at", "?")
+    print(f"{len(rows)} {args.verdict} card(s) as of {generated[:10]}; "
+          f"top {min(args.top, len(rows))} by what clears at a PSA 9.\n")
+
+    def money(v):
+        return "--" if v is None else f"${v:,.2f}"
+
+    for i, r in enumerate(rows[:args.top], 1):
+        print(f"{i}. {r.get('name')} -- {r.get('set_name')} #{r.get('number')}"
+              + (f"  [{r['rarity']}]" if r.get("rarity") else ""))
+        print(f"   buy raw at {money(r.get('raw'))}   all-in "
+              f"{money(r.get('all_in'))}   sells at a 9 for "
+              f"{money(r.get('psa9'))}")
+        roi = r.get("floor_roi")
+        print(f"   clears {money(r.get('floor_profit'))}"
+              + (f" ({roi*100:.0f}% on capital)" if roi is not None else "")
+              + (f", {money(r.get('floor_per_month'))}/month over "
+                 f"{r['capital_months']:.1f}mo"
+                 if r.get("capital_months") else ""))
+        if r.get("upside_known") and r.get("upside_profit") is not None:
+            be = r.get("breakeven_p10")
+            print(f"   at a 10 it clears {money(r.get('upside_profit'))}"
+                  + (f"; {be*100:.0f}% tens needed to break even if the 9 lost"
+                     if be else "")
+                  + (f"; ~{r['gem_rate']*100:.0f}% of graded sales are 10s"
+                     if r.get("gem_rate") else ""))
+
+        # The things that decide whether the number above survives contact with
+        # a real purchase. Each is already computed; none is a new judgement.
+        checks = []
+        if r.get("printings") and len(r["printings"]) > 1:
+            checks.append(f"buy the right printing -- this card has "
+                          f"{', '.join(r['printings'])}"
+                          + (f", {r['variant_spread']:.1f}x apart"
+                             if r.get("variant_spread") else ""))
+        if r.get("observed_sales_9") is not None:
+            checks.append(f"{r['observed_sales_9']} PSA 9 sale(s) visible in the "
+                          f"window (provider claims {r.get('sales_9')})")
+        if r.get("psa9_sale_age_days") is not None:
+            checks.append(f"last PSA 9 sale {r['psa9_sale_age_days']:.0f} days ago")
+        if r.get("floor_observations_90d"):
+            checks.append(f"floor held on {r.get('floor_days_held_90d', 0)} of "
+                          f"{r['floor_observations_90d']} days observed; worst "
+                          f"was {money(r.get('floor_worst_90d'))}")
+        if r.get("months_to_sell") is not None:
+            checks.append(f"~{r['months_to_sell']:.1f} month(s) to sell at "
+                          f"{r.get('sales_per_month', 0):.1f} sales/mo")
+        head = r.get("fee_headroom")
+        if head is not None and head < 0.15:
+            checks.append(f"only {head*100:.0f}% below the next PSA fee tier -- "
+                          f"a small price rise costs a tier")
+        for c in checks:
+            print(f"     - {c}")
+        print()
+
+    print("All of this prices a PSA 9. It assumes the card grades at least a 9,")
+    print("which a raw card you have not seen in hand may not: the model knows")
+    print("the market, not the corners and centring of the copy you buy.")
+    return 0
+
+
 def cmd_splits(args, cfg: Config, store: Store) -> int:
     """Does the two-printings check actually reach the cards we recommend?
 
@@ -1442,6 +1530,12 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("buy", help="the shortlist, with what to check before acting")
+    p.add_argument("--top", type=int, default=3)
+    p.add_argument("--verdict", default="no_brainer",
+                   choices=("no_brainer", "floor_positive", "ten_or_bust", "dead"))
+    p.set_defaults(func=cmd_buy)
 
     p = sub.add_parser("splits", help="does the two-printings check reach the top? (free)")
     p.set_defaults(func=cmd_splits)

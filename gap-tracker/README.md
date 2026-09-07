@@ -84,6 +84,7 @@ python3 run.py backfill --provider ppt --days 180   # sweep sets, store history
 python3 run.py rank                                 # trends attach automatically
 python3 run.py trends --top 20                      # rank by how long a gap held
 python3 run.py splits                               # does the pooling check reach the top?
+python3 run.py buy --top 3                          # the shortlist, and what to check first
 ```
 
 Costs, at 3 credits a card (base + graded + history):
