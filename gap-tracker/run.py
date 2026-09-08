@@ -825,18 +825,49 @@ def cmd_buy(args, cfg: Config, store: Store) -> int:
                           f"{', '.join(r['printings'])}"
                           + (f", {r['variant_spread']:.1f}x apart"
                              if r.get("variant_spread") else ""))
-        if r.get("observed_sales_9") is not None:
-            checks.append(f"{r['observed_sales_9']} PSA 9 sale(s) visible in the "
-                          f"window (provider claims {r.get('sales_9')})")
+        visible = r.get("observed_sales_9")
+        if visible is not None:
+            checks.append(f"{visible} PSA 9 sale(s) visible in the window "
+                          f"(provider claims {r.get('sales_9')})")
+            # A card can clear min_sales_9 and still fall short of the sample
+            # the two-printings check needs. Everything in that band is priced
+            # confidently and never checked -- which is not the same as checked
+            # and found clean, and is exactly where a pooled price hides.
+            need = cfg.thresholds.comps_split_min_sample
+            if visible < need:
+                checks.append(f"that is below the {need} sales the pooled-"
+                              f"printings check needs, so this card was never "
+                              f"checked for it -- not checked and cleared")
         if r.get("psa9_sale_age_days") is not None:
             checks.append(f"last PSA 9 sale {r['psa9_sale_age_days']:.0f} days ago")
-        if r.get("floor_observations_90d"):
+        obs = r.get("floor_observations_90d")
+        if obs:
+            # Observations, not calendar days -- `held_days` counts points.
+            # Saying "days" made five sales in ninety days read like five days
+            # of a held floor.
             checks.append(f"floor held on {r.get('floor_days_held_90d', 0)} of "
-                          f"{r['floor_observations_90d']} days observed; worst "
-                          f"was {money(r.get('floor_worst_90d'))}")
+                          f"{obs} observation(s) in 90 days; worst was "
+                          f"{money(r.get('floor_worst_90d'))}")
+            # The headline is priced off today's quote; the worst is drawn from
+            # the stored sales. Today sitting under all of them means the raw
+            # price has been climbing faster than the graded one.
+            floor, low = r.get("floor_profit"), r.get("floor_worst_90d")
+            if floor is not None and low is not None and floor < low:
+                checks.append(f"today's floor ({money(floor)}) is below every "
+                              f"one of those {obs} observations -- the gap has "
+                              f"been closing, not holding")
         if r.get("months_to_sell") is not None:
-            checks.append(f"~{r['months_to_sell']:.1f} month(s) to sell at "
-                          f"{r.get('sales_per_month', 0):.1f} sales/mo")
+            rate = r.get("sales_per_month") or 0.0
+            note = f"~{r['months_to_sell']:.1f} month(s) to sell at {rate:.1f} sales/mo"
+            # `sales_per_month` prefers the provider's own velocity figure.
+            # Where our stored sales imply a far slower market, say so: the
+            # wait is the part of the trade you cannot hedge.
+            if visible and rate > 0:
+                ours = visible / 3.0        # the window is 90 days
+                if rate > ours * 3:
+                    note += (f" (the provider's figure; our own sales imply "
+                             f"nearer {ours:.1f}/mo)")
+            checks.append(note)
         head = r.get("fee_headroom")
         if head is not None and head < 0.15:
             checks.append(f"only {head*100:.0f}% below the next PSA fee tier -- "
