@@ -103,6 +103,32 @@ class Economics:
                 + self.fee_for(declared_value if declared_value is not None else raw_price)
                 + self.sub_ship_per_card)
 
+    def max_raw_price(self, sale_price: float, min_profit: float = 0.0,
+                      min_roi: float = 0.0) -> float:
+        """The most you can pay for the raw card and still clear your margin.
+
+        `all_in` answers "what does this trade cost"; standing at a table you
+        need the inverse -- "what is the most I can hand over". Solved rather
+        than searched, because the grading fee keys off the *slabbed* value,
+        which does not move with what you pay for the raw copy.
+
+            cash + fee(psa9) + sub_ship <= net_proceeds(psa9) - min_profit
+            cash + fee(psa9) + sub_ship <= net_proceeds(psa9) / (1 + min_roi)
+
+        Both constraints, whichever binds first.
+
+        This is *cash out of pocket*, not a guide price. `all_in` pads a quoted
+        market price by `raw_premium_pct` because you rarely buy at guide -- but
+        at a show you are naming the number, so padding it again would tell you
+        to walk away from prices that are actually fine. Returns 0.0 when the
+        trade cannot clear the margin at any price.
+        """
+        net = self.net_proceeds(sale_price)
+        fixed = self.fee_for(sale_price) + self.sub_ship_per_card
+        by_profit = net - min_profit - fixed
+        by_roi = net / (1 + min_roi) - fixed if min_roi > -1 else by_profit
+        return max(0.0, min(by_profit, by_roi))
+
     def net_proceeds(self, sale_price: float) -> float:
         """What actually lands in your pocket on a sale."""
         return sale_price * (1 - self.sale_fee_pct) - self.ship_out

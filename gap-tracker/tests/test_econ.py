@@ -1014,3 +1014,76 @@ class GradedPriceIsTheConservativeOneTest(unittest.TestCase):
         after = econ.net_proceeds(now) - econ.all_in(raw, now)
         self.assertGreater(before, 1800)
         self.assertLess(after, 1000)
+
+
+class MaxRawPriceTest(unittest.TestCase):
+    """The inverse of the cost model: what is the most I can hand over?
+
+    `all_in` answers what a trade costs. Standing at a table you need the
+    other direction, and getting it wrong in the generous direction is how you
+    overpay for something the sheet told you was a bargain.
+    """
+
+    def setUp(self):
+        self.econ = Economics()
+
+    def _floor_at(self, cash, psa9):
+        """Reproduce the model's own arithmetic from a cash price."""
+        all_in = cash + self.econ.fee_for(psa9) + self.econ.sub_ship_per_card
+        return self.econ.net_proceeds(psa9) - all_in, all_in
+
+    def test_paying_the_maximum_leaves_exactly_the_margin(self):
+        for psa9 in (400.0, 780.0, 1536.0, 2600.0):
+            cash = self.econ.max_raw_price(psa9, min_profit=25.0, min_roi=0.25)
+            floor, all_in = self._floor_at(cash, psa9)
+            self.assertAlmostEqual(floor / all_in, 0.25, places=6, msg=f"${psa9}")
+            self.assertGreaterEqual(floor, 25.0)
+
+    def test_the_profit_floor_binds_when_it_is_the_tighter_one(self):
+        """Which constraint bites depends on the card, so both must be applied.
+
+        At a $300 PSA 9 a flat $25 bites well before a 5% return does; on the
+        four-figure cards it is the other way round.
+        """
+        psa9 = 300.0
+        cash = self.econ.max_raw_price(psa9, min_profit=25.0, min_roi=0.05)
+        floor, all_in = self._floor_at(cash, psa9)
+        self.assertAlmostEqual(floor, 25.0, places=6)
+        self.assertGreater(floor / all_in, 0.05)
+
+    def test_a_cheap_card_cannot_clear_the_fee_even_if_the_raw_were_free(self):
+        """The $79.99 floor on grading rules out most of the table.
+
+        A PSA 9 at $120 nets $99.10, and the fee plus shipping is $83.99 --
+        so $15.11 is the whole prize, free card and all. The right answer is
+        0.0, not a negative number that reads like a price you could pay.
+        """
+        self.assertEqual(self.econ.max_raw_price(120.0, min_profit=25.0), 0.0)
+        floor, _ = self._floor_at(0.0, 120.0)
+        self.assertLess(floor, 25.0)
+
+    def test_breakeven_is_the_zero_margin_case(self):
+        psa9 = 900.5
+        cash = self.econ.max_raw_price(psa9)
+        floor, _ = self._floor_at(cash, psa9)
+        self.assertAlmostEqual(floor, 0.0, places=6)
+
+    def test_a_card_that_cannot_clear_its_costs_returns_zero_not_a_negative(self):
+        """A negative "max price" would read as a number you could pay."""
+        self.assertEqual(self.econ.max_raw_price(40.0, min_profit=25.0), 0.0)
+
+    def test_it_is_cash_not_a_guide_price(self):
+        """`all_in` pads a quoted price by raw_premium_pct because you rarely
+        buy at guide. At a show you name the number, so padding it again would
+        reject prices that are fine."""
+        psa9 = 1536.0
+        cash = self.econ.max_raw_price(psa9, min_profit=25.0, min_roi=0.25)
+        padded = self.econ.all_in(cash, psa9)
+        unpadded = cash + self.econ.fee_for(psa9) + self.econ.sub_ship_per_card
+        self.assertGreater(padded, unpadded)
+        self.assertAlmostEqual(padded - unpadded,
+                               cash * self.econ.raw_premium_pct, places=6)
+
+    def test_it_agrees_with_all_in_on_a_real_card(self):
+        """Rayquaza ex delta, from a live run: raw $273, PSA 9 $1,536."""
+        self.assertAlmostEqual(self.econ.all_in(273.0, 1536.0), 487.69, places=2)

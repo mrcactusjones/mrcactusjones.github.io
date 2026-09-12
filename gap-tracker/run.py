@@ -763,6 +763,288 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_sheet(args, cfg: Config, store: Store) -> int:
+    """Write a print-ready field sheet for a card show. Spends no credits.
+
+    The dashboard is for deciding; this is for standing at a table with a
+    clipboard and a card in your hand. Different job, so a different sheet:
+    the headline is not the profit, it is the most you can pay -- the number
+    you cannot work out in your head while someone waits for an answer.
+
+    Everything comes from the last `rank`; nothing here is recomputed except
+    the walk-away prices, which invert the same cost model.
+    """
+    import html as _html
+    import json as _json
+    import re
+    from datetime import date
+
+    from gapscan import db
+
+    def image_url(card_id):
+        """pokemontcg.io's image CDN, derived from the card id.
+
+        Card ids come from PPT's `externalCatalogId`, which is a pokemontcg.io
+        id shaped `<setcode>-<number>` -- so `ex15-97` is `ex15/97.png`. The
+        image CDN is public and needs no key, which is why retiring the
+        pokemontcg.io *API* did not have to cost us the pictures. Cards PPT
+        knows on its own carry a `ppt-` id and have no derivable image.
+        """
+        if not card_id or card_id.startswith("ppt-"):
+            return None
+        m = re.fullmatch(r"([a-z0-9]+)-([A-Za-z0-9]+)", str(card_id))
+        return (f"https://images.pokemontcg.io/{m.group(1)}/{m.group(2)}.png"
+                if m else None)
+
+    path = store.root / "rankings.json"
+    if not path.exists():
+        print("No rankings yet -- run `rank` first.")
+        return 1
+    payload = _json.loads(path.read_text())
+    wanted = [v.strip() for v in args.verdict.split(",") if v.strip()]
+    rows = [r for r in payload.get("rows", []) if r.get("verdict") in wanted]
+    rows.sort(key=lambda r: r.get("floor_profit") or 0, reverse=True)
+    rows = rows[:args.top]
+    if not rows:
+        print(f"No cards with verdict in {wanted}. "
+              f"Counts: {payload.get('verdict_counts', {})}")
+        return 1
+
+    econ, th = cfg.econ, cfg.thresholds
+
+    def money(v, dash="--"):
+        return dash if v is None else f"${v:,.0f}"
+
+    def cents(v, dash="--"):
+        return dash if v is None else f"${v:,.2f}"
+
+    def pct(v, dash="--"):
+        if v is None:
+            return dash
+        return f"{v * 100:+.0f}%"
+
+    def esc(v):
+        return _html.escape(str(v if v is not None else ""))
+
+    # The 30/90-day trend columns need four-plus sales inside the window, and
+    # the cards worth carrying to a show are exactly the ones too thin for
+    # that. So read the stored sales directly: first to last, however long
+    # that took, with the count in plain sight.
+    moves = {}
+    if db.PATH.exists():
+        with db.session() as conn:
+            for r in rows:
+                for grade in ("psa9", "raw"):
+                    pts, _ = db.sales_series(conn, r["id"], grade)
+                    if len(pts) >= 2:
+                        (d0, v0), (d1, v1) = pts[0], pts[-1]
+                        moves[(r["id"], grade)] = (
+                            d0[:10], v0, d1[:10], v1, len(pts),
+                            (v1 - v0) / v0 if v0 else None)
+
+    def move_line(card_id, grade, label):
+        m = moves.get((card_id, grade))
+        if not m:
+            return f"<tr><th>{label}</th><td colspan=3>no stored sales</td></tr>"
+        d0, v0, d1, v1, n, chg = m
+        arrow = "&darr;" if (chg or 0) < 0 else "&uarr;"
+        return (f"<tr><th>{label}</th>"
+                f"<td>{money(v0)} <span class=dt>{d0[5:]}</span></td>"
+                f"<td>{money(v1)} <span class=dt>{d1[5:]}</span></td>"
+                f"<td class=key>{arrow} {pct(chg)} <span class=dt>over {n} "
+                f"sale(s)</span></td></tr>")
+
+    cards = []
+    for i, r in enumerate(rows, 1):
+        psa9 = r.get("psa9")
+        # The two numbers the sheet exists for. Cash out of pocket, not a
+        # padded guide price: at a table you are naming the figure.
+        target = econ.max_raw_price(psa9, th.min_floor_profit,
+                                    th.min_floor_roi) if psa9 else 0.0
+        walk = econ.max_raw_price(psa9) if psa9 else 0.0
+
+        warn = []
+        printings = r.get("printings") or []
+        if len(printings) > 1:
+            spread = r.get("variant_spread")
+            warn.append("CHECK THE PRINTING: " + ", ".join(printings)
+                        + (f" ({spread:.1f}x apart)" if spread else ""))
+        visible = r.get("observed_sales_9")
+        if visible is not None and visible < th.comps_split_min_sample:
+            warn.append((f"no PSA 9 sales visible in our window" if not visible
+                         else f"only {visible} PSA 9 sale(s) visible")
+                        + f" (seller-facing count claims {r.get('sales_9')})"
+                        + " -- too few to check whether two printings are"
+                        " pooled into one price")
+        rate = r.get("sales_per_month")
+        if visible and rate and rate > (visible / 3.0) * 3:
+            warn.append(f"{rate:.0f} sales/mo is the provider's figure; our own "
+                        f"sales imply nearer {visible/3.0:.1f}/mo -- expect a "
+                        f"slower sell than it suggests")
+        if r.get("comps_split"):
+            warn.append("graded sales are two printings; priced off the cheaper")
+        age = r.get("psa9_sale_age_days")
+        if age is not None and age > 30:
+            warn.append(f"last PSA 9 sale was {age:.0f} days ago")
+        head = r.get("fee_headroom")
+        if head is not None and head < 0.15:
+            warn.append(f"{head*100:.0f}% below the next PSA fee tier -- "
+                        f"a small price rise adds ~$70+ to the fee")
+        floor, low = r.get("floor_profit"), r.get("floor_worst_90d")
+        if floor is not None and low is not None and floor < low:
+            warn.append("the gap has been closing: today's margin is below "
+                        "every stored observation")
+        if not r.get("upside_known"):
+            warn.append("no PSA 10 comps -- there is no upside case, only the 9")
+
+        # A missing picture must not cost the row its layout, and an onerror
+        # attribute carrying nested quotes is how that happened once already.
+        # The image is derived, not fetched, so some ids will not resolve --
+        # one script at the end swaps any that fail for the placeholder.
+        img = r.get("image") or image_url(r.get("id"))
+        art = (f'<img src="{esc(img)}" alt="" data-num="{esc(r.get("number"))}">'
+               if img else f'<div class="noimg">#{esc(r.get("number"))}</div>')
+
+        cards.append(f"""
+<div class="card">
+  <div class="rank">{i}</div>
+  <div class="art">{art}</div>
+  <div class="body">
+    <div class="name">{esc(r.get('name'))}</div>
+    <div class="sub">{esc(r.get('set_name'))} &middot; #{esc(r.get('number'))}
+      {('&middot; ' + esc(r.get('rarity'))) if r.get('rarity') else ''}</div>
+    <div class="pay">
+      <div class="paybox good"><span>PAY UP TO</span><b>{money(target)}</b>
+        <em>still clears {money(th.min_floor_profit)}+ at {th.min_floor_roi*100:.0f}%</em></div>
+      <div class="paybox bad"><span>NEVER ABOVE</span><b>{money(walk)}</b>
+        <em>break-even; no profit at all</em></div>
+      <div class="paybox note"><span>USUALLY SELLS RAW AT</span><b>{money(r.get('raw'))}</b>
+        <em>market price we tracked</em></div>
+    </div>
+    <table class="grades">
+      <tr><th>PSA 8</th><th>PSA 9</th><th>PSA 10</th>
+          <th>clears at 9</th><th>ROI</th><th>at 10</th></tr>
+      <tr><td>{money(r.get('psa8'))}</td>
+          <td class="key">{money(psa9)}</td>
+          <td>{money(r.get('psa10'))}</td>
+          <td class="key">{cents(r.get('floor_profit'))}</td>
+          <td>{pct(r.get('floor_roi'))}</td>
+          <td>{cents(r.get('upside_profit')) if r.get('upside_known') else '--'}</td></tr>
+    </table>
+    <table class="moves">
+      <tr><th></th><th>first on record</th><th>most recent</th><th>change</th></tr>
+      {move_line(r['id'], 'raw', 'raw')}
+      {move_line(r['id'], 'psa9', 'PSA 9')}
+    </table>
+    <div class="strip">
+      <span>30d raw <b>{pct(r.get('raw_30d'))}</b></span>
+      <span>30d PSA 9 <b>{pct(r.get('psa9_30d'))}</b></span>
+      <span>90d PSA 9 <b>{pct(r.get('psa9_90d'))}</b></span>
+      <span>worst margin <b>{cents(r.get('floor_worst_90d'))}</b></span>
+      <span>{('%.1f' % r['sales_per_month']) if r.get('sales_per_month') is not None else '--'}/mo</span>
+      <span>last sale <b>{('%.0fd' % age) if age is not None else '--'}</b></span>
+    </div>
+    {'<ul class="warn">' + ''.join(f'<li>{esc(w)}</li>' for w in warn) + '</ul>' if warn else ''}
+    <div class="field">saw it at $______ &nbsp; cond ____________ &nbsp;
+      seller ____________ &nbsp; <span class="box"></span> bought</div>
+  </div>
+</div>""")
+
+    generated = payload.get("generated_at", "")[:10]
+    doc = f"""<!doctype html>
+<meta charset="utf-8">
+<title>Field sheet {generated}</title>
+<style>
+  @page {{ size: letter portrait; margin: 0.4in; }}
+  * {{ box-sizing: border-box; }}
+  body {{ font: 9.5pt/1.3 -apple-system, "Segoe UI", Roboto, sans-serif;
+         color: #000; background: #fff; margin: 0; }}
+  h1 {{ font-size: 13pt; margin: 0 0 2px; }}
+  .head {{ border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px; }}
+  .head .meta {{ font-size: 8pt; color: #333; }}
+  .card {{ display: grid; grid-template-columns: 18px 1.02in 1fr; gap: 7px;
+          border: 1.5px solid #000; padding: 5px 6px; margin-bottom: 5px;
+          break-inside: avoid; page-break-inside: avoid; }}
+  .rank {{ font-size: 15pt; font-weight: 700; text-align: center; }}
+  .art img {{ width: 100%; border: 1px solid #999; display: block; }}
+  .noimg {{ width: 100%; aspect-ratio: 5/7; border: 1px dashed #999;
+           display: flex; align-items: center; justify-content: center;
+           font-size: 8pt; color: #666; }}
+  .name {{ font-size: 11.5pt; font-weight: 700; line-height: 1.05; }}
+  .sub {{ font-size: 8pt; color: #333; margin-bottom: 4px; }}
+  .pay {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+         margin-bottom: 5px; }}
+  .paybox {{ border: 1px solid #000; padding: 3px 5px; }}
+  .paybox span {{ display: block; font-size: 6.5pt; letter-spacing: .06em;
+                 font-weight: 700; }}
+  .paybox b {{ display: block; font-size: 14pt; line-height: 1.02; }}
+  .paybox em {{ display: block; font-size: 6.5pt; color: #333; font-style: normal; }}
+  .paybox.good {{ border-width: 2.5px; }}
+  .paybox.bad b {{ text-decoration: line-through; }}
+  .paybox.note {{ border-style: dashed; }}
+  table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; }}
+  th {{ font-size: 6.5pt; text-transform: uppercase; letter-spacing: .04em;
+       text-align: left; color: #333; font-weight: 600;
+       border-bottom: 1px solid #bbb; padding: 1px 3px; }}
+  td {{ font-size: 9.5pt; padding: 0 3px; }}
+  td.key {{ font-weight: 700; }}
+  .dt {{ font-size: 6.5pt; color: #666; }}
+  .strip {{ display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 7.5pt;
+           color: #333; margin: 2px 0 3px; }}
+  .strip b {{ font-weight: 700; color: #000; }}
+  .moves th:first-child {{ width: 52px; }}
+  .warn {{ margin: 3px 0; padding-left: 15px; font-size: 8pt; }}
+  .warn li {{ margin-bottom: 1px; }}
+  .field {{ margin-top: 4px; padding-top: 4px; border-top: 1px dotted #999;
+           font-size: 8pt; color: #444; }}
+  .box {{ display: inline-block; width: 9px; height: 9px; border: 1px solid #000;
+         vertical-align: -1px; }}
+  .legend {{ font-size: 7.5pt; border: 1px solid #000; padding: 5px 7px;
+            margin-top: 6px; break-inside: avoid; }}
+  .legend b {{ display: block; margin-bottom: 2px; font-size: 8.5pt; }}
+</style>
+<div class="head">
+  <h1>Grade-gap field sheet &middot; top {len(rows)}</h1>
+  <div class="meta">prices from the scan of {generated} &middot;
+    printed {date.today().isoformat()} &middot;
+    assumes {econ.sale_fee_pct*100:.2f}% selling fees, ${econ.ship_out:.0f} ship out,
+    ${econ.sub_ship_per_card:.0f} submission shipping, PSA fee by declared value.
+    <b>PAY UP TO</b> is cash for the raw card.</div>
+</div>
+{''.join(cards)}
+<div class="legend">
+  <b>Before you hand over money</b>
+  Every figure here prices a <b>PSA 9</b> and assumes the copy you buy earns one.
+  Nothing in this data has seen the card in front of you &mdash; check centring,
+  corners, edges and surface yourself, and walk away from anything you would not
+  bet the grading fee on. A card that comes back an 8 is usually a loss.
+  &nbsp;&middot;&nbsp; The graded prices come from eBay sales matched by listing
+  title, which carry no printing, so on any card with more than one printing the
+  price may be an average of both. &nbsp;&middot;&nbsp; PSA 10 figures are upside,
+  not the plan: the ranking is what clears at a 9.
+</div>
+<script>
+  // Pictures are derived from the card id against pokemontcg.io's public
+  // image CDN -- no key, no credits -- so an id it does not carry simply
+  // fails. Swap those for the placeholder rather than leaving a broken frame.
+  for (const img of document.querySelectorAll(".art img")) {{
+    img.addEventListener("error", () => {{
+      const d = document.createElement("div");
+      d.className = "noimg";
+      d.textContent = "#" + (img.dataset.num || "");
+      img.replaceWith(d);
+    }});
+  }}
+</script>
+"""
+    out = store.root / "fieldsheet.html"
+    out.write_text(doc, encoding="utf-8")
+    print(f"Wrote {out}  ({len(rows)} cards)")
+    print("Open it and print: Ctrl+P, background graphics off, margins default.")
+    print("Images load from the web, so print while online.")
+    return 0
+
+
 def cmd_buy(args, cfg: Config, store: Store) -> int:
     """The shortlist, with what you would need to know before acting on it.
 
@@ -1561,6 +1843,12 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("sheet", help="print-ready field sheet for a card show")
+    p.add_argument("--top", type=int, default=15)
+    p.add_argument("--verdict", default="no_brainer,floor_positive",
+                   help="comma-separated verdicts to include")
+    p.set_defaults(func=cmd_sheet)
 
     p = sub.add_parser("buy", help="the shortlist, with what to check before acting")
     p.add_argument("--top", type=int, default=3)

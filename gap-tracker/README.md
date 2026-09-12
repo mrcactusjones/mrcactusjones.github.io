@@ -85,7 +85,27 @@ python3 run.py rank                                 # trends attach automaticall
 python3 run.py trends --top 20                      # rank by how long a gap held
 python3 run.py splits                               # does the pooling check reach the top?
 python3 run.py buy --top 3                          # the shortlist, and what to check first
+python3 run.py sheet --top 15                       # print-ready field sheet for a show
 ```
+
+`sheet` writes `data/fieldsheet.html` for printing on a clipboard. Its headline
+is not the profit but **the most you can pay** -- `Economics.max_raw_price`
+inverts the cost model, because standing at a table the question is "how high
+can I go", not "what did this cost". Two figures: the price that still clears
+the no-brainer thresholds, and the break-even above which there is no trade.
+Both are cash for the raw card, deliberately *not* padded by `raw_premium_pct`
+-- that pad exists because you rarely buy at guide, and at a show you are the
+one naming the number.
+
+Card images are derived from the card id against pokemontcg.io's public image
+CDN (`ex15-97` is `ex15/97.png`), which needs no key and costs nothing. Ids
+come from PPT's `externalCatalogId`, which is a pokemontcg.io id -- so
+retiring that API did not have to cost the pictures. Cards PPT knows only
+itself carry a `ppt-` id and fall back to a placeholder.
+
+Price movement is read from the stored sales first-to-last rather than the
+30/90-day trend columns, which need four sales inside the window -- and the
+cards worth carrying to a show are exactly the ones too thin for that.
 
 Costs, at 3 credits a card (base + graded + history):
 
