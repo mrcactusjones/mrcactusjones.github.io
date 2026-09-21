@@ -763,6 +763,74 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def cmd_ebay(args, cfg: Config, store: Store) -> int:
+    """Check the eBay credentials and dump one real response.
+
+    Deliberately a probe before a provider. The PPT integration was built
+    twice because the first version was written against an assumed response
+    shape; this one gets to look first.
+    """
+    import json as _json
+
+    from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
+                                        summarise)
+
+    client = EbayClient()
+    try:
+        client.token()
+    except EbayAuthError as exc:
+        print(f"Auth failed.\n  {exc}")
+        return 1
+    except EbayError as exc:
+        print(f"Could not reach eBay.\n  {exc}")
+        return 1
+    print(f"Authenticated against {client.base} (token cached).")
+
+    query = args.search
+    if not query and args.card:
+        universe = store.load_universe()
+        card = universe.get(args.card)
+        if card is None:
+            print(f"{args.card} is not in the universe.")
+            return 1
+        # Set name and number, because a bare card name pulls every printing
+        # of every set it ever appeared in.
+        query = " ".join(str(p) for p in
+                         (card.get("name"), card.get("set_name"),
+                          card.get("number")) if p)
+    if not query:
+        query = "Charizard Base Set PSA 9"
+        print(f"(no --card or --search; using {query!r})")
+
+    filters = args.filter
+    if args.max_price and not filters:
+        filters = f"price:[..{args.max_price}],priceCurrency:USD"
+    print(f"GET item_summary/search?q={query!r} limit={args.limit}"
+          + (f" filter={filters}" if filters else ""))
+    try:
+        blob = client.search(query, args.limit, filters=filters, sort=args.sort)
+    except EbayError as exc:
+        print(f"Search failed.\n  {exc}")
+        return 1
+
+    total = blob.get("total")
+    print(f"\n{total} active listing(s) match; showing {min(args.limit, 5)}.\n")
+    for row in summarise(blob, 5):
+        ship = ("free" if row["shipping"] == 0 else
+                f"+${row['shipping']:.2f}" if row["shipping"] is not None else "?")
+        print(f"  ${row['price'] or 0:>8,.2f} {ship:>8}  {row['title']}")
+        print(f"           {row['condition'] or '?'} | {row['seller'] or '?'}"
+              f" ({row['feedback'] or '?'}%) | {','.join(row['buying'] or [])}")
+        print(f"           {row['url']}")
+    if args.raw:
+        first = (blob.get("itemSummaries") or [{}])[0]
+        print("\n--- keys on one itemSummary, so the provider can be written "
+              "against the real shape ---")
+        print(_json.dumps(first, indent=2)[:3000])
+    print(f"\n{client.calls} call(s) used.")
+    return 0
+
+
 def cmd_sheet(args, cfg: Config, store: Store) -> int:
     """Write a print-ready field sheet for a card show. Spends no credits.
 
@@ -1843,6 +1911,17 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("ebay", help="test eBay credentials and search live listings")
+    p.add_argument("--card", help="a universe card id to search for")
+    p.add_argument("--search", help="raw search text, instead of --card")
+    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--max-price", type=float, help="cap the asking price (USD)")
+    p.add_argument("--filter", help="eBay filter syntax, passed through")
+    p.add_argument("--sort", help="e.g. price, -price, newlyListed")
+    p.add_argument("--raw", action="store_true",
+                   help="dump one listing in full, to design against")
+    p.set_defaults(func=cmd_ebay)
 
     p = sub.add_parser("sheet", help="print-ready field sheet for a card show")
     p.add_argument("--top", type=int, default=15)
