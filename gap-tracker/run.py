@@ -791,6 +791,17 @@ def _ebay_diagnosis(client) -> list[str]:
                      "included; put comments on their own line")
         if value[:1] in "\"'" or value[-1:] in "\"'":
             note += "\n                 ^ still wrapped in quotes"
+        # Credentials copied from a web page can pick up characters that look
+        # right and are not: a non-breaking space, or an en-dash where a hyphen
+        # belongs. Both survive .strip(), both keep the PRD- shape, and neither
+        # is visible in a terminal -- so name them by code point.
+        odd = [(i, c) for i, c in enumerate(value)
+               if not (c.isascii() and (c.isalnum() or c in "-_."))]
+        if odd:
+            where = ", ".join(f"pos {i} U+{ord(c):04X}" for i, c in odd[:6])
+            note += (f"\n                 ^ {len(odd)} unexpected character(s): "
+                     f"{where}\n                   eBay ids are letters, digits "
+                     f"and hyphens only -- retype the value by hand")
         return note
 
     out.append(describe("EBAY_CLIENT_ID ", cid, "App ID"))

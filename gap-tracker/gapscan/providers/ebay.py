@@ -57,6 +57,18 @@ TOKEN_CACHE = Path(__file__).resolve().parents[2] / "data" / ".ebay-token.json"
 TOKEN_EARLY_REFRESH = 120.0   # seconds of slack, so a call never races expiry
 
 
+def basic_auth(client_id: str, client_secret: str) -> str:
+    """The Authorization header value for the client-credentials grant.
+
+    Extracted so it can be checked against RFC 7617's own worked example
+    rather than trusted. When eBay answers `invalid_client` to credentials
+    that look correct, the first question is whether we are encoding them
+    properly, and that question deserves an answer that is not "probably".
+    """
+    return "Basic " + base64.b64encode(
+        f"{client_id}:{client_secret}".encode()).decode()
+
+
 class EbayError(RuntimeError):
     """A request failed in a way the caller should see rather than retry."""
 
@@ -130,12 +142,10 @@ class EbayClient:
             raise EbayAuthError(
                 "EBAY_CLIENT_ID / EBAY_CLIENT_SECRET are not set. Put them in "
                 "gap-tracker/.env (git-ignored) -- see .env.example.")
-        basic = base64.b64encode(
-            f"{self.client_id}:{self.client_secret}".encode()).decode()
         blob = _post_form(
             self.base + TOKEN_PATH,
             {"grant_type": "client_credentials", "scope": SCOPE},
-            {"Authorization": f"Basic {basic}",
+            {"Authorization": basic_auth(self.client_id, self.client_secret),
              "Content-Type": "application/x-www-form-urlencoded"})
         token = blob.get("access_token")
         if not token:
