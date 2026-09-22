@@ -341,3 +341,67 @@ def parse_title(title: str, condition: str | None = None) -> dict:
     graded = bool(match) or (condition or "").strip().lower() == "graded"
     return {"grader": grader, "grade": grade, "printings": printings,
             "graded": graded}
+
+
+def search_text(name: str, set_name: str | None, number: str | None) -> str:
+    """A query eBay will actually match.
+
+    Our card names carry characters eBay titles do not: "Rayquaza ex δ" gets
+    percent-encoded into the query and comes back with one raw match, where
+    "Rayquaza ex Dragon Frontiers 97" finds the card. Non-ASCII is dropped
+    rather than transliterated, because sellers write the same card as
+    "delta", "Delta Species", "δ" or nothing at all, and the set and number
+    already identify it.
+    """
+    bits = [name or "", set_name or "", (str(number or "").split("/")[0])]
+    text = " ".join(b for b in bits if b)
+    ascii_only = "".join(c if c.isascii() else " " for c in text)
+    return " ".join(ascii_only.split())
+
+
+def is_same_card(title: str, number: str | None,
+                 set_name: str | None = None) -> bool:
+    """Is this listing the card we asked for, or something the search dragged in?
+
+    eBay keyword search is generous. A query for Rayquaza ex δ returned a
+    $20,250 PSA 9 -- thirteen times PPT's figure for the card -- and listings
+    marked 1st Edition for a 2006 set that never had one. Grouping those by
+    printing and comparing the medians produced a confident, false "pooling
+    costs little here".
+
+    The card number is the discriminator: it is in nearly every title, and it
+    is specific. Accepts "97/101", "#97" or 97 standing alone -- and not the
+    97 inside 1997, which a bare substring test would take.
+    """
+    import re
+    if not number:
+        return True                     # nothing to check against
+    want = str(number).split("/")[0].strip().lstrip("0") or "0"
+    text = title or ""
+    # \b will not match inside 1997, which is what makes this safe on the
+    # dated titles that dominate vintage listings.
+    if re.search(rf"(?<![\d/]){re.escape(want)}\s*/\s*\d+", text, re.IGNORECASE):
+        return True                     # 97/101, the unambiguous form
+    if re.search(rf"#\s*{re.escape(want)}\b", text, re.IGNORECASE):
+        return True
+    # A bare number is weaker, so ask for corroboration from the set name.
+    if re.search(rf"\b{re.escape(want)}\b", text):
+        if not set_name:
+            return True
+        words = [w for w in re.split(r"[^A-Za-z]+", set_name) if len(w) > 3]
+        return any(re.search(rf"\b{re.escape(w)}", text, re.IGNORECASE)
+                   for w in words)
+    return False
+
+
+def spread_of(values) -> float | None:
+    """max/min for a group of asks, to say whether it is one population.
+
+    A "Holo" group ranging $2,006 to $20,250 is not a printing, it is a
+    mixture -- and a median taken across it means nothing. Cheap to compute
+    and the difference between a finding and a fabrication.
+    """
+    vals = [v for v in values if v and v > 0]
+    if len(vals) < 2:
+        return None
+    return max(vals) / min(vals)

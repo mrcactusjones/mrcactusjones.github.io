@@ -868,7 +868,8 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     import statistics
 
     from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
-                                        parse_title, summarise)
+                                        is_same_card, parse_title, search_text,
+                                        spread_of, summarise)
 
     universe = store.load_universe()
     card = universe.get(args.card)
@@ -891,8 +892,11 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     walk = cfg.econ.max_raw_price(psa9) if psa9 else None
 
     name = card.get("name") or ""
-    number = str(card.get("number") or "").split("/")[0]
-    base = " ".join(x for x in (name, card.get("set_name"), number) if x)
+    number = card.get("number")
+    set_name = card.get("set_name")
+    # Not the card name verbatim: "Rayquaza ex δ" percent-encodes into the
+    # query and comes back with almost nothing.
+    base = search_text(name, set_name, number)
 
     print(f"{name} -- {card.get('set_name')} #{card.get('number')}")
     if psa9 is not None:
@@ -922,14 +926,21 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         return (item["price"] or 0) + (item["shipping"] or 0)
 
     # -- 1. raw copies you could buy ------------------------------------
-    raws = []
+    raws, wrong_card = [], 0
     for item in summarise(raw_blob, args.limit):
+        # eBay keyword search is generous, and a listing for a different card
+        # priced as though it were this one is the worst thing this command
+        # could show you.
+        if not is_same_card(item["title"], number, set_name):
+            wrong_card += 1
+            continue
         parsed = parse_title(item["title"], item["condition"])
         if parsed["graded"]:
             continue          # a slab, whatever the price filter let through
         raws.append((item, parsed))
     print(f"RAW COPIES{f' UNDER ${cap:,.0f}' if cap else ''} "
-          f"-- {len(raws)} of {raw_blob.get('total', 0)} matches\n")
+          f"-- {len(raws)} of {raw_blob.get('total', 0)} matches"
+          + (f" ({wrong_card} were a different card)" if wrong_card else "") + "\n")
     for item, parsed in sorted(raws, key=lambda x: total(x[0]))[:args.show]:
         ship = "free" if item["shipping"] == 0 else f"+${item['shipping']:,.2f}"
         tag = ", ".join(parsed["printings"]) or "printing not stated"
@@ -941,7 +952,11 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
 
     # -- 2. the graded asks, split by printing --------------------------
     by_printing: dict[str, list[float]] = {}
+    other = 0
     for item in summarise(graded_blob, args.limit):
+        if not is_same_card(item["title"], number, set_name):
+            other += 1
+            continue
         parsed = parse_title(item["title"], item["condition"])
         if parsed["grader"] != "PSA" or parsed["grade"] != float(args.grade):
             continue
@@ -951,14 +966,30 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     seen = sum(len(v) for v in by_printing.values())
     print(f"\nPSA {args.grade} ASKS BY PRINTING -- {seen} readable of "
           f"{graded_blob.get('total', 0)} matches\n")
+    if other:
+        print(f"  ({other} match(es) were a different card and were dropped)\n")
     ordered = sorted(by_printing.items(), key=lambda kv: statistics.median(kv[1]))
+    messy = []
     for key, values in ordered:
         med = statistics.median(values)
+        spread = spread_of(values)
+        # A group spanning 3x is not a printing, it is a mixture that survived
+        # the card filter -- a lot, a misgraded slab, a typo. Its median is not
+        # a price, and comparing it to another group's is worse than useless.
+        flag = "  <-- not one population" if spread and spread >= 3.0 else ""
+        if flag:
+            messy.append(key)
         print(f"  {key:<28} n={len(values):<3} median ${med:>9,.0f}"
-              f"   ${min(values):,.0f} - ${max(values):,.0f}")
+              f"   ${min(values):,.0f} - ${max(values):,.0f}{flag}")
 
     # The finding this command exists for.
-    stated = [(k, v) for k, v in ordered if k != "(not stated)" and len(v) >= 2]
+    stated = [(k, v) for k, v in ordered
+              if k != "(not stated)" and len(v) >= 2 and k not in messy]
+    if messy:
+        print(f"\n  ==> {', '.join(messy)} spans too wide a range to be one "
+              f"printing.\n      Something in it is not this card. Read the "
+              f"titles before trusting\n      any comparison here -- and do "
+              f"not read a verdict off a mixture.")
     if len(stated) >= 2:
         lo_k, lo_v = stated[0]
         hi_k, hi_v = stated[-1]
@@ -975,7 +1006,7 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         else:
             print(f"  ==> the printings ask within {ratio:.1f}x of each other, "
                   f"so pooling them costs little here.")
-    elif seen:
+    elif seen and not messy:
         print("\n  (one readable printing; nothing to compare against)")
     print(f"\n{client.calls} call(s) used. Asks are what sellers want, not "
           f"what anyone paid --\nnever price a floor off them.")

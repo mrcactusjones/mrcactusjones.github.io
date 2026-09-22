@@ -10,7 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gapscan.providers.ebay import (SCOPE, USER_FIELDS, basic_auth,
-                                    parse_title, persistable)
+                                    is_same_card, parse_title,
+                                    persistable, search_text, spread_of)
 
 
 class BasicAuthTest(unittest.TestCase):
@@ -149,3 +150,61 @@ class ParseTitleTest(unittest.TestCase):
             got = parse_title(title)
             self.assertEqual(got["printings"], [])
             self.assertFalse(got["graded"])
+
+
+class WrongCardTest(unittest.TestCase):
+    """eBay keyword search is generous, and the generosity was being ranked.
+
+    A live query for Rayquaza ex delta returned a $20,250 PSA 9 -- thirteen
+    times PPT's figure -- and listings marked 1st Edition for a 2006 set that
+    never had one. Grouped by printing, those produced a confident and false
+    "the printings ask within 1.3x of each other".
+    """
+
+    def check(self, title):
+        return is_same_card(title, "97/101", "Dragon Frontiers")
+
+    def test_the_card_itself_matches(self):
+        self.assertTrue(self.check(
+            "Rayquaza ex \u03b4 (Delta Species) EX Dragon Frontiers 97/101 2006"))
+        self.assertTrue(self.check("Rayquaza ex #97 Dragon Frontiers PSA 9"))
+
+    def test_a_different_card_entirely_does_not(self):
+        self.assertFalse(self.check("1999 Base Set #4 Charizard PSA 9"))
+
+    def test_the_gold_star_that_polluted_the_group(self):
+        """107/107, a genuinely different and genuinely $20k card."""
+        self.assertFalse(self.check("Rayquaza Gold Star 107/107 EX Deoxys PSA 9"))
+
+    def test_a_year_is_not_a_card_number(self):
+        """The trap a substring test falls into: 97 inside 1997."""
+        self.assertFalse(self.check("1997 Rayquaza Dragon Frontiers promo"))
+
+    def test_a_bare_number_needs_the_set_to_corroborate_it(self):
+        self.assertTrue(self.check("Rayquaza ex 97 Dragon Frontiers holo"))
+        self.assertFalse(self.check("Rayquaza ex 97 Japanese Miracle Crystal"))
+
+    def test_no_number_means_no_opinion(self):
+        self.assertTrue(is_same_card("anything at all", None))
+
+
+class SearchTextTest(unittest.TestCase):
+    def test_non_ascii_is_dropped_from_the_query(self):
+        """"Rayquaza ex delta" percent-encodes into the URL and returns one
+        raw match; without it the card is found."""
+        self.assertEqual(search_text("Rayquaza ex \u03b4", "Dragon Frontiers", "97/101"),
+                         "Rayquaza ex Dragon Frontiers 97")
+
+    def test_the_number_loses_its_set_total(self):
+        self.assertTrue(search_text("Jolteon", "Skyridge", "H12/H32").endswith("H12"))
+
+
+class SpreadTest(unittest.TestCase):
+    def test_it_catches_the_group_that_was_not_one_population(self):
+        self.assertGreater(spread_of([2006, 4478, 6500, 20250]), 3.0)
+
+    def test_a_real_printing_stays_tight(self):
+        self.assertLess(spread_of([1450, 1536, 1610, 1720]), 3.0)
+
+    def test_one_value_has_no_spread(self):
+        self.assertIsNone(spread_of([1500]))
