@@ -868,7 +868,8 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     import statistics
 
     from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
-                                        delivered, is_same_card, parse_title,
+                                        delivered, gradeable, is_same_card,
+                                        listing_concerns, parse_title,
                                         search_text, spread_of, summarise)
 
     universe = store.load_universe()
@@ -932,7 +933,7 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         return (value, 0) if known else (value + 25.0, 1)
 
     # -- 1. raw copies you could buy ------------------------------------
-    raws, wrong_card = [], 0
+    raws, skipped, wrong_card = [], [], 0
     for item in summarise(raw_blob, args.limit):
         # eBay keyword search is generous, and a listing for a different card
         # priced as though it were this one is the worst thing this command
@@ -943,6 +944,12 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         parsed = parse_title(item["title"], item["condition"])
         if parsed["graded"]:
             continue          # a slab, whatever the price filter let through
+        # The cheap end of any card search is cheap because it is wrecked.
+        # Sorting by price and printing the top eight put four damaged copies
+        # and a World Championships promo in front of one real buy.
+        if not gradeable(item["title"]):
+            skipped.append((item, listing_concerns(item["title"])))
+            continue
         raws.append((item, parsed))
     print(f"RAW COPIES{f' UNDER ${cap:,.0f}' if cap else ''} "
           f"-- {len(raws)} of {raw_blob.get('total', 0)} matches"
@@ -967,13 +974,26 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
               f"marked + are not\n  delivered costs. Check before comparing "
               f"them with the cap.")
     if not raws:
-        print("  none listed under that price right now.")
+        print("  none worth grading listed under that price right now.")
+    if skipped:
+        print(f"\n  {len(skipped)} cheaper listing(s) skipped -- a card that "
+              f"cannot grade a 9 is not\n  a bargain, it is the grading fee "
+              f"thrown away:")
+        for item, why in sorted(skipped, key=lambda x: delivered(x[0])[0])[:6]:
+            reason = ", ".join(why["wrong"] + why["damage"])
+            print(f"    ${delivered(item)[0]:>8,.2f}  [{reason}]  "
+                  f"{item['title'][:52]}")
 
     # -- 2. the graded asks, split by printing --------------------------
     by_printing: dict[str, list[float]] = {}
     other = 0
     for item in summarise(graded_blob, args.limit):
         if not is_same_card(item["title"], number, set_name):
+            other += 1
+            continue
+        # Lots, sealed product and language variants pollute the graded search
+        # exactly as they do the raw one.
+        if listing_concerns(item["title"])["wrong"]:
             other += 1
             continue
         parsed = parse_title(item["title"], item["condition"])
@@ -987,10 +1007,14 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
           f"{graded_blob.get('total', 0)} matches\n")
     if other:
         print(f"  ({other} match(es) were a different card and were dropped)\n")
-    ordered = sorted(by_printing.items(), key=lambda kv: statistics.median(kv[1]))
+    ordered = sorted(by_printing.items(), key=lambda kv: min(kv[1]))
     messy = []
     for key, values in ordered:
         med = statistics.median(values)
+        # The lowest ask is the one nearest a transactable price. A median over
+        # active listings is not: the fairly-priced copies sold and left, and
+        # what remains is weighted towards sellers who will never find a buyer.
+        low = min(values)
         spread = spread_of(values)
         # A group spanning 3x is not a printing, it is a mixture that survived
         # the card filter -- a lot, a misgraded slab, a typo. Its median is not
@@ -998,8 +1022,11 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         flag = "  <-- not one population" if spread and spread >= 3.0 else ""
         if flag:
             messy.append(key)
-        print(f"  {key:<28} n={len(values):<3} median ${med:>9,.0f}"
-              f"   ${min(values):,.0f} - ${max(values):,.0f}{flag}")
+        marker = ""
+        if psa9 and low > psa9 * 3:
+            marker = "  <-- lowest ask is 3x+ what PPT says the card sells for"
+        print(f"  {key:<28} n={len(values):<3} lowest ${low:>9,.0f}"
+              f"   median ${med:,.0f}   high ${max(values):,.0f}{flag}{marker}")
 
     # The finding this command exists for.
     stated = [(k, v) for k, v in ordered
@@ -1027,6 +1054,12 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
                   f"so pooling them costs little here.")
     elif seen and not messy:
         print("\n  (one readable printing; nothing to compare against)")
+    if psa9 and by_printing and min(min(v) for v in by_printing.values()) > psa9 * 3:
+        print(f"\n  ==> every remaining ask is far above PPT's ${psa9:,.0f}. "
+              f"Active listings skew\n      high by construction -- the copies "
+              f"priced to sell already sold, and\n      what stays listed is "
+              f"the tail that will not. These asks say little\n      about "
+              f"whether the printings are pooled.")
     print(f"\n{client.calls} call(s) used. Asks are what sellers want, not "
           f"what anyone paid --\nnever price a floor off them.")
     return 0

@@ -422,3 +422,82 @@ def delivered(item: dict) -> tuple[float, bool]:
     if ship is None:
         return price, False
     return price + float(ship), True
+
+
+# --- is this copy worth grading at all? --------------------------------
+#
+# The whole thesis is buy raw, grade it, sell the 9. A creased card grades a
+# 2, and the grading fee is gone. So the cheap end of a listing search is
+# actively hostile: the copies are cheap *because* they are damaged, and
+# sorting by price puts them first.
+#
+# Of the eight cheapest Rayquaza ex delta listings on the first real run, four
+# said DMG, HP or "creases" in the title and a fifth was a World Championships
+# promo -- a different card with a different back. One was a buy.
+
+# Words that put a PSA 9 out of reach. A 9 needs a card that is essentially
+# unplayed; anything here is a different trade.
+_DAMAGE = (r"damag\w*", r"\bdmg\b", r"creas\w*", r"\bbent\b", r"\bbend\w*\b",
+           r"water\s*damag\w*", r"\bheav(?:y|ily)\s*play\w*", r"\bhp\b",
+           r"\bmoderate(?:ly)?\s*play\w*", r"\bmp\b", r"\bpoor\b",
+           r"\bscratch\w*", r"\bscuff\w*", r"whitening", r"\btorn\b",
+           r"\bwrinkl\w*", r"\bpeel\w*", r"\bink\b", r"\bstain\w*")
+
+# Lightly played is a judgement call rather than a disqualification, so it is
+# reported separately: it can grade a 9 and usually will not.
+_PLAYED = (r"\blp\b", r"\blight(?:ly)?\s*play\w*", r"\bplayed\b", r"\bpl\b")
+
+# Not this card at all, whatever the number says. World Championships promos
+# carry a different back; language variants, jumbos and proxies are their own
+# things; a lot or a playset is not one card.
+_NOT_THE_CARD = (r"world\s*champion\w*", r"\bwcs?\b", r"\bproxy\b",
+                 r"\bcustom\b", r"\bfake\b", r"\breprint\b", r"\bjumbo\b",
+                 r"\boversiz\w*", r"japanese", r"korean", r"chinese",
+                 r"\bgerman\b", r"\bfrench\b", r"\bitalian\b", r"\bspanish\b",
+                 r"\blot\s*of\b", r"\bbundle\b", r"\bplayset\b",
+                 r"\bsealed\b", r"\bbooster\b", r"\bpack\b", r"\bbox\b")
+
+_CONCERN_RES = None
+
+
+def _concern_res():
+    global _CONCERN_RES
+    import re
+    if _CONCERN_RES is None:
+        _CONCERN_RES = tuple(
+            (kind, tuple(re.compile(p, re.IGNORECASE) for p in pats))
+            for kind, pats in (("wrong", _NOT_THE_CARD), ("damage", _DAMAGE),
+                               ("played", _PLAYED)))
+    return _CONCERN_RES
+
+
+def listing_concerns(title: str) -> dict:
+    """What is wrong with this copy, read off its own title.
+
+    Returns {"wrong": [...], "damage": [...], "played": [...]} of the matched
+    words, so the caller can say *why* rather than silently dropping listings
+    the user can see on eBay for themselves.
+
+    Sellers are describing their own cards here, and they are candid about it
+    -- "HP/DMG", "DMG W/Creases". The information was always in the title; we
+    were sorting by price and ignoring it.
+    """
+    text = title or ""
+    out = {"wrong": [], "damage": [], "played": []}
+    for kind, patterns in _concern_res():
+        for rx in patterns:
+            found = rx.search(text)
+            if found:
+                out[kind].append(found.group(0).strip())
+    return out
+
+
+def gradeable(title: str) -> bool:
+    """Could this copy plausibly come back a PSA 9?
+
+    Conservative on purpose. The cost of skipping a gradeable card is that you
+    miss one listing among dozens; the cost of buying a creased one is the
+    purchase plus the grading fee.
+    """
+    concerns = listing_concerns(title)
+    return not (concerns["wrong"] or concerns["damage"])

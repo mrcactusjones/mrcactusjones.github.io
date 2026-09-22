@@ -11,8 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gapscan.providers.ebay import (SCOPE, USER_FIELDS, basic_auth,
                                     is_same_card, parse_title,
-                                    delivered, persistable, search_text,
-                                    spread_of)
+                                    delivered, gradeable,
+                                    listing_concerns, persistable,
+                                    search_text, spread_of)
 
 
 class BasicAuthTest(unittest.TestCase):
@@ -243,3 +244,56 @@ class DeliveredCostTest(unittest.TestCase):
         dearer_known = delivered({"price": 205.0, "shipping": 5.0})
         self.assertLess(cheap_unknown[0], dearer_known[0])
         self.assertFalse(cheap_unknown[1])   # so the caller must handle it
+
+
+class GradeabilityTest(unittest.TestCase):
+    """The cheap end of a card search is cheap because it is wrecked.
+
+    Every title below is real, from the first working run. Sorted by price and
+    printed, the top eight put four damaged copies and a World Championships
+    promo ahead of one card actually worth buying -- on a tool whose entire
+    premise is that the card comes back a PSA 9.
+    """
+
+    DAMAGED = (
+        "Rayquaza ex 97/101 Holo EX Rare Dragon Frontiers Pokemon Damaged",
+        "Rayquaza ex (Delta Species) 97/101 EX Dragon Frontiers Holo DMG W/Creases",
+        "Rayquaza ex 97/101 Holo EX Rare Dragon Frontiers Pokemon HP/DMG",
+        "Rayquaza ex Delta Species 97/101 Pokemon EX Dragon Frontiers Holo DMG B",
+    )
+    CLEAN = (
+        "Rayquaza ex (Delta Species) 97/101 EX Dragon Frontiers Holo",
+        "Rayquaza ex \u03b4 (Delta Species) - EX Dragon Frontiers 97/101 - 2006",
+        "The Pokemon Company Rayquaza ex 97/101 Delta Species EX Dragon Frontiers Holo",
+    )
+
+    def test_the_damaged_copies_are_all_rejected(self):
+        for title in self.DAMAGED:
+            self.assertFalse(gradeable(title), title)
+            self.assertTrue(listing_concerns(title)["damage"], title)
+
+    def test_the_clean_copies_all_survive(self):
+        for title in self.CLEAN:
+            self.assertTrue(gradeable(title), title)
+
+    def test_a_world_championships_promo_is_a_different_card(self):
+        """Different back, different card -- and it was the cheapest listing
+        on the page, which is exactly why it was about to be recommended."""
+        title = "Rayquaza ex 97/101 VLP/NM World Championships 2007"
+        self.assertFalse(gradeable(title))
+        self.assertIn("World Championships", listing_concerns(title)["wrong"][0])
+
+    def test_language_variants_and_lots_are_not_the_card(self):
+        for title in ("Rayquaza ex 97/101 Japanese", "Lot of 5 Rayquaza ex 97/101",
+                      "Rayquaza ex 97/101 Jumbo oversized", "Sealed booster box"):
+            self.assertTrue(listing_concerns(title)["wrong"], title)
+
+    def test_lightly_played_is_reported_but_not_disqualifying(self):
+        """It can grade a 9 and usually will not -- a judgement, not a rule."""
+        title = "Rayquaza ex 97/101 Dragon Frontiers LP"
+        self.assertTrue(gradeable(title))
+        self.assertTrue(listing_concerns(title)["played"])
+
+    def test_near_mint_raises_nothing(self):
+        concerns = listing_concerns("Rayquaza ex 97/101 Dragon Frontiers NM Holo")
+        self.assertEqual(concerns, {"wrong": [], "damage": [], "played": []})
