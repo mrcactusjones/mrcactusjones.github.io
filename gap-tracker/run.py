@@ -844,6 +844,144 @@ def _ebay_diagnosis(client) -> list[str]:
     return out
 
 
+# eBay's "CCG Individual Cards" leaf. Without it a card name also matches
+# binders, bulk lots and anything with the word printed on it.
+CCG_CATEGORY = "183454"
+
+
+def cmd_listings(args, cfg: Config, store: Store) -> int:
+    """What you could actually buy right now, and which printing it is.
+
+    Two questions in one pass, because they are the two the tool could not
+    answer before:
+
+      1. Is there a raw copy on sale under the walk-away price? The ranking
+         has been describing a trade in the abstract; this is the trade.
+      2. Are the graded asks one population or two? PPT reports a single PSA 9
+         figure because it reads grades out of listing titles and throws the
+         printing away. The titles still have it. Grouping the live asks by
+         printing shows directly what the split detector can only infer from
+         how sales scatter -- and it works on the thin cards, where the
+         detector cannot run at all.
+    """
+    import json as _json
+    import statistics
+
+    from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
+                                        parse_title, summarise)
+
+    universe = store.load_universe()
+    card = universe.get(args.card)
+    if card is None:
+        print(f"{args.card} is not in the universe.")
+        return 1
+
+    # The ranking supplies the PSA 9 price, and the cost model turns that into
+    # the most you can pay. Without a ranking we can still search, just not
+    # say what a good price would be.
+    row = None
+    path = store.root / "rankings.json"
+    if path.exists():
+        rows = _json.loads(path.read_text()).get("rows", [])
+        row = next((r for r in rows if r["id"] == args.card), None)
+    psa9 = row.get("psa9") if row else None
+    cap = args.max_price or (
+        cfg.econ.max_raw_price(psa9, cfg.thresholds.min_floor_profit,
+                               cfg.thresholds.min_floor_roi) if psa9 else None)
+    walk = cfg.econ.max_raw_price(psa9) if psa9 else None
+
+    name = card.get("name") or ""
+    number = str(card.get("number") or "").split("/")[0]
+    base = " ".join(x for x in (name, card.get("set_name"), number) if x)
+
+    print(f"{name} -- {card.get('set_name')} #{card.get('number')}")
+    if psa9 is not None:
+        print(f"PPT PSA 9 ${psa9:,.2f} | pay up to ${cap:,.0f} | "
+              f"break-even ${walk:,.0f}")
+    print()
+
+    client = EbayClient()
+    try:
+        # Category 183454 is "CCG Individual Cards" -- without it a card name
+        # pulls in binders, lots, and anything with the word on it.
+        raw_blob = client.search(
+            base, args.limit, category=CCG_CATEGORY,
+            filters=(f"price:[..{cap:.0f}],priceCurrency:USD" if cap else None),
+            sort="price")
+        graded_blob = client.search(f"{base} PSA {args.grade}", args.limit,
+                                    category=CCG_CATEGORY)
+    except EbayAuthError as exc:
+        print(f"Auth failed.\n  {exc}")
+        return 1
+    except EbayError as exc:
+        print(f"Search failed.\n  {exc}")
+        return 1
+
+    def total(item):
+        """Price plus shipping. $4,100 posted is dearer than $3,900 free."""
+        return (item["price"] or 0) + (item["shipping"] or 0)
+
+    # -- 1. raw copies you could buy ------------------------------------
+    raws = []
+    for item in summarise(raw_blob, args.limit):
+        parsed = parse_title(item["title"], item["condition"])
+        if parsed["graded"]:
+            continue          # a slab, whatever the price filter let through
+        raws.append((item, parsed))
+    print(f"RAW COPIES{f' UNDER ${cap:,.0f}' if cap else ''} "
+          f"-- {len(raws)} of {raw_blob.get('total', 0)} matches\n")
+    for item, parsed in sorted(raws, key=lambda x: total(x[0]))[:args.show]:
+        ship = "free" if item["shipping"] == 0 else f"+${item['shipping']:,.2f}"
+        tag = ", ".join(parsed["printings"]) or "printing not stated"
+        print(f"  ${total(item):>8,.2f}  ({item['price']:,.2f} {ship})  [{tag}]")
+        print(f"            {item['title'][:76]}")
+        print(f"            {item['url']}")
+    if not raws:
+        print("  none listed under that price right now.")
+
+    # -- 2. the graded asks, split by printing --------------------------
+    by_printing: dict[str, list[float]] = {}
+    for item in summarise(graded_blob, args.limit):
+        parsed = parse_title(item["title"], item["condition"])
+        if parsed["grader"] != "PSA" or parsed["grade"] != float(args.grade):
+            continue
+        key = ", ".join(parsed["printings"]) or "(not stated)"
+        by_printing.setdefault(key, []).append(total(item))
+
+    seen = sum(len(v) for v in by_printing.values())
+    print(f"\nPSA {args.grade} ASKS BY PRINTING -- {seen} readable of "
+          f"{graded_blob.get('total', 0)} matches\n")
+    ordered = sorted(by_printing.items(), key=lambda kv: statistics.median(kv[1]))
+    for key, values in ordered:
+        med = statistics.median(values)
+        print(f"  {key:<28} n={len(values):<3} median ${med:>9,.0f}"
+              f"   ${min(values):,.0f} - ${max(values):,.0f}")
+
+    # The finding this command exists for.
+    stated = [(k, v) for k, v in ordered if k != "(not stated)" and len(v) >= 2]
+    if len(stated) >= 2:
+        lo_k, lo_v = stated[0]
+        hi_k, hi_v = stated[-1]
+        ratio = statistics.median(hi_v) / statistics.median(lo_v)
+        print()
+        if ratio >= 1.5:
+            print(f"  ==> {hi_k} asks run {ratio:.1f}x {lo_k}. These are two "
+                  f"different cards.")
+            if psa9 is not None:
+                print(f"      PPT reports one PSA 9 price of ${psa9:,.0f} across "
+                      f"both of them.")
+            print(f"      Buy the printing you are pricing: a raw {lo_k} copy "
+                  f"sells as a {lo_k} slab.")
+        else:
+            print(f"  ==> the printings ask within {ratio:.1f}x of each other, "
+                  f"so pooling them costs little here.")
+    elif seen:
+        print("\n  (one readable printing; nothing to compare against)")
+    print(f"\n{client.calls} call(s) used. Asks are what sellers want, not "
+          f"what anyone paid --\nnever price a floor off them.")
+    return 0
+
+
 def cmd_ebay(args, cfg: Config, store: Store) -> int:
     """Check the eBay credentials and dump one real response.
 
@@ -1994,6 +2132,15 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("listings", help="live copies to buy, and the asks by printing")
+    p.add_argument("--card", required=True, help="a universe card id")
+    p.add_argument("--grade", default="9", help="graded tier to compare (default 9)")
+    p.add_argument("--limit", type=int, default=50, help="listings per search")
+    p.add_argument("--show", type=int, default=8, help="raw copies to print")
+    p.add_argument("--max-price", type=float,
+                   help="override the walk-away price from the cost model")
+    p.set_defaults(func=cmd_listings)
 
     p = sub.add_parser("ebay", help="test eBay credentials and search live listings")
     p.add_argument("--card", help="a universe card id to search for")

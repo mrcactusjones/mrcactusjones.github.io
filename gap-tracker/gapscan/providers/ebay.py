@@ -267,3 +267,77 @@ def summarise(blob: dict, count: int = 5) -> list[dict]:
             "image": (item.get("image") or {}).get("imageUrl"),
         })
     return out
+
+
+# --- reading a listing title -------------------------------------------
+#
+# The point of the whole eBay detour. PPT matches graded sales by reading
+# these same titles, but keeps only the grade -- so two printings of a card
+# land in one "PSA 9 price" and the pooled-printings check can only guess at
+# it from how the sales scatter, which on a card with five sales it cannot do
+# at all.
+#
+# The printing is right there in the text. "1999 POKEMON BASE SET UNLIMITED #4
+# CHARIZARD-HOLO PSA 9" says which Charizard. Reading it is not sophisticated;
+# it is just work nobody did.
+
+GRADERS = ("PSA", "BGS", "CGC", "SGC", "ACE", "TAG")
+
+# Ordered: the first match wins, so the more specific pattern comes first.
+# "1st Edition Shadowless" is a real combination and 1st Edition is the one
+# that moves the price, but both are reported.
+_PRINTINGS = (
+    ("1st Edition", r"\b(?:1st|first)[\s\-]*ed(?:ition)?\b"),
+    ("Shadowless", r"\bshadowless\b"),
+    ("Unlimited", r"\bunlimited\b"),
+    ("Reverse Holo", r"\breverse[\s\-]*(?:holo|foil)\w*\b"),
+    ("Holo", r"\bholo(?:graphic|foil)?\b"),
+    ("Promo", r"\b(?:promo|prerelease|pre[\s\-]release|staff)\b"),
+)
+
+_GRADE_RE = None
+_PRINTING_RES = None
+
+
+def _compiled():
+    """Compile once, lazily, so importing the module stays cheap."""
+    global _GRADE_RE, _PRINTING_RES
+    import re
+    if _GRADE_RE is None:
+        # "PSA 9", "PSA9", "PSA 9.5", "BGS 9.5" -- and not "PSA 10 POPULATION"
+        # style noise, which is why the number is bounded.
+        _GRADE_RE = re.compile(
+            r"\b(" + "|".join(GRADERS) + r")\s*[\-#]?\s*(10(?:\.0)?|[1-9](?:\.5)?)\b",
+            re.IGNORECASE)
+        _PRINTING_RES = [(name, re.compile(pat, re.IGNORECASE))
+                         for name, pat in _PRINTINGS]
+    return _GRADE_RE, _PRINTING_RES
+
+
+def parse_title(title: str, condition: str | None = None) -> dict:
+    """Pull grade and printing out of an eBay listing title.
+
+    Returns {grader, grade, printings, graded}. `printings` is a list because
+    "1st Edition Shadowless" is one card and naming only the first would lose
+    half of what makes it expensive.
+
+    `condition` is eBay's own field and settles the graded question better
+    than the title does: a slab is listed as "Graded" whether or not the
+    seller typed the grade. A title with no grade in it and a Graded condition
+    is a slab we cannot read, which is worth knowing and different from a raw
+    card.
+    """
+    grade_re, printing_res = _compiled()
+    text = title or ""
+    grader = grade = None
+    match = grade_re.search(text)
+    if match:
+        grader = match.group(1).upper()
+        grade = float(match.group(2))
+    printings = [name for name, rx in printing_res if rx.search(text)]
+    # "Reverse Holo" already implies holo; reporting both is noise.
+    if "Reverse Holo" in printings and "Holo" in printings:
+        printings.remove("Holo")
+    graded = bool(match) or (condition or "").strip().lower() == "graded"
+    return {"grader": grader, "grade": grade, "printings": printings,
+            "graded": graded}
