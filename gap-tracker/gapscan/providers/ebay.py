@@ -405,3 +405,20 @@ def spread_of(values) -> float | None:
     if len(vals) < 2:
         return None
     return max(vals) / min(vals)
+
+
+def delivered(item: dict) -> tuple[float, bool]:
+    """(what it costs to your door, whether that is actually known).
+
+    Shipping is None whenever eBay returns no cost for a listing -- local
+    pickup, freight, or a rate it will only calculate against a real address.
+    Folding that into the total as zero is the one rounding this tool must
+    never make: it quietly turns an unknown into the cheapest possible answer,
+    on the number that decides whether you buy. So it is returned as a flag,
+    and the caller says "+ shipping" rather than inventing a figure.
+    """
+    price = float(item.get("price") or 0)
+    ship = item.get("shipping")
+    if ship is None:
+        return price, False
+    return price + float(ship), True

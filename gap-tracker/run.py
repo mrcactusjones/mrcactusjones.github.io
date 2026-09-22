@@ -868,8 +868,8 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     import statistics
 
     from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
-                                        is_same_card, parse_title, search_text,
-                                        spread_of, summarise)
+                                        delivered, is_same_card, parse_title,
+                                        search_text, spread_of, summarise)
 
     universe = store.load_universe()
     card = universe.get(args.card)
@@ -922,8 +922,14 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
         return 1
 
     def total(item):
-        """Price plus shipping. $4,100 posted is dearer than $3,900 free."""
-        return (item["price"] or 0) + (item["shipping"] or 0)
+        """Cost to your door. $4,100 posted is dearer than $3,900 free."""
+        return delivered(item)[0]
+
+    def sort_key(item):
+        """Unknown shipping sorts as if it were the dearest plausible post,
+        so an unpriced listing cannot head the list by hiding its cost."""
+        value, known = delivered(item)
+        return (value, 0) if known else (value + 25.0, 1)
 
     # -- 1. raw copies you could buy ------------------------------------
     raws, wrong_card = [], 0
@@ -941,12 +947,25 @@ def cmd_listings(args, cfg: Config, store: Store) -> int:
     print(f"RAW COPIES{f' UNDER ${cap:,.0f}' if cap else ''} "
           f"-- {len(raws)} of {raw_blob.get('total', 0)} matches"
           + (f" ({wrong_card} were a different card)" if wrong_card else "") + "\n")
-    for item, parsed in sorted(raws, key=lambda x: total(x[0]))[:args.show]:
-        ship = "free" if item["shipping"] == 0 else f"+${item['shipping']:,.2f}"
+    unknown_ship = 0
+    for item, parsed in sorted(raws, key=lambda x: sort_key(x[0]))[:args.show]:
+        value, known = delivered(item)
         tag = ", ".join(parsed["printings"]) or "printing not stated"
-        print(f"  ${total(item):>8,.2f}  ({item['price']:,.2f} {ship})  [{tag}]")
+        if known:
+            ship = "free post" if item["shipping"] == 0 else f"+${item['shipping']:,.2f}"
+            head = f"  ${value:>8,.2f}  ({item['price']:,.2f}, {ship})"
+        else:
+            # Never shown as a total. The cost to your door is not known, and
+            # printing one anyway is how you talk yourself past a limit.
+            unknown_ship += 1
+            head = f"  ${value:>8,.2f}+ (plus postage -- eBay quotes none)"
+        print(f"{head}  [{tag}]")
         print(f"            {item['title'][:76]}")
         print(f"            {item['url']}")
+    if unknown_ship:
+        print(f"\n  {unknown_ship} listing(s) quote no postage, so the prices "
+              f"marked + are not\n  delivered costs. Check before comparing "
+              f"them with the cap.")
     if not raws:
         print("  none listed under that price right now.")
 

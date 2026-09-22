@@ -11,7 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gapscan.providers.ebay import (SCOPE, USER_FIELDS, basic_auth,
                                     is_same_card, parse_title,
-                                    persistable, search_text, spread_of)
+                                    delivered, persistable, search_text,
+                                    spread_of)
 
 
 class BasicAuthTest(unittest.TestCase):
@@ -208,3 +209,37 @@ class SpreadTest(unittest.TestCase):
 
     def test_one_value_has_no_spread(self):
         self.assertIsNone(spread_of([1500]))
+
+
+class DeliveredCostTest(unittest.TestCase):
+    """Unknown postage must not be quietly priced at zero.
+
+    A listing with no shipping cost crashed the display, which was the small
+    half of the bug. The large half was `total()` folding None in as 0 --
+    turning "we do not know" into the cheapest possible answer, on the exact
+    number that decides whether a card is worth buying.
+    """
+
+    def test_a_quoted_cost_is_added(self):
+        self.assertEqual(delivered({"price": 199.50, "shipping": 10.69}),
+                         (210.19, True))
+
+    def test_free_postage_is_known_and_zero(self):
+        self.assertEqual(delivered({"price": 199.50, "shipping": 0.0}),
+                         (199.50, True))
+
+    def test_missing_postage_is_flagged_not_assumed_free(self):
+        value, known = delivered({"price": 199.50, "shipping": None})
+        self.assertFalse(known)
+        self.assertEqual(value, 199.50)
+
+    def test_it_does_not_raise_on_a_listing_with_no_price(self):
+        self.assertEqual(delivered({"price": None, "shipping": None}), (0.0, False))
+
+    def test_an_unpriced_post_never_undercuts_a_known_one(self):
+        """The ordering property that matters: a listing hiding its postage
+        must not sort ahead of one that quotes it."""
+        cheap_unknown = delivered({"price": 200.0, "shipping": None})
+        dearer_known = delivered({"price": 205.0, "shipping": 5.0})
+        self.assertLess(cheap_unknown[0], dearer_known[0])
+        self.assertFalse(cheap_unknown[1])   # so the caller must handle it
