@@ -763,6 +763,76 @@ def cmd_trends(args, cfg: Config, store: Store) -> int:
     return 0
 
 
+def _ebay_diagnosis(client) -> list[str]:
+    """Say what is wrong with the credentials without printing them.
+
+    `invalid_client` is the same answer for a Sandbox keyset, a placeholder
+    left in .env, a Dev ID pasted where the Cert ID goes, and a secret with a
+    stray character on the end -- so the error alone cannot tell you which.
+    It is answerable anyway: eBay stamps its own keysets, and both the App ID
+    and the Cert ID carry PRD- or SBX- in them. That settles the commonest
+    cause outright, and the rest are visible from shape and length.
+    """
+    env = Path(__file__).resolve().parent / ".env"
+    cid, sec = client.client_id or "", client.client_secret or ""
+    out = [f".env file      {env}  [{'found' if env.exists() else 'NOT FOUND'}]"]
+
+    def describe(label, value, name):
+        if not value:
+            return f"{label}  MISSING -- no {name} in .env or the environment"
+        shown = f"{value[:4]}...{value[-2:]}" if len(value) > 8 else "(very short)"
+        note = f"{label}  set, {len(value)} chars, {shown}"
+        if "here" in value.lower() or "your_" in value.lower():
+            note += "\n                 ^ this is still the placeholder from .env.example"
+        if value != value.strip():
+            note += "\n                 ^ has leading/trailing whitespace"
+        if " #" in value or value.endswith("#"):
+            note += ("\n                 ^ looks like a trailing comment got "
+                     "included; put comments on their own line")
+        if value[:1] in "\"'" or value[-1:] in "\"'":
+            note += "\n                 ^ still wrapped in quotes"
+        return note
+
+    out.append(describe("EBAY_CLIENT_ID ", cid, "App ID"))
+    out.append(describe("EBAY_CLIENT_SECRET", sec, "Cert ID"))
+
+    # The decisive one. eBay's own naming: an App ID reads
+    # User-AppName-PRD-hexhex-hex and a Cert ID reads PRD-hex-hex-hex-hex.
+    marks = {"sandbox": [], "production": []}
+    for label, value in (("App ID", cid), ("Cert ID", sec)):
+        up = value.upper()
+        if "SBX-" in up or up.startswith("SBX"):
+            marks["sandbox"].append(label)
+        elif "PRD-" in up or up.startswith("PRD"):
+            marks["production"].append(label)
+
+    out.append("")
+    if marks["sandbox"] and not marks["production"]:
+        out.append("==> This is a SANDBOX keyset. That is the whole problem.")
+        out.append("    Sandbox credentials are rejected by the production API,")
+        out.append("    and sandbox listings are invented anyway. Go back to")
+        out.append("    developer.ebay.com -> Application Keysets and copy the")
+        out.append("    PRODUCTION row instead.")
+    elif marks["sandbox"] and marks["production"]:
+        out.append(f"==> Mixed keysets: {', '.join(marks['sandbox'])} is Sandbox "
+                   f"but {', '.join(marks['production'])} is Production.")
+        out.append("    Both must come from the same row of the keysets page.")
+    elif marks["production"] == ["App ID", "Cert ID"]:
+        out.append("==> Both look like Production credentials, so the pairing is")
+        out.append("    the likely fault: the Cert ID must be from the SAME row")
+        out.append("    as that App ID. Worth re-copying both -- and note the")
+        out.append("    Cert ID is not the Dev ID, and not an auth token.")
+    else:
+        found = ", ".join(sorted(marks["production"] + marks["sandbox"])) or "neither"
+        out.append(f"==> Cannot tell which environment these are from ({found}")
+        out.append("    carries a PRD-/SBX- marker). An eBay App ID normally")
+        out.append("    reads like  Name-App-PRD-1a2b3c4d5-6e7f8a9b  and a Cert")
+        out.append("    ID like  PRD-1a2b3c4d5e6f-7a8b-9c0d-1e2f  -- if yours do")
+        out.append("    not, they are probably the wrong two fields. You want")
+        out.append("    App ID (Client ID) and Cert ID (Client Secret).")
+    return out
+
+
 def cmd_ebay(args, cfg: Config, store: Store) -> int:
     """Check the eBay credentials and dump one real response.
 
@@ -779,7 +849,9 @@ def cmd_ebay(args, cfg: Config, store: Store) -> int:
     try:
         client.token()
     except EbayAuthError as exc:
-        print(f"Auth failed.\n  {exc}")
+        print(f"Auth failed.\n  {exc}\n")
+        for line in _ebay_diagnosis(client):
+            print(f"  {line}")
         return 1
     except EbayError as exc:
         print(f"Could not reach eBay.\n  {exc}")
