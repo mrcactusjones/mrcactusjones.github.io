@@ -215,12 +215,35 @@ class EbayClient:
         return self.get(SEARCH_PATH, params)
 
 
+# Fields that identify an eBay *user* rather than a card. eBay will not
+# activate a production keyset until the application either runs a Marketplace
+# Account Deletion endpoint or claims exemption, and the exemption is for
+# applications that do not store eBay users' data. This tool takes the
+# exemption, so these fields are shown at the moment of the search and never
+# written anywhere. `persistable` is the only supported way to put a listing
+# on disk, and `tests/test_ebay.py` fails if it stops removing them.
+USER_FIELDS = ("seller", "feedback")
+
+
+def persistable(row: dict) -> dict:
+    """One summarised listing, with eBay user data removed.
+
+    Anything that gets cached, logged or ranked goes through here first. The
+    card fields -- title, price, condition, printing -- are what the tool is
+    about; who is selling it matters only while you are looking at the screen.
+    """
+    return {k: v for k, v in row.items() if k not in USER_FIELDS}
+
+
 def summarise(blob: dict, count: int = 5) -> list[dict]:
     """The fields worth having, pulled out of one search response.
 
     Deliberately small. What a listing is *for* here is the title and the
     price -- the title because it carries the printing that PPT's graded
     figures threw away, the price because it is a number you can act on.
+
+    Carries `seller` and `feedback` for display only; see USER_FIELDS. Route
+    anything bound for disk through `persistable` first.
     """
     out = []
     for item in (blob.get("itemSummaries") or [])[:count]:

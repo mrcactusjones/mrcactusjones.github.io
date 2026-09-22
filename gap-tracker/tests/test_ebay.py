@@ -9,7 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gapscan.providers.ebay import SCOPE, basic_auth
+from gapscan.providers.ebay import (SCOPE, USER_FIELDS, basic_auth,
+                                    persistable)
 
 
 class BasicAuthTest(unittest.TestCase):
@@ -47,3 +48,34 @@ class ScopeTest(unittest.TestCase):
             {"grant_type": "client_credentials", "scope": SCOPE})
         self.assertIn("scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope", body)
         self.assertIn("grant_type=client_credentials", body)
+
+
+class NoUserDataOnDiskTest(unittest.TestCase):
+    """eBay's Marketplace Account Deletion exemption is for applications that
+    do not store eBay users' data. This tool claims that exemption, so the
+    claim has to stay true as the listing code grows."""
+
+    ROW = {"title": "Rayquaza ex delta PSA 9", "price": 840.0, "currency": "USD",
+           "shipping": 0.0, "condition": "Used", "seller": "somebody_1997",
+           "feedback": "99.8", "buying": ["FIXED_PRICE"],
+           "url": "https://www.ebay.com/itm/1", "image": "https://x/y.jpg"}
+
+    def test_the_seller_is_dropped_before_anything_is_stored(self):
+        kept = persistable(self.ROW)
+        self.assertNotIn("seller", kept)
+        self.assertNotIn("feedback", kept)
+
+    def test_the_card_fields_all_survive(self):
+        kept = persistable(self.ROW)
+        for field in ("title", "price", "currency", "shipping", "condition",
+                      "buying", "url", "image"):
+            self.assertIn(field, kept, field)
+
+    def test_no_value_in_a_persisted_row_carries_the_username(self):
+        """A field added later that happens to embed the seller would defeat
+        the filter without failing the checks above."""
+        blob = repr(persistable(self.ROW))
+        self.assertNotIn("somebody_1997", blob)
+
+    def test_user_fields_are_declared_not_guessed(self):
+        self.assertEqual(set(USER_FIELDS), {"seller", "feedback"})
