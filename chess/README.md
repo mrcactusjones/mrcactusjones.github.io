@@ -21,6 +21,7 @@ A 1.8 in king base suits 2.25–2.375 in squares.
 - `stl/signature-chess-set-stl.zip` — all six STLs.
 - `generate_chess_set.py` — the generator (turned pieces as lathe profiles + booleans).
 - `knight.py` — the knight head sculpt (signed-distance field → marching cubes).
+- The **Chess Scaler** tab on the website resizes these (or any other) six pieces to a standard set size or a percentage and exports new STLs.
 - `img/` — lineup renders (boxwood and rosewood previews); `lineup.png` is the website fallback image.
 
 ## Printing
