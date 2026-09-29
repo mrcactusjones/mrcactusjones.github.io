@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rob's Toolkit</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/utif/3.1.0/UTIF.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/utif@3.1.0/UTIF.js';document.head.appendChild(s);"></script>
@@ -56,6 +57,10 @@
     margin-bottom: -1px;
     letter-spacing: 0.3px;
   }
+  .toolkit-nav { overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+  .toolkit-nav::-webkit-scrollbar { display:none; }
+  .toolkit-nav .brand, .toolkit-nav .tab-btn { flex-shrink:0; }
+  @media (max-width:1600px) { .toolkit-nav .tab-btn { padding:14px 10px; } .toolkit-nav .brand { margin-right:12px; } }
   .toolkit-nav .tab-btn:hover { color: #aaaacc; }
   .toolkit-nav .tab-btn.active {
     color: #00e5a0;
@@ -654,6 +659,237 @@
     transition:opacity .2s, transform .2s; z-index:9999;
   }
   #page-box .bx-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE 8: SIGNATURE CHESS SET
+     ═══════════════════════════════════════════════════════════════ */
+  #page-chess {
+    --cs-gold:#e0b25c; --cs-green:#00e5a0; --cs-rose:#c0503a; --cs-ink:#efe6d4; --cs-mute:#8d846f;
+    min-height:calc(100vh - 48px);
+    padding:24px 18px 60px;
+    background:
+      radial-gradient(circle at 50% -10%, #2a2010 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent 0 38px, #e0b25c0f 38px 39px),
+      repeating-linear-gradient(90deg, transparent 0 38px, #00e5a00c 38px 39px),
+      #0b0a08;
+    font-family:'IBM Plex Mono','JetBrains Mono',monospace;
+    color:var(--cs-ink);
+  }
+  #page-chess .cs-app { max-width:1180px; margin:0 auto; }
+  #page-chess .cs-titlebar {
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(90deg,var(--cs-gold),#b98a3a 55%,var(--cs-green));
+    padding:7px 14px; border-radius:8px 8px 0 0;
+    box-shadow:0 0 22px #e0b25c44, inset 0 1px 0 #ffffff55;
+  }
+  #page-chess .cs-titlebar .t { font-weight:700; font-size:13px; letter-spacing:3px; color:#141008; text-shadow:0 1px 0 #ffffff66; }
+  #page-chess .cs-titlebar .dots { display:flex; gap:7px; }
+  #page-chess .cs-titlebar .dots i { width:13px; height:13px; border-radius:50%; background:#141008; opacity:.55; }
+  #page-chess .cs-shell {
+    display:grid; grid-template-columns:330px 1fr; gap:0;
+    border:2px solid #e0b25c55; border-top:none; border-radius:0 0 10px 10px;
+    background:#100d08cc; backdrop-filter:blur(4px); overflow:hidden;
+  }
+  @media (max-width:840px){ #page-chess .cs-shell { grid-template-columns:1fr; } }
+
+  #page-chess .cs-panel { padding:20px 18px; border-right:2px solid #e0b25c33; }
+  #page-chess .cs-hero h1 {
+    font-family:'VT323',monospace; font-size:42px; line-height:.9; letter-spacing:1px;
+    color:var(--cs-gold); text-shadow:0 0 10px #e0b25c88, 3px 3px 0 #2c5a3a; margin-bottom:2px;
+  }
+  #page-chess .cs-hero p { font-size:11px; color:#b9d9c7; letter-spacing:1px; margin-bottom:14px; }
+  #page-chess .cs-label { display:block; font-size:10px; letter-spacing:2px; color:var(--cs-green); text-transform:uppercase; margin:18px 0 8px; }
+
+  #page-chess .cs-pieces { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  #page-chess .cs-pieces button {
+    font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:9px 4px;
+    background:#1a150c; color:var(--cs-gold); border:2px solid #e0b25c66; border-radius:7px; cursor:pointer; transition:all .12s;
+  }
+  #page-chess .cs-pieces button .g { display:block; font-size:22px; line-height:1; margin-bottom:3px; font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols2',sans-serif; }
+  #page-chess .cs-pieces button:hover { border-color:var(--cs-gold); background:#241c0f; }
+  #page-chess .cs-pieces button.active { background:var(--cs-gold); color:#141008; border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c66; }
+  #page-chess .cs-pieces button.set { grid-column:1 / -1; }
+
+  #page-chess .cs-seg { display:flex; gap:0; border:2px solid var(--cs-green); border-radius:7px; overflow:hidden; }
+  #page-chess .cs-seg button {
+    flex:1; font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:8px 4px;
+    background:transparent; color:var(--cs-green); border:none; cursor:pointer; transition:all .12s;
+  }
+  #page-chess .cs-seg button + button { border-left:2px solid var(--cs-green); }
+  #page-chess .cs-seg button.active { background:var(--cs-green); color:#06121a; }
+  #page-chess .cs-seg button:not(.active):hover { background:#00e5a022; }
+
+  #page-chess .cs-readout { margin-top:18px; padding:12px 14px; border:1px dashed #00e5a055; border-radius:8px; background:#041a1266; font-size:11px; line-height:1.85; color:#b9f0dc; }
+  #page-chess .cs-readout .row { display:flex; justify-content:space-between; gap:8px; }
+  #page-chess .cs-readout .row b { color:#fff; font-weight:600; text-align:right; }
+  #page-chess .cs-readout .hd { color:var(--cs-gold); letter-spacing:2px; font-size:9px; margin-bottom:4px; }
+
+  #page-chess .cs-dlbtn {
+    display:block; width:100%; margin-top:18px; font-family:'VT323',monospace; font-size:24px; letter-spacing:2px; padding:10px;
+    background:linear-gradient(90deg,var(--cs-gold),#b98a3a); color:#141008; border:none; border-radius:9px; text-align:center; text-decoration:none;
+    cursor:pointer; box-shadow:0 0 18px #e0b25c66; transition:transform .1s, box-shadow .15s;
+  }
+  #page-chess .cs-dlbtn:hover { transform:translateY(-2px); box-shadow:0 6px 26px #e0b25caa; }
+  #page-chess .cs-dlbtn.alt { margin-top:9px; font-size:20px; background:transparent; color:var(--cs-gold); border:2px solid #e0b25c88; box-shadow:none; }
+  #page-chess .cs-dlbtn.alt:hover { border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c55; }
+  #page-chess .cs-src { display:block; margin-top:10px; font-size:10px; letter-spacing:2px; padding:7px; color:var(--cs-mute); border:1px solid #8d846f55; border-radius:7px; text-align:center; text-decoration:none; }
+  #page-chess .cs-src:hover { color:var(--cs-green); border-color:var(--cs-green); }
+
+  #page-chess .cs-stage { position:relative; display:flex; flex-direction:column; background:repeating-linear-gradient(0deg,#0b0a08 0 26px,#141009 26px 27px); }
+  #page-chess .cs-viewport { position:relative; flex:1; min-height:540px; overflow:hidden; }
+  #page-chess .cs-viewport canvas { display:block; width:100%; height:100%; touch-action:none; }
+  #page-chess .cs-fallback { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:24px; }
+  #page-chess .cs-viewport.live .cs-fallback { display:none; }
+  #page-chess .cs-status {
+    position:absolute; left:0; right:0; bottom:0; padding:9px 12px; font-size:10px; letter-spacing:2px; text-align:center;
+    color:var(--cs-mute); background:linear-gradient(180deg,transparent,#0b0a08cc); pointer-events:none;
+  }
+  #page-chess .cs-status.loading { color:var(--cs-green); }
+  #page-chess .cs-status.err { color:var(--cs-rose); }
+
+  #page-chess .cs-info { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; }
+  @media (max-width:840px){ #page-chess .cs-info { grid-template-columns:1fr; } }
+  #page-chess .cs-card { border:2px solid #e0b25c44; border-radius:10px; background:#100d08cc; padding:14px 16px; font-size:11px; line-height:1.7; color:#d9cfb8; }
+  #page-chess .cs-card h3 { font-family:'VT323',monospace; font-size:24px; letter-spacing:1px; color:var(--cs-green); margin-bottom:6px; text-shadow:0 0 8px #00e5a055; }
+  #page-chess .cs-card table { width:100%; border-collapse:collapse; }
+  #page-chess .cs-card th, #page-chess .cs-card td { text-align:left; padding:3px 4px; border-bottom:1px solid #e0b25c22; white-space:nowrap; }
+  #page-chess .cs-card th { color:var(--cs-gold); font-size:9px; letter-spacing:2px; font-weight:600; }
+  #page-chess .cs-card td.n { text-align:right; color:#fff; font-variant-numeric:tabular-nums; }
+  #page-chess .cs-card ul { padding-left:16px; }
+  #page-chess .cs-card li { margin:3px 0; }
+  #page-chess .cs-card li b, #page-chess .cs-card p b { color:var(--cs-gold); font-weight:600; }
+  #page-chess .cs-card p + p { margin-top:8px; }
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE 9: CHESS SCALER — Win95 style
+     ═══════════════════════════════════════════════════════════════ */
+  #page-scaler {
+    background:#008080;
+    background-image:radial-gradient(circle at 22% 28%, #007070 0%, transparent 50%), radial-gradient(circle at 78% 78%, #006868 0%, transparent 50%);
+    padding:24px 14px 40px;
+    font-family:'IBM Plex Mono','Courier New',monospace; font-size:12px; color:#000;
+  }
+  #page-scaler .sc-app { max-width:1180px; margin:0 auto; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-scaler .sc-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-scaler .sc-title-bar .title-bar-text { display:flex; align-items:center; gap:5px; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-scaler .sc-title-icon { width:16px; height:16px; background:#ffff00; color:#000080; display:inline-flex; align-items:center; justify-content:center; font-size:13px; line-height:1; border:1px solid #000; flex-shrink:0; }
+  #page-scaler .sc-title-buttons { display:flex; gap:2px; flex-shrink:0; }
+  #page-scaler .sc-title-buttons div { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#000; }
+
+  #page-scaler .sc-toolbar { display:flex; flex-wrap:wrap; gap:4px; align-items:center; padding:5px 6px; border-bottom:1px solid #808080; box-shadow:0 1px 0 #fff; }
+  #page-scaler .sc-tb-sep { flex:1; }
+  #page-scaler .sc-btn {
+    font-family:inherit; font-size:12px; color:#000; background:#c0c0c0; padding:4px 12px; border-radius:0; cursor:pointer; white-space:nowrap;
+    border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080;
+  }
+  #page-scaler .sc-btn:hover { background:#c8c8c8; }
+  #page-scaler .sc-btn:active { border-color:#000 #fff #fff #000; box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #dfdfdf; padding:5px 11px 3px 13px; }
+  #page-scaler .sc-btn:focus-visible { outline:1px dotted #000; outline-offset:-5px; }
+  #page-scaler .sc-btn:disabled { color:#808080; text-shadow:1px 1px 0 #fff; cursor:default; }
+  #page-scaler .sc-btn.default { outline:1px solid #000; outline-offset:0; font-weight:700; }
+  #page-scaler .sc-btn-sm { font-size:11px; padding:2px 8px; }
+  #page-scaler .sc-btn-sm:active { padding:3px 7px 1px 9px; }
+
+  #page-scaler .sc-body { display:grid; grid-template-columns:300px minmax(0,1fr); gap:10px; padding:10px; }
+  @media (max-width:900px){ #page-scaler .sc-body { grid-template-columns:minmax(0,1fr); } }
+
+  #page-scaler .sc-group { border:1px solid #808080; box-shadow:inset 1px 1px 0 #fff, 1px 1px 0 #fff; padding:10px 8px 8px; margin:0 0 10px; min-width:0; }
+  #page-scaler .sc-group legend { padding:0 3px; font-size:12px; }
+  #page-scaler .sc-select {
+    -webkit-appearance:none; appearance:none; width:100%; font-family:inherit; font-size:12px; color:#000; padding:3px 22px 3px 4px; border-radius:0; cursor:pointer;
+    border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18'%3E%3Crect width='16' height='18' fill='%23c0c0c0'/%3E%3Cpath d='M0 0h15v1H1v16H0z' fill='%23fff'/%3E%3Cpath d='M15 0h1v18H0v-1h15z' fill='%23000'/%3E%3Cpath d='M1 16h14v1H1zM14 1h1v15h-1z' fill='%23808080'/%3E%3Cpath d='M4 7h8l-4 4z' fill='%23000'/%3E%3C/svg%3E") no-repeat right 2px center;
+  }
+  #page-scaler .sc-select:focus { outline:1px dotted #000; outline-offset:-4px; }
+  #page-scaler .sc-note { font-size:10.5px; color:#404040; margin-top:6px; line-height:1.45; }
+  #page-scaler .sc-note b { color:#000080; }
+
+  #page-scaler .sc-radio { display:flex; gap:6px; align-items:flex-start; margin:4px 0; cursor:pointer; line-height:1.35; font-size:11.5px; }
+  #page-scaler .sc-radio.inline { display:inline-flex; margin-right:14px; }
+  #page-scaler .sc-radio input, #page-scaler .sc-check input { accent-color:#000080; margin:2px 0 0; flex-shrink:0; }
+  #page-scaler .sc-check { display:flex; gap:6px; align-items:flex-start; margin-top:7px; font-size:11px; cursor:pointer; }
+
+  #page-scaler .sc-pct-row { display:flex; align-items:center; gap:8px; }
+  #page-scaler .sc-spin { display:flex; align-items:center; gap:3px; font-weight:700; }
+  #page-scaler .sc-field {
+    font-family:inherit; font-size:12px; color:#000; background:#fff; padding:3px 4px; border-radius:0; outline:none;
+    border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  }
+  #page-scaler .sc-field:focus { outline:1px dotted #000; outline-offset:-4px; }
+  #page-scaler .sc-spin .sc-field { width:70px; text-align:right; }
+  #page-scaler .sc-pct-ticks { display:flex; justify-content:space-between; font-size:9.5px; color:#404040; margin:0 78px 6px 0; }
+  #page-scaler .sc-pct-quick { display:flex; flex-wrap:wrap; gap:3px; }
+  #page-scaler input[type=range] { -webkit-appearance:none; appearance:none; flex:1; min-width:0; height:24px; background:transparent; cursor:pointer; }
+  #page-scaler input[type=range]:focus { outline:1px dotted #000; outline-offset:1px; }
+  #page-scaler input[type=range]::-webkit-slider-runnable-track { height:4px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040; }
+  #page-scaler input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:11px; height:21px; margin-top:-10px; background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf; border-radius:0; }
+  #page-scaler input[type=range]::-moz-range-track { height:4px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; }
+  #page-scaler input[type=range]::-moz-range-thumb { width:11px; height:21px; background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf; border-radius:0; }
+
+  #page-scaler .sc-listview { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf; padding:2px; }
+  #page-scaler .sc-table { width:100%; border-collapse:collapse; font-size:11px; }
+  #page-scaler .sc-table th { background:#c0c0c0; font-weight:400; text-align:left; padding:2px 4px; border:1px solid; border-color:#fff #808080 #808080 #fff; white-space:nowrap; }
+  #page-scaler .sc-table td { padding:2px 4px; white-space:nowrap; }
+  #page-scaler .sc-table td + td { text-align:right; font-variant-numeric:tabular-nums; }
+  #page-scaler .sc-table tr:nth-child(odd) td { background:#f4f4f4; }
+  #page-scaler .sc-table .sc-field { width:100%; min-width:0; font-size:11px; padding:1px 3px; text-align:right; }
+
+  #page-scaler .sc-slots { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+  @media (max-width:1100px){ #page-scaler .sc-slots { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  @media (max-width:520px){ #page-scaler .sc-slots { grid-template-columns:minmax(0,1fr); } }
+  #page-scaler .sc-slot { background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080; padding:2px; display:flex; flex-direction:column; min-width:0; }
+  #page-scaler .sc-slot-title { display:flex; align-items:center; justify-content:space-between; gap:4px; height:20px; padding:0 2px 0 5px; font-weight:700; font-size:12px; color:#fff; background:linear-gradient(90deg,#000080,#1084d0); user-select:none; }
+  #page-scaler .sc-slot.empty .sc-slot-title { background:linear-gradient(90deg,#808080,#b5b5b5); color:#dfdfdf; }
+  #page-scaler .sc-slot-title .g { font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols2',sans-serif; font-weight:400; margin-right:3px; }
+  #page-scaler .sc-x { width:16px; height:14px; padding:0; font-family:inherit; font-size:11px; font-weight:900; line-height:1; color:#000; background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080; cursor:pointer; border-radius:0; }
+  #page-scaler .sc-x:active { border-color:#000 #fff #fff #000; box-shadow:inset 1px 1px 0 #808080; }
+  #page-scaler .sc-slot.empty .sc-x { visibility:hidden; }
+  #page-scaler .sc-well { position:relative; margin:6px 6px 4px; background:#fff; aspect-ratio:8 / 7; cursor:pointer; overflow:hidden; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf; }
+  #page-scaler .sc-well:focus-visible { outline:1px dotted #000; outline-offset:-5px; }
+  #page-scaler .sc-well canvas { position:absolute; inset:2px; width:calc(100% - 4px); height:calc(100% - 4px); display:block; }
+  #page-scaler .sc-slot.loaded .sc-well { cursor:grab; }
+  #page-scaler .sc-slot.dragging { opacity:.55; }
+  #page-scaler .sc-slot.drag-over .sc-well { background:#ffffcc; }
+  #page-scaler .sc-slot.drag-over .sc-well::after { content:''; position:absolute; inset:5px; border:2px dashed #000080; pointer-events:none; }
+  #page-scaler .sc-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:2px; font-size:11px; color:#404040; line-height:1.4; padding:6px; pointer-events:none; }
+  #page-scaler .sc-empty .g { font-size:44px; line-height:1; color:#808080; font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols2',sans-serif; text-shadow:1px 1px 0 #fff; margin-bottom:4px; }
+  #page-scaler .sc-empty u { color:#000080; }
+  #page-scaler .sc-slot.loaded .sc-empty { display:none; }
+  #page-scaler .sc-busy { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:#ffffffcc; font-size:11px; }
+  #page-scaler .sc-slot.busy .sc-busy { display:flex; }
+  #page-scaler .sc-file { margin:0 6px; font-size:10px; color:#000080; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:14px; }
+  #page-scaler .sc-slot.empty .sc-file { color:#808080; }
+  #page-scaler .sc-dims { width:calc(100% - 12px); margin:3px 6px 2px; border-collapse:collapse; font-size:10.5px; }
+  #page-scaler .sc-dims th { font-weight:400; color:#404040; text-align:right; padding:1px 2px; border-bottom:1px solid #808080; }
+  #page-scaler .sc-dims td { padding:1px 2px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  #page-scaler .sc-dims td:first-child, #page-scaler .sc-dims th:first-child { text-align:left; color:#404040; }
+  #page-scaler .sc-dims tr.n td { font-weight:700; color:#000; }
+  #page-scaler .sc-dims tr.n td:first-child { color:#000; }
+  #page-scaler .sc-dims tr.n td.off { color:#a00000; }
+  #page-scaler .sc-dims tr.t td { color:#000080; }
+  #page-scaler .sc-dims tr.f td { color:#404040; border-top:1px solid #808080; }
+  #page-scaler .sc-slot-foot { display:flex; gap:4px; align-items:center; padding:3px 6px 5px; }
+  #page-scaler .sc-slot-foot .sc-select { flex:1; min-width:0; font-size:11px; padding:2px 20px 2px 3px; }
+  #page-scaler .sc-slot.empty .sc-slot-foot { visibility:hidden; }
+
+  #page-scaler .sc-preview { margin-top:10px; background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080; padding:2px; }
+  #page-scaler .sc-preview .sc-slot-title { height:22px; }
+  #page-scaler .sc-preview .sc-slot-title .sc-btn-sm { color:#000; font-weight:400; padding:0 8px; height:17px; }
+  #page-scaler .sc-lineup { aspect-ratio:auto; height:320px; cursor:grab; background:#dcdcdc; margin:6px; }
+  #page-scaler .sc-lineup canvas { position:absolute; inset:2px; width:calc(100% - 4px) !important; height:calc(100% - 4px) !important; }
+  #page-scaler .sc-lineup-msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:12px; font-size:11px; color:#404040; pointer-events:none; }
+  #page-scaler .sc-lineup-cap { font-size:10.5px; color:#404040; padding:0 8px 6px; }
+
+  #page-scaler .sc-statusbar { display:flex; gap:2px; padding:2px; border-top:1px solid #808080; box-shadow:inset 0 1px 0 #fff; }
+  #page-scaler .sc-cell { border:1px solid; border-color:#808080 #fff #fff #808080; padding:2px 6px; font-size:11px; white-space:nowrap; }
+  #page-scaler .sc-cell.grow { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  @media (max-width:700px){ #page-scaler .sc-cell.hide-sm { display:none; } }
+
+  #page-scaler .sc-dropveil { position:fixed; inset:48px 0 0 0; z-index:9050; display:none; align-items:center; justify-content:center; background:rgba(0,0,128,.14); pointer-events:none; }
+  #page-scaler .sc-dropveil.show { display:flex; }
+  #page-scaler .sc-dropveil .sc-dialog { background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 3px 3px 0 #0006; padding:2px; width:min(420px, 90vw); }
+  #page-scaler .sc-dropveil .sc-dialog-body { padding:14px 16px; font-size:12px; line-height:1.5; display:flex; gap:12px; align-items:flex-start; }
+  #page-scaler .sc-dropveil .sc-dialog-body .ico { font-size:30px; line-height:1; }
+  #page-scaler .sc-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#ffffe1; border:1px solid #000; padding:7px 14px; font-size:11px; color:#000; pointer-events:none; opacity:0; transition:all .3s; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:9999; max-width:90vw; }
+  #page-scaler .sc-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -669,6 +905,8 @@
   <button class="tab-btn" data-page="fastreader">&#9889; FastReader</button>
   <button class="tab-btn" data-page="tts">&#128264; TTS Reader</button>
   <button class="tab-btn" data-page="box">&#128230; Box Dieline</button>
+  <button class="tab-btn" data-page="chess">&#9822; Chess Set</button>
+  <button class="tab-btn" data-page="scaler">&#9878; Chess Scaler</button>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -745,10 +983,26 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <div class="home-card" data-goto="chess">
+          <div class="hc-icon">&#9822;</div>
+          <div>
+            <div class="hc-name">SIGNATURE CHESS SET</div>
+            <div class="hc-desc">A 3D-printable Staunton-style set with a 4.4&quot; king. Spin every piece in 3D, then download the STLs &mdash; one file per piece or the whole set zipped.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
+        <div class="home-card" data-goto="scaler">
+          <div class="hc-icon">&#9878;</div>
+          <div>
+            <div class="hc-name">CHESS SCALER</div>
+            <div class="hc-desc">Drag in any six chess pieces (STL, OBJ, 3MF or ZIP) and resize them to a standard set size, from travel to FIDE tournament to your 4.4&quot; Signature King, plus a percent dial. Exports print-ready STLs.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">7 PROGRAMS LOADED</span>
+      <span class="home-status-cell">9 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -1397,6 +1651,175 @@
   <div class="bx-toast" id="boxToast"></div>
 </div>
 
+<!-- ═══════════════════════════════════ PAGE 8: SIGNATURE CHESS SET ═══════════════════════════════════ -->
+<div id="page-chess" class="tool-page">
+  <div class="cs-app">
+    <div class="cs-titlebar">
+      <span class="t">&#9608; CHESS.EXE — SIGNATURE SET</span>
+      <span class="dots"><i></i><i></i><i></i></span>
+    </div>
+    <div class="cs-shell">
+      <div class="cs-panel">
+        <div class="cs-hero">
+          <h1>SIGNATURE<br>CHESS SET</h1>
+          <p>// 3D-PRINTABLE STAUNTON-STYLE SET &middot; KING 4.4 IN</p>
+        </div>
+
+        <label class="cs-label">Piece</label>
+        <div class="cs-pieces" id="csPieces">
+          <button class="set active" data-piece="set"><span class="g">&#9812;&#9813;&#9815;&#9816;&#9814;&#9817;</span>FULL SET</button>
+          <button data-piece="king"><span class="g">&#9812;</span>KING</button>
+          <button data-piece="queen"><span class="g">&#9813;</span>QUEEN</button>
+          <button data-piece="bishop"><span class="g">&#9815;</span>BISHOP</button>
+          <button data-piece="knight"><span class="g">&#9816;</span>KNIGHT</button>
+          <button data-piece="rook"><span class="g">&#9814;</span>ROOK</button>
+          <button data-piece="pawn"><span class="g">&#9817;</span>PAWN</button>
+        </div>
+
+        <label class="cs-label">Finish (preview only)</label>
+        <div class="cs-seg" id="csFinish">
+          <button data-finish="boxwood" class="active">BOXWOOD</button>
+          <button data-finish="rosewood">ROSEWOOD</button>
+          <button data-finish="ebony">EBONY</button>
+        </div>
+
+        <div class="cs-readout" id="csReadout"></div>
+
+        <a class="cs-dlbtn" id="csDownload" href="chess/stl/signature-chess-set-stl.zip" download>&#11015; DOWNLOAD ALL STL (ZIP)</a>
+        <a class="cs-dlbtn alt" id="csDownloadZip" href="chess/stl/signature-chess-set-stl.zip" download style="display:none">&#11015; DOWNLOAD ALL STL (ZIP)</a>
+        <a class="cs-src" href="#" id="csToScaler">&#9878; RESIZE THIS SET IN CHESS SCALER &#9658;</a>
+        <a class="cs-src" href="https://github.com/mrcactusjones/mrcactusjones.github.io/tree/main/chess" target="_blank" rel="noopener">&#9881; GENERATOR SOURCE &amp; PRINT NOTES</a>
+      </div>
+
+      <div class="cs-stage">
+        <div class="cs-viewport" id="csViewport">
+          <img class="cs-fallback" id="csFallback" src="chess/img/lineup.png" alt="The six chess pieces: pawn, rook, king, queen, bishop and knight">
+          <div class="cs-status" id="csStatus">LOADING 3D PREVIEW&hellip;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs-info">
+      <div class="cs-card">
+        <h3>DIMENSIONS</h3>
+        <table>
+          <tr><th>PIECE</th><th>HEIGHT</th><th>BASE &Oslash;</th></tr>
+          <tr><td>King</td><td class="n">4.40 in &middot; 111.8 mm</td><td class="n">1.80 in &middot; 45.7 mm</td></tr>
+          <tr><td>Queen</td><td class="n">3.66 in &middot; 93.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
+          <tr><td>Bishop</td><td class="n">3.27 in &middot; 83.0 mm</td><td class="n">1.50 in &middot; 38.0 mm</td></tr>
+          <tr><td>Knight</td><td class="n">3.07 in &middot; 78.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
+          <tr><td>Rook</td><td class="n">2.76 in &middot; 70.0 mm</td><td class="n">1.54 in &middot; 39.0 mm</td></tr>
+          <tr><td>Pawn</td><td class="n">2.44 in &middot; 62.0 mm</td><td class="n">1.18 in &middot; 30.0 mm</td></tr>
+        </table>
+        <p style="margin-top:8px">Full set = 32 pieces: 2&times; king, 2&times; queen, 4&times; bishop, 4&times; knight, 4&times; rook, 16&times; pawn. A 1.8 in king base suits <b>2.25&ndash;2.375 in squares</b>.</p>
+      </div>
+      <div class="cs-card">
+        <h3>PRINT GUIDE</h3>
+        <ul>
+          <li><b>Scale 100%</b> &mdash; files are in millimetres, standing upright on Z=0. Print as exported.</li>
+          <li><b>FDM</b> (0.4 mm nozzle): 0.12&ndash;0.16 mm layers, 3 walls, 15&ndash;25% gyroid. Two contrasting filaments for the two armies.</li>
+          <li><b>Supports:</b> tree / organic. Needed under the collar discs, inside the bishop's slit and beneath the knight's mane. Trees peel cleanly off the turned surfaces.</li>
+          <li><b>Resin:</b> same support spots. Solid prints have the best hand feel; or hollow, fill with steel shot and seal.</li>
+          <li><b>Finish:</b> a felt disc on each base. Sand the seam under the king's ball if supports touched it.</li>
+        </ul>
+      </div>
+      <div class="cs-card">
+        <h3>THE SET</h3>
+        <p>Every piece shares one turned <b>family body</b>: a bull-nosed stepped foot, a squat belly bulb, stacked beads and a pair of shoulder collars. Only the crown changes &mdash; the king's ball and twisted flame finial, the queen's eight-petal coronet, the bishop's slit onion mitre, the rook's dished six-notch tower, the pawn's ball, and a sculpted knight with a wind-blown mane.</p>
+        <p>Generated parametrically in Python: lathe profiles, boolean cuts, and a signed-distance-field sculpt for the horse. Change one number in the script and the whole set rescales while keeping its proportions.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ PAGE 9: CHESS SCALER ═══════════════════════════════════ -->
+<div id="page-scaler" class="tool-page">
+  <div class="sc-app">
+    <div class="sc-title-bar">
+      <div class="title-bar-text"><span class="sc-title-icon">&#9822;</span>Chess Scaler &mdash; CHESSCAL.EXE</div>
+      <div class="sc-title-buttons"><div>_</div><div>&#9633;</div><div>&times;</div></div>
+    </div>
+    <div class="sc-toolbar">
+      <button class="sc-btn" id="scOpen" title="Open STL, OBJ, 3MF or ZIP files">&#128194; Open&hellip;</button>
+      <button class="sc-btn" id="scLoadSig" title="Load the six Signature Chess Set pieces">&#9822; Load Signature Set</button>
+      <button class="sc-btn" id="scClear">&#10006; Clear All</button>
+      <span class="sc-tb-sep"></span>
+      <button class="sc-btn default" id="scExportAll" title="Download every loaded piece, rescaled, in one ZIP">&#128190; Export All (.zip)</button>
+      <input type="file" id="scFile" multiple accept=".stl,.obj,.3mf,.zip" hidden>
+    </div>
+
+    <div class="sc-body">
+      <div class="sc-panel">
+        <fieldset class="sc-group">
+          <legend>Dimension standard</legend>
+          <select class="sc-select" id="scPreset" aria-label="Dimension standard"></select>
+          <div class="sc-note" id="scPresetNote"></div>
+        </fieldset>
+
+        <fieldset class="sc-group">
+          <legend>Scale</legend>
+          <div class="sc-pct-row">
+            <input type="range" id="scPctRange" min="25" max="250" step="1" value="100" aria-label="Scale percent">
+            <span class="sc-spin"><input class="sc-field" type="number" id="scPct" min="1" max="1000" step="0.5" value="100" aria-label="Scale percent value">%</span>
+          </div>
+          <div class="sc-pct-ticks"><span>25%</span><span>100%</span><span>250%</span></div>
+          <div class="sc-pct-quick" id="scPctQuick">
+            <button class="sc-btn sc-btn-sm" data-pct="90">90%</button>
+            <button class="sc-btn sc-btn-sm" data-pct="95">95%</button>
+            <button class="sc-btn sc-btn-sm" data-pct="100">100%</button>
+            <button class="sc-btn sc-btn-sm" data-pct="105">105%</button>
+            <button class="sc-btn sc-btn-sm" data-pct="110">110%</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="sc-group">
+          <legend>Fit mode</legend>
+          <label class="sc-radio"><input type="radio" name="scMode" value="height" checked><span>Each piece to its target <b>height</b></span></label>
+          <label class="sc-radio"><input type="radio" name="scMode" value="base"><span>Each piece to its target <b>base &Oslash;</b></span></label>
+          <label class="sc-radio"><input type="radio" name="scMode" value="king"><span>Whole set from the <b>King</b> (keeps your set's own proportions)</span></label>
+          <label class="sc-radio"><input type="radio" name="scMode" value="stretch"><span>Stretch to height <b>and</b> base (non-uniform)</span></label>
+        </fieldset>
+
+        <fieldset class="sc-group">
+          <legend>Units</legend>
+          <label class="sc-radio inline"><input type="radio" name="scUnits" value="in" checked><span>Inches</span></label>
+          <label class="sc-radio inline"><input type="radio" name="scUnits" value="mm"><span>Millimetres</span></label>
+        </fieldset>
+
+        <fieldset class="sc-group">
+          <legend>Target dimensions (100%)</legend>
+          <div class="sc-listview"><table class="sc-table" id="scTargets"></table></div>
+          <label class="sc-check" id="scLinkWrap"><input type="checkbox" id="scLink" checked><span>Link to King: editing the King row rescales the other pieces</span></label>
+          <div class="sc-note" id="scSquare"></div>
+        </fieldset>
+      </div>
+
+      <div class="sc-main">
+        <div class="sc-slots" id="scSlots"></div>
+        <div class="sc-preview">
+          <div class="sc-slot-title"><span>Board preview &mdash; true relative scale</span><button class="sc-btn sc-btn-sm" id="scResetView">Reset view</button></div>
+          <div class="sc-well sc-lineup" id="scLineup"><div class="sc-lineup-msg" id="scLineupMsg">Drop pieces into the slots to preview them on a board.</div></div>
+          <div class="sc-lineup-cap" id="scLineupCap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc-statusbar">
+      <span class="sc-cell" id="scStPieces">0 of 6 pieces</span>
+      <span class="sc-cell hide-sm" id="scStTarget"></span>
+      <span class="sc-cell" id="scStScale">Scale 100%</span>
+      <span class="sc-cell grow" id="scStMsg">Drag &amp; drop STL, OBJ, 3MF or ZIP files onto the slots</span>
+    </div>
+  </div>
+  <div class="sc-dropveil" id="scVeil">
+    <div class="sc-dialog">
+      <div class="sc-slot-title"><span>Load pieces</span></div>
+      <div class="sc-dialog-body"><span class="ico">&#128194;</span><span>Drop on a <b>slot</b> to load that piece.<br>Drop anywhere else to sort files by name (king, queen, bishop&hellip;) or, failing that, by height.</span></div>
+    </div>
+  </div>
+  <div class="sc-toast" id="scToast"></div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -1411,9 +1834,10 @@ tabBtns.forEach(btn => {
     if (target === activePage) return;
     activePage = target;
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.page === target));
+    btn.scrollIntoView({ block:'nearest', inline:'nearest' });
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f' };
+    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08', scaler:'#008080' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -3567,6 +3991,1141 @@ try {
   document.getElementById('boxReset').addEventListener('click',()=>{ dim={...DEFAULT_MM}; refresh(); showToast('Reset to 4.5 × 3 × 1 in'); });
 
   refresh();
+})();
+// ═══════════════════════════════════════════════════════════════
+// PAGE 8: SIGNATURE CHESS SET — 3D viewer + downloads
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const PIECES = {
+    king:   { file:'king.stl',   h:111.76, base:45.72 },
+    queen:  { file:'queen.stl',  h:93,     base:41 },
+    bishop: { file:'bishop.stl', h:83,     base:38 },
+    knight: { file:'knight.stl', h:78,     base:41 },
+    rook:   { file:'rook.stl',   h:70,     base:39 },
+    pawn:   { file:'pawn.stl',   h:62,     base:30 },
+  };
+  const SET_ORDER = ['pawn','rook','king','queen','bishop','knight'];
+  const FINISH = {
+    boxwood:  { color:0xd8b06a, roughness:0.38, clearcoat:0.55 },
+    rosewood: { color:0x7e2f22, roughness:0.32, clearcoat:0.7 },
+    ebony:    { color:0x1e1b19, roughness:0.30, clearcoat:0.8 },
+  };
+  const STL_DIR = 'chess/stl/';
+  const page = document.getElementById('page-chess');
+  if (!page) return;
+  const viewport = document.getElementById('csViewport');
+  const status = document.getElementById('csStatus');
+  const readout = document.getElementById('csReadout');
+  const dl = document.getElementById('csDownload');
+  const dlZip = document.getElementById('csDownloadZip');
+  const pieceBtns = document.querySelectorAll('#csPieces button');
+  const finishBtns = document.querySelectorAll('#csFinish button');
+  const inch = mm => (mm / 25.4).toFixed(2);
+  const sizes = {};
+  let piece = 'set', finish = 'boxwood';
+
+  function setStatus(msg, cls){ status.textContent = msg; status.className = 'cs-status' + (cls ? ' ' + cls : ''); }
+
+  function renderReadout(){
+    let rows;
+    if (piece === 'set') {
+      rows = `<div class="hd">FULL SET · 6 UNIQUE PIECES</div>
+        <div class="row"><span>King height</span><b>4.40 in · 111.8 mm</b></div>
+        <div class="row"><span>King base Ø</span><b>1.80 in · 45.7 mm</b></div>
+        <div class="row"><span>Pawn height</span><b>2.44 in · 62.0 mm</b></div>
+        <div class="row"><span>Download</span><b>${sizes.zip ? sizes.zip : '6 × STL, zipped'}</b></div>`;
+    } else {
+      const p = PIECES[piece];
+      rows = `<div class="hd">${piece.toUpperCase()} · ${p.file}</div>
+        <div class="row"><span>Height</span><b>${inch(p.h)} in · ${p.h.toFixed(1)} mm</b></div>
+        <div class="row"><span>Base Ø</span><b>${inch(p.base)} in · ${p.base.toFixed(1)} mm</b></div>
+        <div class="row"><span>Per set</span><b>${{king:2,queen:2,bishop:4,knight:4,rook:4,pawn:16}[piece]} × (both colours)</b></div>
+        <div class="row"><span>File</span><b>${sizes[piece] ? sizes[piece] : 'binary STL, mm'}</b></div>`;
+    }
+    readout.innerHTML = rows;
+    if (piece === 'set') {
+      dl.href = STL_DIR + 'signature-chess-set-stl.zip'; dl.textContent = '⬇ DOWNLOAD ALL STL (ZIP)'; dl.removeAttribute('download');
+      dl.setAttribute('download', 'signature-chess-set-stl.zip');
+      dlZip.style.display = 'none';
+    } else {
+      dl.href = STL_DIR + PIECES[piece].file; dl.textContent = '⬇ DOWNLOAD ' + PIECES[piece].file.toUpperCase();
+      dl.setAttribute('download', PIECES[piece].file);
+      dlZip.style.display = '';
+    }
+  }
+
+  async function fetchSizes(){
+    const fmt = n => n > 1e6 ? (n/1e6).toFixed(1) + ' MB' : Math.round(n/1e3) + ' KB';
+    const targets = Object.assign({ zip:'signature-chess-set-stl.zip' }, Object.fromEntries(Object.entries(PIECES).map(([k,v]) => [k, v.file])));
+    await Promise.all(Object.entries(targets).map(async ([k,f]) => {
+      try { const r = await fetch(STL_DIR + f, { method:'HEAD' }); const n = +r.headers.get('content-length'); if (n) sizes[k] = fmt(n); } catch(e){}
+    }));
+    renderReadout();
+  }
+
+  pieceBtns.forEach(b => b.addEventListener('click', () => {
+    piece = b.dataset.piece;
+    pieceBtns.forEach(x => x.classList.toggle('active', x === b));
+    renderReadout();
+    if (viewer) viewer.show(piece);
+  }));
+  finishBtns.forEach(b => b.addEventListener('click', () => {
+    finish = b.dataset.finish;
+    finishBtns.forEach(x => x.classList.toggle('active', x === b));
+    if (viewer) viewer.setFinish(finish);
+  }));
+  renderReadout();
+  fetchSizes();
+  document.getElementById('csToScaler').addEventListener('click', e => {
+    e.preventDefault();
+    const tab = document.querySelector('.tab-btn[data-page="scaler"]');
+    if (tab) { tab.click(); window.dispatchEvent(new CustomEvent('chess-scaler:load-signature')); window.scrollTo(0, 0); }
+  });
+
+  // ---- three.js viewer (lazy: starts the first time the tab is shown) ----
+  let viewer = null, starting = false;
+  async function start(){
+    if (viewer || starting) return;
+    starting = true;
+    try {
+      const THREE = await import('three');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      const { STLLoader } = await import('three/addons/loaders/STLLoader.js');
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+      const { mergeVertices } = await import('three/addons/utils/BufferGeometryUtils.js');
+      viewer = buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices);
+      viewer.setFinish(finish);
+      await viewer.show(piece);
+    } catch (e) {
+      console.error('chess viewer', e);
+      setStatus('3D PREVIEW UNAVAILABLE — DOWNLOADS STILL WORK', 'err');
+      starting = false;
+    }
+  }
+  const mo = new MutationObserver(() => { if (page.classList.contains('active')) start(); });
+  mo.observe(page, { attributes:true, attributeFilter:['class'] });
+  if (page.classList.contains('active')) start();
+
+  function buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices){
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    viewport.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(28, 1, 1, 3000);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
+    controls.maxPolarAngle = Math.PI * 0.52;
+    let idleTimer = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
+    controls.addEventListener('end', () => { idleTimer = setTimeout(() => controls.autoRotate = true, 5000); });
+
+    const key = new THREE.DirectionalLight(0xfff1dc, 2.4);
+    key.position.set(-140, 220, 180); key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
+    Object.assign(key.shadow.camera, { left:-220, right:220, top:220, bottom:-220, near:10, far:900 });
+    scene.add(key);
+    scene.add(new THREE.HemisphereLight(0xfff4e6, 0x3a2e1c, 0.55));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.ShadowMaterial({ opacity:0.45 }));
+    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+    const material = new THREE.MeshPhysicalMaterial({ color:0xd8b06a, roughness:0.38, metalness:0, clearcoat:0.55, clearcoatRoughness:0.3 });
+    const group = new THREE.Group(); scene.add(group);
+    const loader = new STLLoader();
+    const cache = new Map();
+    async function geom(name){
+      if (!cache.has(name)) {
+        cache.set(name, loader.loadAsync(STL_DIR + PIECES[name].file).then(g => {
+          g = mergeVertices(g, 1e-4); g.computeVertexNormals(); g.computeBoundingBox(); return g;
+        }));
+      }
+      return cache.get(name);
+    }
+
+    function resize(){
+      const w = viewport.clientWidth || 800, h = viewport.clientHeight || 540;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resize).observe(viewport);
+    resize();
+
+    function frame(){
+      const box = new THREE.Box3().setFromObject(group);
+      if (box.isEmpty()) return;
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const fovV = camera.fov * Math.PI / 180;
+      const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+      const dist = Math.max(size.y / (2 * Math.tan(fovV / 2)), size.x / (2 * Math.tan(fovH / 2))) * 1.25 + size.z * 0.6;
+      controls.target.copy(center);
+      camera.position.set(center.x + dist * 0.25, center.y + dist * 0.28, center.z + dist * 0.93);
+      camera.near = dist / 50; camera.far = dist * 20; camera.updateProjectionMatrix();
+      controls.update();
+    }
+
+    let token = 0;
+    async function show(which){
+      const my = ++token;
+      const names = which === 'set' ? SET_ORDER : [which];
+      setStatus('LOADING ' + (which === 'set' ? 'FULL SET' : PIECES[which].file.toUpperCase()) + '…', 'loading');
+      let geos;
+      try { geos = await Promise.all(names.map(geom)); }
+      catch (e) { console.error(e); setStatus('COULD NOT LOAD STL — USE THE DOWNLOAD BUTTON', 'err'); return; }
+      if (my !== token) return;
+      group.clear();
+      const gap = 12; let x = 0; const widths = geos.map(g => g.boundingBox.max.x - g.boundingBox.min.x);
+      const total = widths.reduce((a, b) => a + b, 0) + gap * (geos.length - 1);
+      geos.forEach((g, i) => {
+        const m = new THREE.Mesh(g, material);
+        m.castShadow = true; m.receiveShadow = true;
+        m.rotation.x = -Math.PI / 2;                               // STL is Z-up
+        m.position.x = x - g.boundingBox.min.x - total / 2;
+        group.add(m); x += widths[i] + gap;
+      });
+      frame();
+      viewport.classList.add('live');
+      setStatus('DRAG TO ORBIT · SCROLL TO ZOOM · ' + (which === 'set' ? 'PAWN · ROOK · KING · QUEEN · BISHOP · KNIGHT' : which.toUpperCase()));
+    }
+    function setFinish(f){ const s = FINISH[f]; material.color.setHex(s.color); material.roughness = s.roughness; material.clearcoat = s.clearcoat; }
+
+    (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+    return { show, setFinish };
+  }
+})();
+// ═══════════════════════════════════════════════════════════════
+// PAGE 9: CHESS SCALER — drop any six pieces, rescale to a standard
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  const page = document.getElementById('page-scaler');
+  if (!page) return;
+  const $ = id => document.getElementById(id);
+  const IN = 25.4;
+  const SLOTS = ['king','queen','bishop','knight','rook','pawn'];
+  const NAME  = { king:'King', queen:'Queen', bishop:'Bishop', knight:'Knight', rook:'Rook', pawn:'Pawn' };
+  const GLYPH = { king:'♔', queen:'♕', bishop:'♗', knight:'♘', rook:'♖', pawn:'♙' };
+
+  // ---------------------------------------------------------------- standards
+  // All values in mm, ordered King, Queen, Bishop, Knight, Rook, Pawn.
+  const SIG_H = [111.76, 93, 83, 78, 70, 62];
+  const SIG_B = [45.72, 41, 38, 41, 39, 30];
+  const FIDE_H = [95, 85, 70, 60, 55, 50];                    // FIDE Handbook recommended heights
+  const BASE_RATIO = SIG_B.map(b => b / SIG_B[0]);             // Staunton base proportions
+  const r2 = v => Math.round(v * 100) / 100;
+  function standard(kingIn, baseIn){
+    const H = kingIn * IN, B = baseIn * IN;
+    return { h: FIDE_H.map(h => r2(H * h / 95)), b: BASE_RATIO.map(r => r2(B * r)) };
+  }
+  const STD_NOTE = 'Other heights follow the FIDE piece ratios (K 95 : Q 85 : B 70 : N 60 : R 55 : P 50). King base is 40% of King height.';
+  const PRESETS = [
+    { id:'travel',    label:'Travel — 2.50" King',                  short:'travel-2.50in',    ...standard(2.5, 1.0),   note:'Pocket and travel sets. ' + STD_NOTE },
+    { id:'compact',   label:'Compact — 3.00" King',                 short:'compact-3.00in',   ...standard(3.0, 1.2),   note:'Small home and school sets. ' + STD_NOTE },
+    { id:'uscfmin',   label:'USCF minimum — 3.375" King',           short:'uscf-min-3.375in', ...standard(3.375, 1.35), note:'Smallest King the US Chess rulebook allows (3⅜"). ' + STD_NOTE },
+    { id:'club',      label:'Club — 3.50" King',                    short:'club-3.50in',      ...standard(3.5, 1.4),   note:'Club and casual play. ' + STD_NOTE },
+    { id:'fide',      label:'FIDE — 3.75" (95 mm) King', short:'fide-95mm',        h:FIDE_H.slice(), b:BASE_RATIO.map(r => r2(38 * r)), note:'FIDE recommended heights: K 95, Q 85, B 70, N 60, R 55, P 50 mm. King base 38 mm (40% of height). Board squares 50–60 mm.' },
+    { id:'deluxe',    label:'Deluxe — 4.00" King',                  short:'deluxe-4.00in',    ...standard(4.0, 1.6),   note:'Larger club and display sets. ' + STD_NOTE },
+    { id:'signature', label:'Signature — 4.40" King (default)',     short:'signature-4.40in', h:SIG_H.slice(), b:SIG_B.slice(), note:'Your Signature Chess Set: King 4.40" tall on a 1.80" base, with its own piece proportions.' },
+    { id:'uscfmax',   label:'USCF maximum — 4.50" King',            short:'uscf-max-4.50in',  ...standard(4.5, 1.8),   note:'Largest King the US Chess rulebook allows (4½"). ' + STD_NOTE },
+    { id:'luxury',    label:'Luxury — 5.00" King',                  short:'luxury-5.00in',    ...standard(5.0, 2.0),   note:'Oversized luxury and display sets. ' + STD_NOTE },
+    { id:'custom',    label:'Custom…',                               short:'custom',           note:'Type any height and base for each piece below.' },
+  ];
+  const presetById = id => PRESETS.find(p => p.id === id) || PRESETS.find(p => p.id === 'signature');
+
+  // ---------------------------------------------------------------- settings (per-viewer)
+  const KEY = 'chessScaler.v1';
+  const DEFAULTS = { preset:'signature', units:'in', mode:'height', pct:100, link:true, custom:{ h:SIG_H.slice(), b:SIG_B.slice() } };
+  const okArr = a => Array.isArray(a) && a.length === 6 && a.every(v => typeof v === 'number' && v > 0 && isFinite(v));
+  function loadSettings(){
+    const s = JSON.parse(JSON.stringify(DEFAULTS));
+    try {
+      const j = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (j && typeof j === 'object') {
+        if (PRESETS.some(p => p.id === j.preset)) s.preset = j.preset;
+        if (j.units === 'in' || j.units === 'mm') s.units = j.units;
+        if (['height','base','king','stretch'].includes(j.mode)) s.mode = j.mode;
+        if (typeof j.pct === 'number' && j.pct > 0 && j.pct <= 1000) s.pct = j.pct;
+        if (typeof j.link === 'boolean') s.link = j.link;
+        if (j.custom && okArr(j.custom.h) && okArr(j.custom.b)) s.custom = { h:j.custom.h, b:j.custom.b };
+      }
+    } catch (e) {}
+    return s;
+  }
+  const S = loadSettings();
+  function saveSettings(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  const targets = () => S.preset === 'custom' ? S.custom : presetById(S.preset);
+
+  // ---------------------------------------------------------------- formatting
+  const fmtIn = mm => (mm / IN).toFixed(2) + ' in';
+  const fmtMm = mm => mm.toFixed(1) + ' mm';
+  const fmtLen = mm => (isFinite(mm) ? (S.units === 'in' ? fmtIn(mm) : fmtMm(mm)) : '—');
+  const both = mm => fmtIn(mm) + ' / ' + fmtMm(mm);
+  const fmtPct = v => String(+(+v).toFixed(1));
+  const toUnit = mm => S.units === 'in' ? +(mm / IN).toFixed(3) : +mm.toFixed(2);
+  const fromUnit = v => S.units === 'in' ? v * IN : v;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+  let toastTimer = null;
+  function toast(msg, ms){
+    const t = $('scToast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms || 3200);
+  }
+  const status = msg => { $('scStMsg').textContent = msg; };
+
+  // ================================================================ FILE READING
+  // --- ZIP (read) ---------------------------------------------------
+  async function inflateRaw(u8){
+    if (typeof DecompressionStream !== 'function') throw new Error('this browser cannot unzip files');
+    const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  async function readZip(buf, want){
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
+    let e = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) { if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; } }
+    if (e < 0) throw new Error('not a valid ZIP');
+    const count = dv.getUint16(e + 10, true);
+    let p = dv.getUint32(e + 16, true);
+    const td = new TextDecoder(), out = [];
+    for (let k = 0; k < count; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+      const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+      const loff = dv.getUint32(p + 42, true);
+      const name = td.decode(u8.subarray(p + 46, p + 46 + nlen));
+      p += 46 + nlen + xlen + clen;
+      if (name.endsWith('/') || (want && !want(name))) continue;
+      const start = loff + 30 + dv.getUint16(loff + 26, true) + dv.getUint16(loff + 28, true);
+      const comp = u8.subarray(start, start + csize);
+      if (method === 0) out.push({ name, data: comp.slice() });
+      else if (method === 8) out.push({ name, data: await inflateRaw(comp) });
+    }
+    return out;
+  }
+
+  // --- STL ------------------------------------------------------------
+  function parseSTL(buf){
+    const dv = new DataView(buf), len = buf.byteLength;
+    const n = len >= 84 ? dv.getUint32(80, true) : 0;
+    const exactBinary = len >= 84 && 84 + n * 50 === len;
+    if (!exactBinary) {
+      const td = new TextDecoder();
+      const head = td.decode(new Uint8Array(buf, 0, Math.min(len, 2048)));
+      if (/^\s*solid/i.test(head) && /facet|vertex|endsolid/i.test(head)) {
+        const text = td.decode(buf), re = /vertex\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)/g, arr = [];
+        let m; while ((m = re.exec(text))) arr.push(+m[1], +m[2], +m[3]);
+        const usable = arr.length - (arr.length % 9);
+        if (usable >= 9) return Float32Array.from(arr.slice(0, usable));
+      }
+      if (!(len >= 84 && n > 0 && 84 + n * 50 <= len)) throw new Error('not a valid STL');
+    }
+    const out = new Float32Array(n * 9);
+    for (let t = 0, o = 84 + 12; t < n; t++, o += 50) {
+      for (let k = 0; k < 9; k++) out[t * 9 + k] = dv.getFloat32(o + k * 4, true);
+    }
+    return out;
+  }
+
+  // --- OBJ ------------------------------------------------------------
+  function parseOBJ(text){
+    const v = [], out = [];
+    const lines = text.split(/\r?\n/);
+    for (let li = 0; li < lines.length; li++) {
+      const line = lines[li];
+      if (line.charCodeAt(0) === 118 && line.charCodeAt(1) === 32) {            // "v "
+        const p = line.trim().split(/\s+/); v.push(+p[1], +p[2], +p[3]);
+      } else if (line.charCodeAt(0) === 102 && line.charCodeAt(1) === 32) {     // "f "
+        const p = line.trim().split(/\s+/).slice(1);
+        const nv = v.length / 3;
+        const idx = p.map(tok => { const i = parseInt(tok, 10); return i < 0 ? nv + i : i - 1; });
+        for (let k = 1; k + 1 < idx.length; k++) {
+          for (const i of [idx[0], idx[k], idx[k + 1]]) out.push(v[i * 3], v[i * 3 + 1], v[i * 3 + 2]);
+        }
+      }
+    }
+    if (out.length < 9 || out.some(x => x === undefined)) throw new Error('OBJ has no usable faces');
+    return Float32Array.from(out);
+  }
+
+  // --- 3MF ------------------------------------------------------------
+  const IDENT = [1,0,0, 0,1,0, 0,0,1, 0,0,0];
+  function parseT(s){
+    if (!s) return IDENT;
+    const n = s.trim().split(/\s+/).map(Number);
+    return n.length === 12 && n.every(isFinite) ? n : IDENT;
+  }
+  function mulT(A, B){                        // row-vector convention: p * A * B
+    const r = new Array(12);
+    for (let i = 0; i < 4; i++) {
+      const a0 = A[i * 3], a1 = A[i * 3 + 1], a2 = A[i * 3 + 2], a3 = i === 3 ? 1 : 0;
+      for (let j = 0; j < 3; j++) r[i * 3 + j] = a0 * B[j] + a1 * B[3 + j] + a2 * B[6 + j] + a3 * B[9 + j];
+    }
+    return r;
+  }
+  const detT = T => T[0] * (T[4] * T[8] - T[5] * T[7]) - T[1] * (T[3] * T[8] - T[5] * T[6]) + T[2] * (T[3] * T[7] - T[4] * T[6]);
+  function attrLocal(el, name){ for (const a of el.attributes) if (a.localName === name) return a.value; return null; }
+  const normPath = p => '/' + String(p).replace(/^\/+/, '').toLowerCase();
+
+  async function parse3MF(buf){
+    const entries = await readZip(buf, n => /\.(model|rels)$/i.test(n));
+    const files = new Map(entries.map(e => [normPath(e.name), e.data]));
+    const td = new TextDecoder();
+    let root = null;
+    const rels = files.get('/_rels/.rels');
+    if (rels) {
+      for (const m of td.decode(rels).matchAll(/<Relationship\b[^>]*>/gi)) {
+        if (/3dmodel/i.test(m[0])) { const t = /Target="([^"]+)"/i.exec(m[0]); if (t) { root = normPath(t[1]); break; } }
+      }
+    }
+    if (!root || !files.has(root)) root = files.has('/3d/3dmodel.model') ? '/3d/3dmodel.model' : [...files.keys()].find(k => k.endsWith('.model'));
+    if (!root) throw new Error('no 3D model inside the 3MF');
+    const UNIT = { micron:0.001, millimeter:1, centimeter:10, inch:25.4, foot:304.8, meter:1000 };
+    const docs = new Map();
+    function doc(path){
+      path = normPath(path || root);
+      if (docs.has(path)) return docs.get(path);
+      const data = files.get(path);
+      if (!data) { docs.set(path, null); return null; }
+      const xml = new DOMParser().parseFromString(td.decode(data), 'application/xml');
+      if (xml.getElementsByTagName('parsererror').length) throw new Error('damaged 3MF (' + path + ')');
+      const unit = UNIT[xml.documentElement.getAttribute('unit') || 'millimeter'] || 1;
+      const objects = new Map();
+      for (const o of xml.getElementsByTagNameNS('*', 'object')) {
+        const entry = { mesh:null, comps:[] };
+        const meshEl = o.getElementsByTagNameNS('*', 'mesh')[0];
+        if (meshEl) {
+          const vs = meshEl.getElementsByTagNameNS('*', 'vertex'), ts = meshEl.getElementsByTagNameNS('*', 'triangle');
+          const v = new Float64Array(vs.length * 3), t = new Uint32Array(ts.length * 3);
+          for (let i = 0; i < vs.length; i++) { const e = vs[i]; v[i * 3] = +e.getAttribute('x'); v[i * 3 + 1] = +e.getAttribute('y'); v[i * 3 + 2] = +e.getAttribute('z'); }
+          for (let i = 0; i < ts.length; i++) { const e = ts[i]; t[i * 3] = +e.getAttribute('v1'); t[i * 3 + 1] = +e.getAttribute('v2'); t[i * 3 + 2] = +e.getAttribute('v3'); }
+          entry.mesh = { v, t };
+        }
+        for (const c of o.getElementsByTagNameNS('*', 'component')) entry.comps.push({ id:c.getAttribute('objectid'), path:attrLocal(c, 'path'), T:parseT(c.getAttribute('transform')) });
+        objects.set(o.getAttribute('id'), entry);
+      }
+      const items = [...xml.getElementsByTagNameNS('*', 'item')].map(it => ({ id:it.getAttribute('objectid'), path:attrLocal(it, 'path'), T:parseT(it.getAttribute('transform')) }));
+      const d = { objects, items, unit };
+      docs.set(path, d);
+      return d;
+    }
+    const chunks = []; let total = 0;
+    function emit(mesh, T, unit){
+      const { v, t } = mesh, arr = new Float32Array(t.length * 3), flip = detT(T) < 0;
+      for (let i = 0; i < t.length; i += 3) {
+        for (let k = 0; k < 3; k++) {
+          const vi = t[i + (flip && k ? 3 - k : k)] * 3, x = v[vi], y = v[vi + 1], z = v[vi + 2], o = (i + k) * 3;
+          arr[o]     = (x * T[0] + y * T[3] + z * T[6] + T[9])  * unit;
+          arr[o + 1] = (x * T[1] + y * T[4] + z * T[7] + T[10]) * unit;
+          arr[o + 2] = (x * T[2] + y * T[5] + z * T[8] + T[11]) * unit;
+        }
+      }
+      chunks.push(arr); total += arr.length;
+    }
+    function walk(path, id, T, depth){
+      if (depth > 16) return;
+      const d = doc(path); if (!d) return;
+      const o = d.objects.get(id); if (!o) return;
+      if (o.mesh) emit(o.mesh, T, d.unit);
+      for (const c of o.comps) walk(c.path || path, c.id, mulT(c.T, T), depth + 1);
+    }
+    const rd = doc(root);
+    if (!rd) throw new Error('no 3D model inside the 3MF');
+    for (const it of rd.items) walk(it.path || root, it.id, it.T, 0);
+    if (!total) for (const o of rd.objects.values()) if (o.mesh) emit(o.mesh, IDENT, rd.unit);
+    if (!total) throw new Error('3MF contains no triangles');
+    const raw = new Float32Array(total); let off = 0;
+    for (const c of chunks) { raw.set(c, off); off += c.length; }
+    return raw;
+  }
+
+  // --- dispatcher -------------------------------------------------------
+  const extOf = name => (/\.([a-z0-9]+)$/i.exec(name) || [,''])[1].toLowerCase();
+  const baseName = name => name.replace(/^.*[\\/]/, '');
+  async function readBuffer(name, buf, depth){
+    const ext = extOf(name);
+    if (ext === 'stl') return [{ name: baseName(name), raw: parseSTL(buf) }];
+    if (ext === 'obj') return [{ name: baseName(name), raw: parseOBJ(new TextDecoder().decode(buf)) }];
+    if (ext === '3mf') return [{ name: baseName(name), raw: await parse3MF(buf) }];
+    if (ext === 'zip' && !depth) {
+      const entries = await readZip(buf, n => /\.(stl|obj|3mf)$/i.test(n) && !/(^|\/)(__MACOSX|\.)/.test(n));
+      const out = [];
+      for (const e of entries) {
+        try { out.push(...await readBuffer(e.name, e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength), 1)); }
+        catch (err) { toast('Skipped ' + baseName(e.name) + ': ' + err.message); }
+      }
+      if (!out.length) throw new Error('no STL, OBJ or 3MF inside the ZIP');
+      return out;
+    }
+    throw new Error('unsupported file type (use STL, OBJ, 3MF or ZIP)');
+  }
+
+  // ================================================================ GEOMETRY
+  const UPS = ['+Z','-Z','+Y','-Y','+X','-X'];
+  function autoUp(raw){
+    const n = raw.length, mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < n; i += 3) for (let k = 0; k < 3; k++) { const v = raw[i + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; }
+    const ext = [0, 1, 2].map(k => mx[k] - mn[k]), big = Math.max(...ext);
+    const axis = ext[2] >= 0.8 * big ? 2 : ext.indexOf(big);   // printable files are usually already Z-up
+    const o1 = (axis + 1) % 3, o2 = (axis + 2) % 3, band = ext[axis] * 0.06;
+    const lo = [Infinity, -Infinity, Infinity, -Infinity], hi = [Infinity, -Infinity, Infinity, -Infinity];
+    for (let i = 0; i < n; i += 3) {
+      const v = raw[i + axis], box = v <= mn[axis] + band ? lo : (v >= mx[axis] - band ? hi : null);
+      if (!box) continue;
+      const a = raw[i + o1], b = raw[i + o2];
+      if (a < box[0]) box[0] = a; if (a > box[1]) box[1] = a; if (b < box[2]) box[2] = b; if (b > box[3]) box[3] = b;
+    }
+    const spread = b => Math.max(b[1] - b[0], b[3] - b[2]);
+    return (spread(hi) > spread(lo) * 1.15 ? '-' : '+') + 'XYZ'[axis];   // the wider end is the base
+  }
+
+  function orient(raw, up){
+    const n = raw.length, pos = new Float32Array(n);
+    for (let i = 0; i < n; i += 3) {
+      const x = raw[i], y = raw[i + 1], z = raw[i + 2];
+      switch (up) {                                        // proper rotations only, so winding stays valid
+        case '-Z': pos[i] = x;  pos[i + 1] = -y; pos[i + 2] = -z; break;
+        case '+Y': pos[i] = x;  pos[i + 1] = -z; pos[i + 2] = y;  break;
+        case '-Y': pos[i] = x;  pos[i + 1] = z;  pos[i + 2] = -y; break;
+        case '+X': pos[i] = -z; pos[i + 1] = y;  pos[i + 2] = x;  break;
+        case '-X': pos[i] = z;  pos[i + 1] = y;  pos[i + 2] = -x; break;
+        default:   pos[i] = x;  pos[i + 1] = y;  pos[i + 2] = z;
+      }
+    }
+    let z0 = Infinity, z1 = -Infinity;
+    for (let i = 2; i < n; i += 3) { const z = pos[i]; if (z < z0) z0 = z; if (z > z1) z1 = z; }
+    const H = z1 - z0, band = z0 + Math.max(H * 0.05, 1e-6);
+    let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity, ax0 = Infinity, ax1 = -Infinity, ay0 = Infinity, ay1 = -Infinity;
+    for (let i = 0; i < n; i += 3) {
+      const x = pos[i], y = pos[i + 1];
+      if (x < ax0) ax0 = x; if (x > ax1) ax1 = x; if (y < ay0) ay0 = y; if (y > ay1) ay1 = y;
+      if (pos[i + 2] <= band) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    }
+    const cx = (bx0 + bx1) / 2, cy = (by0 + by1) / 2;
+    for (let i = 0; i < n; i += 3) { pos[i] -= cx; pos[i + 1] -= cy; pos[i + 2] -= z0; }
+    const D = Math.max(bx1 - bx0, by1 - by0);
+    if (!(H > 0) || !(D > 0) || !isFinite(H) || !isFinite(D)) throw new Error('mesh has no size (empty or flat)');
+    return { pos, H0: H, D0: D, W0: Math.max(ax1 - ax0, ay1 - ay0) };
+  }
+
+  let pieceSeq = 0;
+  function makePiece(item){
+    if (!item.raw || item.raw.length < 9) throw new Error('no triangles found');
+    const pc = { id: ++pieceSeq, name: item.name, raw: item.raw, up: 'auto', tris: item.raw.length / 9, geo: null };
+    orientPiece(pc);
+    return pc;
+  }
+  function orientPiece(pc){
+    pc.upUsed = pc.up === 'auto' ? autoUp(pc.raw) : pc.up;
+    Object.assign(pc, orient(pc.raw, pc.upUsed));
+    if (pc.geo) { pc.geo.dispose(); pc.geo = null; }
+    pc.rev = (pc.rev || 0) + 1;
+  }
+
+  // ================================================================ SCALING
+  const P = {};                                  // slot -> piece
+  function factors(slot){
+    const pc = P[slot]; if (!pc) return null;
+    const i = SLOTS.indexOf(slot), t = targets(), k = S.pct / 100;
+    let sxy, sz, note = '';
+    if (S.mode === 'base') { sxy = sz = t.b[i] / pc.D0; }
+    else if (S.mode === 'stretch') { sxy = t.b[i] / pc.D0; sz = t.h[i] / pc.H0; }
+    else if (S.mode === 'king') {
+      if (P.king) sxy = sz = t.h[0] / P.king.H0;
+      else { sxy = sz = t.h[i] / pc.H0; note = 'No King loaded: fitted to its own height'; }
+    }
+    else sxy = sz = t.h[i] / pc.H0;
+    if (!(sxy > 0 && sz > 0 && isFinite(sxy) && isFinite(sz))) return null;
+    return { sxy: sxy * k, sz: sz * k, note };
+  }
+
+  // ================================================================ EXPORT
+  function writeSTL(pos, sxy, sz, header){
+    const n = pos.length / 9, buf = new ArrayBuffer(84 + n * 50), dv = new DataView(buf), u8 = new Uint8Array(buf);
+    u8.set(new TextEncoder().encode(header).subarray(0, 80), 0);
+    dv.setUint32(80, n, true);
+    for (let t = 0, o = 84; t < n; t++) {
+      const i = t * 9;
+      const ax = pos[i] * sxy,     ay = pos[i + 1] * sxy, az = pos[i + 2] * sz;
+      const bx = pos[i + 3] * sxy, by = pos[i + 4] * sxy, bz = pos[i + 5] * sz;
+      const cx = pos[i + 6] * sxy, cy = pos[i + 7] * sxy, cz = pos[i + 8] * sz;
+      const ux = bx - ax, uy = by - ay, uz = bz - az, vx = cx - ax, vy = cy - ay, vz = cz - az;
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+      for (const f of [nx, ny, nz, ax, ay, az, bx, by, bz, cx, cy, cz]) { dv.setFloat32(o, f, true); o += 4; }
+      dv.setUint16(o, 0, true); o += 2;
+    }
+    return u8;
+  }
+
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  async function deflateRaw(u8){
+    const stream = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  async function makeZip(entries){
+    const enc = new TextEncoder(), parts = [], central = [];
+    const d = new Date();
+    const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    let off = 0;
+    for (const e of entries) {
+      const name = enc.encode(e.name), crc = crc32(e.data);
+      let data = e.data, method = 0;
+      if (typeof CompressionStream === 'function') {
+        try { const c = await deflateRaw(e.data); if (c.length < data.length) { data = c; method = 8; } } catch (err) {}
+      }
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, method, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true); lh.setUint32(22, e.data.length, true); lh.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(lh.buffer), name, data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+      ch.setUint16(10, method, true); ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, data.length, true); ch.setUint32(24, e.data.length, true); ch.setUint16(28, name.length, true); ch.setUint32(42, off, true);
+      central.push(new Uint8Array(ch.buffer), name);
+      off += 30 + name.length + data.length;
+    }
+    const csize = central.reduce((a, c) => a + c.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+    end.setUint32(12, csize, true); end.setUint32(16, off, true);
+    return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+  }
+  function download(blob, name){
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+  const tag = () => (S.preset === 'custom' ? 'custom' : presetById(S.preset).short) + '_' + fmtPct(S.pct) + 'pct';
+  const fileFor = slot => slot + '_' + tag() + '.stl';
+  const modeText = { height:'each piece to its target height', base:'each piece to its target base', king:'whole set from the King', stretch:'stretch to height and base' };
+
+  function exportOne(slot){
+    const pc = P[slot], f = factors(slot);
+    if (!pc || !f) { toast('Load a ' + NAME[slot] + ' first'); return; }
+    download(new Blob([writeSTL(pc.pos, f.sxy, f.sz, 'Chess Scaler: ' + slot + ' ' + tag())], { type: 'model/stl' }), fileFor(slot));
+    status('Saved ' + fileFor(slot) + ' — ' + fmtLen(pc.H0 * f.sz) + ' tall');
+  }
+  async function exportAll(){
+    const loaded = SLOTS.filter(s => P[s] && factors(s));
+    if (!loaded.length) { toast('Drop some pieces in first'); return; }
+    const btn = $('scExportAll'); btn.disabled = true; status('Building ZIP…');
+    try {
+      const t = targets(), entries = [];
+      const pad = (s, n) => (s + ' '.repeat(n)).slice(0, n);
+      const lines = [
+        'Chess Scaler export',
+        'Standard : ' + (S.preset === 'custom' ? 'Custom' : presetById(S.preset).label),
+        'Scale    : ' + fmtPct(S.pct) + '%',
+        'Fit mode : ' + modeText[S.mode],
+        'Units    : millimetres (import at 100%)',
+        '',
+        pad('Piece', 8) + pad('File', 42) + pad('Height', 22) + pad('Base', 22) + 'Scale (source file)',
+      ];
+      for (const s of loaded) {
+        const pc = P[s], f = factors(s);
+        entries.push({ name: fileFor(s), data: writeSTL(pc.pos, f.sxy, f.sz, 'Chess Scaler: ' + s + ' ' + tag()) });
+        const sc = f.sxy === f.sz ? (f.sz * 100).toFixed(2) + '%' : 'XY ' + (f.sxy * 100).toFixed(2) + '% Z ' + (f.sz * 100).toFixed(2) + '%';
+        lines.push(pad(NAME[s], 8) + pad(fileFor(s), 42) + pad(both(pc.H0 * f.sz), 22) + pad(both(pc.D0 * f.sxy), 22) + sc + '  (' + pc.name + ')');
+      }
+      const kb = t.b[0] * S.pct / 100;
+      lines.push('', 'Board squares: ' + fmtIn(kb / 0.8) + ' - ' + fmtIn(kb / 0.75) + ' (King base = 75-80% of a square).');
+      lines.push('A full set is 2 kings, 2 queens, 4 bishops, 4 knights, 4 rooks and 16 pawns.');
+      entries.push({ name: 'dimensions.txt', data: new TextEncoder().encode(lines.join('\r\n') + '\r\n') });
+      const zip = await makeZip(entries);
+      download(zip, 'chess-set_' + tag() + '.zip');
+      status('Saved chess-set_' + tag() + '.zip (' + loaded.length + ' piece' + (loaded.length > 1 ? 's' : '') + ')');
+    } catch (e) { console.error(e); toast('Export failed: ' + e.message); }
+    finally { btn.disabled = false; }
+  }
+
+  // ================================================================ UI: controls
+  const presetSel = $('scPreset');
+  presetSel.innerHTML = PRESETS.map(p => `<option value="${p.id}">${esc(p.label)}</option>`).join('');
+  presetSel.value = S.preset;
+  presetSel.addEventListener('change', () => {
+    const prev = S.preset;
+    if (presetSel.value === 'custom' && prev !== 'custom') {
+      const src = presetById(prev);
+      S.custom = { h: src.h.slice(), b: src.b.slice() };
+    }
+    S.preset = presetSel.value;
+    renderTargets(); refresh({ frame: true });
+  });
+
+  function setPct(v, from){
+    v = Math.min(1000, Math.max(1, +v));
+    if (!isFinite(v)) return;
+    S.pct = Math.round(v * 10) / 10;
+    if (from !== 'range') $('scPctRange').value = Math.min(250, Math.max(25, S.pct));
+    if (from !== 'field') $('scPct').value = fmtPct(S.pct);
+    refresh();
+  }
+  $('scPctRange').addEventListener('input', e => setPct(e.target.value, 'range'));
+  $('scPct').addEventListener('input', e => { const v = parseFloat(e.target.value); if (v > 0) setPct(v, 'field'); });
+  $('scPct').addEventListener('change', e => { const v = parseFloat(e.target.value); setPct(v > 0 ? v : 100); });
+  $('scPctQuick').addEventListener('click', e => { const b = e.target.closest('[data-pct]'); if (b) setPct(+b.dataset.pct); });
+
+  page.querySelectorAll('input[name="scMode"]').forEach(r => {
+    r.checked = r.value === S.mode;
+    r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; refresh(); } });
+  });
+  page.querySelectorAll('input[name="scUnits"]').forEach(r => {
+    r.checked = r.value === S.units;
+    r.addEventListener('change', () => { if (r.checked) { S.units = r.value; renderTargets(); refresh(); } });
+  });
+  $('scLink').checked = S.link;
+  $('scLink').addEventListener('change', e => { S.link = e.target.checked; saveSettings(); });
+
+  const targetTable = $('scTargets');
+  function renderTargets(){
+    const t = targets(), custom = S.preset === 'custom', step = S.units === 'in' ? 0.01 : 0.1, u = S.units;
+    let html = `<tr><th>Piece</th><th>Height (${u})</th><th>Base &Oslash; (${u})</th></tr>`;
+    SLOTS.forEach((s, i) => {
+      html += `<tr><td>${GLYPH[s]} ${NAME[s]}</td>` + (custom
+        ? `<td><input class="sc-field" type="number" min="0" step="${step}" data-col="h" data-i="${i}" value="${toUnit(t.h[i])}" aria-label="${NAME[s]} height"></td>` +
+          `<td><input class="sc-field" type="number" min="0" step="${step}" data-col="b" data-i="${i}" value="${toUnit(t.b[i])}" aria-label="${NAME[s]} base"></td>`
+        : `<td>${fmtLen(t.h[i]).replace(/ (in|mm)$/, '')}</td><td>${fmtLen(t.b[i]).replace(/ (in|mm)$/, '')}</td>`) + '</tr>';
+    });
+    targetTable.innerHTML = html;
+    $('scLinkWrap').style.display = custom ? '' : 'none';
+    $('scPresetNote').textContent = presetById(S.preset).note;
+  }
+  targetTable.addEventListener('input', e => {
+    const inp = e.target.closest('input[data-col]'); if (!inp) return;
+    const v = parseFloat(inp.value); if (!(v > 0)) return;
+    const col = inp.dataset.col, i = +inp.dataset.i, mm = fromUnit(v);
+    if (S.link && i === 0) {
+      const ratio = mm / S.custom[col][0];
+      for (let j = 1; j < 6; j++) {
+        S.custom[col][j] *= ratio;
+        const other = targetTable.querySelector(`input[data-col="${col}"][data-i="${j}"]`);
+        if (other) other.value = toUnit(S.custom[col][j]);
+      }
+    }
+    S.custom[col][i] = mm;
+    refresh();
+  });
+
+  // ================================================================ UI: slots
+  const slotEls = {};
+  const upOptions = UPS.map(u => `<option value="${u}">Up: ${u}</option>`).join('');
+  SLOTS.forEach(slot => {
+    const el = document.createElement('div');
+    el.className = 'sc-slot empty'; el.dataset.slot = slot;
+    el.innerHTML = `
+      <div class="sc-slot-title"><span><span class="g">${GLYPH[slot]}</span>${NAME[slot].toUpperCase()}</span><button class="sc-x" data-act="remove" title="Remove ${NAME[slot]}" aria-label="Remove ${NAME[slot]}">&times;</button></div>
+      <div class="sc-well" data-act="browse" tabindex="0" role="button" aria-label="${NAME[slot]} slot: drop a file or press Enter to browse">
+        <canvas width="320" height="280"></canvas>
+        <div class="sc-empty"><div class="g">${GLYPH[slot]}</div>Drop <b>${NAME[slot]}</b> here<u>or click to browse</u></div>
+        <div class="sc-busy">Loading&hellip;</div>
+      </div>
+      <div class="sc-file">Empty slot</div>
+      <table class="sc-dims">
+        <tr><th></th><th>Height</th><th>Base &Oslash;</th></tr>
+        <tr class="o"><td>Original</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr class="n"><td>Scaled</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr class="t"><td>Target</td><td></td><td></td></tr>
+        <tr class="f"><td>Scale</td><td colspan="2">&mdash;</td></tr>
+      </table>
+      <div class="sc-slot-foot">
+        <select class="sc-select" data-act="up" title="Which direction is up in the source file" aria-label="${NAME[slot]} up axis"><option value="auto">Up: auto</option>${upOptions}</select>
+        <button class="sc-btn sc-btn-sm" data-act="export" title="Download this piece as a rescaled STL">&#11015; STL</button>
+      </div>`;
+    $('scSlots').appendChild(el);
+    slotEls[slot] = el;
+    const well = el.querySelector('.sc-well');
+
+    el.addEventListener('click', e => {
+      const act = e.target.closest('[data-act]'); if (!act) return;
+      if (act.dataset.act === 'browse') { pendingSlot = slot; $('scFile').click(); }
+      else if (act.dataset.act === 'remove') { removePiece(slot); }
+      else if (act.dataset.act === 'export') { exportOne(slot); }
+    });
+    well.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pendingSlot = slot; $('scFile').click(); } });
+    el.querySelector('select[data-act="up"]').addEventListener('change', e => {
+      const pc = P[slot]; if (!pc) return;
+      pc.up = e.target.value;
+      try { orientPiece(pc); } catch (err) { toast(err.message); }
+      refresh({ frame: true });
+    });
+
+    // drag a loaded piece to another slot to swap
+    well.addEventListener('dragstart', e => {
+      if (!P[slot]) { e.preventDefault(); return; }
+      e.dataTransfer.setData('text/x-chess-slot', slot); e.dataTransfer.effectAllowed = 'move';
+      el.classList.add('dragging');
+    });
+    well.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('dragover', e => {
+      const types = Array.from(e.dataTransfer ? e.dataTransfer.types : []);
+      if (!types.includes('Files') && !types.includes('text/x-chess-slot')) return;
+      e.preventDefault(); e.stopPropagation();
+      e.dataTransfer.dropEffect = types.includes('Files') ? 'copy' : 'move';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
+    el.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      el.classList.remove('drag-over'); hideVeil();
+      const from = e.dataTransfer.getData('text/x-chess-slot');
+      if (from) { if (from !== slot) swap(from, slot); return; }
+      if (e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files, slot);
+    });
+  });
+
+  function updateSlot(slot){
+    const el = slotEls[slot], pc = P[slot], i = SLOTS.indexOf(slot), t = targets(), k = S.pct / 100;
+    el.classList.toggle('empty', !pc); el.classList.toggle('loaded', !!pc);
+    el.querySelector('.sc-well').draggable = !!pc;
+    const rows = el.querySelectorAll('.sc-dims tr');
+    const [, o, n, tg, f] = rows;
+    const th = t.h[i] * k, tb = t.b[i] * k;
+    tg.cells[1].textContent = fmtLen(th); tg.cells[2].textContent = fmtLen(tb);
+    const file = el.querySelector('.sc-file');
+    if (!pc) {
+      file.textContent = 'Empty slot'; file.title = '';
+      o.cells[1].textContent = o.cells[2].textContent = n.cells[1].textContent = n.cells[2].textContent = '—';
+      n.cells[1].className = n.cells[2].className = '';
+      f.cells[1].textContent = '—';
+      return;
+    }
+    file.textContent = pc.name + ' · ' + pc.tris.toLocaleString() + ' tris';
+    file.title = pc.name;
+    o.cells[1].textContent = fmtLen(pc.H0); o.cells[2].textContent = fmtLen(pc.D0);
+    const fc = factors(slot);
+    if (!fc) { n.cells[1].textContent = n.cells[2].textContent = '—'; f.cells[1].textContent = '—'; return; }
+    const nh = pc.H0 * fc.sz, nb = pc.D0 * fc.sxy;
+    n.cells[1].textContent = fmtLen(nh); n.cells[2].textContent = fmtLen(nb);
+    const off = (a, b) => Math.abs(a - b) / b > 0.03;
+    n.cells[1].className = off(nh, th) ? 'off' : ''; n.cells[1].title = off(nh, th) ? 'Differs from the target by ' + ((nh / th - 1) * 100).toFixed(1) + '%' : '';
+    n.cells[2].className = off(nb, tb) ? 'off' : ''; n.cells[2].title = off(nb, tb) ? 'Differs from the target by ' + ((nb / tb - 1) * 100).toFixed(1) + '%' : '';
+    f.cells[1].textContent = (fc.sxy === fc.sz ? (fc.sz * 100).toFixed(1) + '% of source' : 'XY ' + (fc.sxy * 100).toFixed(1) + '% · Z ' + (fc.sz * 100).toFixed(1) + '%');
+    f.cells[1].title = fc.note || '';
+    const sel = el.querySelector('select[data-act="up"]');
+    sel.value = pc.up;
+    sel.options[0].textContent = 'Up: auto (' + pc.upUsed + ')';
+  }
+
+  function renderNotes(){
+    const t = targets(), k = S.pct / 100, kb = t.b[0] * k, kh = t.h[0] * k;
+    $('scSquare').innerHTML = `At <b>${fmtPct(S.pct)}%</b> the King is <b>${esc(fmtLen(kh))}</b> tall on a <b>${esc(fmtLen(kb))}</b> base. ` +
+      `Board squares: <b>${esc(fmtLen(kb / 0.8))} – ${esc(fmtLen(kb / 0.75))}</b> (King base ≈ 75–80% of a square).`;
+    const n = SLOTS.filter(s => P[s]).length;
+    $('scStPieces').textContent = n + ' of 6 pieces';
+    $('scStTarget').textContent = S.preset === 'custom' ? 'Custom standard' : presetById(S.preset).label.replace(' (default)', '');
+    $('scStScale').textContent = 'Scale ' + fmtPct(S.pct) + '%';
+    $('scExportAll').disabled = !n;
+  }
+
+  // ================================================================ loading & assignment
+  let pendingSlot = null;
+  $('scOpen').addEventListener('click', () => { pendingSlot = null; $('scFile').click(); });
+  $('scFile').addEventListener('change', e => {
+    const files = Array.from(e.target.files || []); e.target.value = '';
+    const target = pendingSlot; pendingSlot = null;
+    if (files.length) handleFiles(files, target);
+  });
+  $('scClear').addEventListener('click', () => {
+    SLOTS.forEach(s => { if (P[s] && P[s].geo) P[s].geo.dispose(); delete P[s]; });
+    status('Cleared all slots'); refresh({ frame: true });
+  });
+  $('scExportAll').addEventListener('click', exportAll);
+  $('scLoadSig').addEventListener('click', loadSignature);
+  window.addEventListener('chess-scaler:load-signature', loadSignature);
+
+  function classify(name){
+    const base = name.replace(/\.[^.]+$/, '').toLowerCase();
+    if (/knight|horse|springer/.test(base)) return 'knight';
+    if (/king|k(o|oe|ö)nig/.test(base)) return 'king';
+    if (/queen/.test(base)) return 'queen';
+    if (/bishop|l(a|ae|ä)ufer/.test(base)) return 'bishop';
+    if (/rook|castle|tower|turm/.test(base)) return 'rook';
+    if (/pawn|bauer/.test(base)) return 'pawn';
+    const m = /^(?:[wb][ _-]?)?([kqbnrp])$/.exec(base);
+    return m ? { k:'king', q:'queen', b:'bishop', n:'knight', r:'rook', p:'pawn' }[m[1]] : null;
+  }
+
+  function setPiece(slot, pc){
+    const old = P[slot];
+    if (old && old !== pc && old.geo && !SLOTS.some(s => s !== slot && P[s] === old)) old.geo.dispose();
+    P[slot] = pc;
+  }
+
+  async function handleFiles(fileList, target){
+    const files = Array.from(fileList);
+    if (target) slotEls[target].classList.add('busy');
+    status('Reading ' + files.length + ' file' + (files.length > 1 ? 's' : '') + '…');
+    const pieces = [];
+    for (const f of files) {
+      try {
+        const items = await readBuffer(f.name, await f.arrayBuffer(), 0);
+        for (const it of items) {
+          try { pieces.push(makePiece(it)); } catch (err) { toast('Skipped ' + it.name + ': ' + err.message); }
+        }
+      } catch (err) { toast('Could not read ' + f.name + ': ' + err.message, 4500); }
+    }
+    if (target) slotEls[target].classList.remove('busy');
+    if (!pieces.length) { status('No pieces loaded'); return; }
+    if (target && pieces.length === 1) {
+      setPiece(target, pieces[0]);
+      status(pieces[0].name + ' → ' + NAME[target]);
+    } else {
+      assign(pieces);
+    }
+    refresh({ frame: true });
+  }
+
+  function assign(pieces){
+    const claimed = new Map(), rest = [];
+    for (const pc of pieces) {
+      const s = classify(pc.name);
+      if (s && !claimed.has(s)) claimed.set(s, pc); else rest.push(pc);
+    }
+    const open = SLOTS.filter(s => !claimed.has(s));
+    const empty = open.filter(s => !P[s]);
+    const targetsForRest = rest.length > empty.length ? open : empty;   // replace only when there is no room
+    rest.sort((a, b) => b.H0 - a.H0);                                    // tallest -> King ... shortest -> Pawn
+    const used = targetsForRest.slice(0, rest.length);
+    used.sort((a, b) => SLOTS.indexOf(a) - SLOTS.indexOf(b));
+    used.forEach((s, i) => claimed.set(s, rest[i]));
+    const extra = rest.length - used.length;
+    const report = [];
+    for (const s of SLOTS) if (claimed.has(s)) { setPiece(s, claimed.get(s)); report.push(NAME[s] + ' ← ' + claimed.get(s).name); }
+    status('Loaded ' + report.length + ': ' + report.join(', '));
+    if (extra > 0) toast('Ignored ' + extra + ' extra file' + (extra > 1 ? 's' : '') + ' (only six slots)');
+  }
+
+  function swap(a, b){
+    const pa = P[a], pb = P[b];
+    if (pb) P[a] = pb; else delete P[a];
+    if (pa) P[b] = pa; else delete P[b];
+    status((pa ? pa.name : 'empty') + ' moved to ' + NAME[b]);
+    refresh({ frame: true });
+  }
+  function removePiece(slot){
+    const pc = P[slot]; if (!pc) return;
+    if (pc.geo) pc.geo.dispose();
+    delete P[slot];
+    status('Removed ' + NAME[slot]); refresh({ frame: true });
+  }
+
+  let sigLoading = false;
+  async function loadSignature(){
+    if (sigLoading) return; sigLoading = true;
+    status('Loading the Signature Chess Set…');
+    SLOTS.forEach(s => slotEls[s].classList.add('busy'));
+    try {
+      await Promise.all(SLOTS.map(async s => {
+        const r = await fetch('chess/stl/' + s + '.stl');
+        if (!r.ok) throw new Error(s + '.stl: HTTP ' + r.status);
+        setPiece(s, makePiece({ name: s + '.stl', raw: parseSTL(await r.arrayBuffer()) }));
+      }));
+      status('Loaded the Signature Chess Set');
+    } catch (e) { console.error(e); toast('Could not load the Signature set: ' + e.message, 4500); }
+    finally { SLOTS.forEach(s => slotEls[s].classList.remove('busy')); sigLoading = false; refresh({ frame: true }); }
+  }
+
+  // page-level drop: auto-sort
+  const veil = $('scVeil');
+  let dragDepth = 0;
+  const hasFiles = e => !!e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  function hideVeil(){ dragDepth = 0; veil.classList.remove('show'); }
+  page.addEventListener('dragenter', e => { if (hasFiles(e)) { dragDepth++; veil.classList.add('show'); } });
+  page.addEventListener('dragleave', e => { if (hasFiles(e) && --dragDepth <= 0) hideVeil(); });
+  page.addEventListener('dragover', e => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+  page.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); hideVeil(); handleFiles(e.dataTransfer.files, null); });
+  // stop the browser from opening a file dropped on the nav bar while this tool is open
+  window.addEventListener('dragover', e => { if (page.classList.contains('active') && hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', e => { if (page.classList.contains('active') && hasFiles(e)) { e.preventDefault(); hideVeil(); } });
+
+  // ================================================================ 3D (thumbnails + board preview)
+  let T = null, threePromise = null, threeFailed = false;
+  function loadThree(){
+    if (!threePromise) {
+      threePromise = (async () => {
+        const THREE = await import('three');
+        const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+        const { mergeVertices } = await import('three/addons/utils/BufferGeometryUtils.js');
+        T = { THREE, OrbitControls, mergeVertices };
+        T.pieceMat = new THREE.MeshStandardMaterial({ color: 0xd8b06a, roughness: 0.45, metalness: 0 });
+        return T;
+      })().catch(e => { console.error('chess scaler 3D', e); threeFailed = true; threePromise = null; throw e; });
+    }
+    return threePromise;
+  }
+  function geoOf(pc){
+    if (!pc.geo) {
+      const { THREE, mergeVertices } = T;
+      let g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pc.pos, 3));
+      try { g = mergeVertices(g, 1e-4); } catch (e) {}
+      g.computeVertexNormals(); g.computeBoundingBox();
+      pc.geo = g;
+    }
+    return pc.geo;
+  }
+
+  let thumbR = null;
+  function thumbRenderer(){
+    if (thumbR) return thumbR;
+    const { THREE } = T;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1); renderer.setSize(320, 280, false);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6b5a44, 1.1));
+    const key = new THREE.DirectionalLight(0xfff0dc, 2.3); key.position.set(-1, 1.6, 1.4); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xdfe8ff, 0.8); rim.position.set(1.2, 0.6, -1); scene.add(rim);
+    const camera = new THREE.PerspectiveCamera(24, 320 / 280, 0.1, 1e5);
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), T.pieceMat); mesh.rotation.x = -Math.PI / 2; scene.add(mesh);
+    thumbR = { renderer, scene, camera, mesh };
+    return thumbR;
+  }
+  const drawn = {};
+  function drawThumb(slot, force){
+    const cv = slotEls[slot].querySelector('canvas'), ctx = cv.getContext('2d'), pc = P[slot];
+    const f = pc ? factors(slot) : null, ratio = f ? f.sz / f.sxy : 1;
+    const key = pc ? pc.id + ':' + pc.rev + ':' + ratio.toFixed(4) : 'empty';
+    if (!force && drawn[slot] === key) return;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    drawn[slot] = key;
+    if (!pc) return;
+    if (!T) {
+      ctx.fillStyle = '#808080'; ctx.font = '120px "DejaVu Sans","Segoe UI Symbol",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(GLYPH[slot], cv.width / 2, cv.height / 2);
+      if (!threeFailed) drawn[slot] = null;
+      return;
+    }
+    const r = thumbRenderer(), g = geoOf(pc), bb = g.boundingBox;
+    r.mesh.geometry = g; r.mesh.scale.set(1, 1, ratio);
+    const h = (bb.max.z - bb.min.z) * ratio, w = Math.max(bb.max.x - bb.min.x, bb.max.y - bb.min.y);
+    const cx = (bb.max.x + bb.min.x) / 2, cz = -(bb.max.y + bb.min.y) / 2;
+    const cam = r.camera, half = Math.tan(cam.fov * Math.PI / 360);
+    const dist = Math.max(h / (2 * half), w / (2 * half * cam.aspect)) * 1.12 + w * 0.5;
+    const el = 0.2, az = 0.55;
+    cam.position.set(cx + Math.sin(az) * Math.cos(el) * dist, h / 2 + Math.sin(el) * dist, cz + Math.cos(az) * Math.cos(el) * dist);
+    cam.near = dist / 100; cam.far = dist * 10; cam.updateProjectionMatrix(); cam.lookAt(cx, h / 2, cz);
+    r.renderer.render(r.scene, cam);
+    ctx.drawImage(r.renderer.domElement, 0, 0, cv.width, cv.height);
+  }
+
+  let L = null;
+  const ORDER = ['rook', 'knight', 'bishop', 'queen', 'king', 'pawn'];   // back rank a-e, then a pawn
+  function lineup(){
+    if (L) return L;
+    const { THREE, OrbitControls } = T, host = $('scLineup');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    host.appendChild(renderer.domElement);
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdcdcdc);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6b5a44, 1.0));
+    const key = new THREE.DirectionalLight(0xfff1dc, 2.2); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
+    scene.add(key); scene.add(key.target);
+    const camera = new THREE.PerspectiveCamera(26, 2, 1, 1e5);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.maxPolarAngle = Math.PI * 0.49;
+    const group = new THREE.Group(); scene.add(group);
+    const light = new THREE.MeshStandardMaterial({ color: 0xead9b5, roughness: 0.75 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.75 });
+    const render = () => renderer.render(scene, camera);
+    controls.addEventListener('change', render);
+    const resize = () => {
+      const w = host.clientWidth - 4, h = host.clientHeight - 4;
+      if (w < 10 || h < 10) return;
+      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); render();
+    };
+    new ResizeObserver(resize).observe(host);
+    L = { THREE, renderer, scene, camera, controls, group, key, light, dark, render, resize, sq: 0 };
+    resize();
+    return L;
+  }
+  function frameLineup(){
+    const l = L, box = new l.THREE.Box3().setFromObject(l.group);
+    if (box.isEmpty()) return;
+    const size = box.getSize(new l.THREE.Vector3()), c = box.getCenter(new l.THREE.Vector3());
+    const half = Math.tan(l.camera.fov * Math.PI / 360);
+    const dist = Math.max(size.y / (2 * half), size.x / (2 * half * l.camera.aspect)) * 1.15 + size.z;
+    l.controls.target.set(c.x, size.y * 0.4, c.z);
+    l.camera.position.set(c.x + dist * 0.12, size.y * 0.4 + dist * 0.34, c.z + dist * 0.94);
+    l.camera.near = dist / 100; l.camera.far = dist * 20; l.camera.updateProjectionMatrix();
+    const s = Math.max(size.x, size.y) * 1.2;
+    Object.assign(l.key.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: s * 8 });
+    l.key.shadow.camera.updateProjectionMatrix();
+    l.key.position.set(c.x - s * 0.8, s * 1.6, c.z + s * 1.2); l.key.target.position.copy(c);
+    l.controls.update();
+  }
+  function buildLineup(frame){
+    if (!T || !page.classList.contains('active')) return;
+    const l = lineup(), { THREE } = l;
+    for (const c of l.group.children.slice()) { l.group.remove(c); if (c.userData.tile) c.geometry.dispose(); }
+    const std = targets();
+    const sq = std.b[0] / 0.775;                         // squares sized for the standard at 100%
+    ORDER.forEach((slot, i) => {
+      const x = (i - 2.5) * sq;
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(sq, sq * 0.06, sq), i % 2 ? l.light : l.dark);
+      tile.position.set(x, -sq * 0.03, 0); tile.receiveShadow = true; tile.userData.tile = true;
+      l.group.add(tile);
+      const pc = P[slot], f = factors(slot);
+      if (pc && f) {
+        const m = new THREE.Mesh(geoOf(pc), T.pieceMat);
+        m.rotation.x = -Math.PI / 2; m.scale.set(f.sxy, f.sxy, f.sz); m.position.set(x, 0, 0);
+        m.castShadow = true; m.receiveShadow = true;
+        l.group.add(m);
+      }
+    });
+    const any = SLOTS.some(s => P[s]);
+    $('scLineupMsg').style.display = any ? 'none' : '';
+    $('scLineupCap').textContent = `Squares are ${fmtLen(sq)} (sized for the ${S.preset === 'custom' ? 'custom' : presetById(S.preset).label.replace(/ \(default\)/, '')} standard at 100%). Scaling above 100% makes the pieces grow against these squares. Drag to orbit, scroll to zoom.`;
+    if (frame || Math.abs(l.sq - sq) > 1e-6) frameLineup();
+    l.sq = sq;
+    l.render();
+  }
+  $('scResetView').addEventListener('click', () => { if (L) { frameLineup(); L.render(); } });
+
+  // ================================================================ refresh loop
+  let rafPending = false, wantFrame = false;
+  function refresh(opts){
+    if (opts && opts.frame) wantFrame = true;
+    SLOTS.forEach(updateSlot);
+    renderNotes();
+    saveSettings();
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      SLOTS.forEach(s => drawThumb(s));
+      const f = wantFrame; wantFrame = false;
+      buildLineup(f);
+    });
+  }
+
+  function start(){
+    loadThree().then(() => { SLOTS.forEach(s => drawThumb(s, true)); buildLineup(true); })
+      .catch(() => { SLOTS.forEach(s => drawThumb(s, true)); $('scLineupMsg').textContent = '3D preview unavailable offline. Scaling and export still work.'; });
+  }
+  new MutationObserver(() => { if (page.classList.contains('active')) { start(); if (L) L.resize(); } })
+    .observe(page, { attributes: true, attributeFilter: ['class'] });
+
+  $('scPct').value = fmtPct(S.pct);
+  $('scPctRange').value = Math.min(250, Math.max(25, S.pct));
+  renderTargets();
+  refresh();
+  if (page.classList.contains('active')) start();
+
 })();
 </script>
 </body>
