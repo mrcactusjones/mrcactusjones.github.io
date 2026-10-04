@@ -849,6 +849,146 @@ def _ebay_diagnosis(client) -> list[str]:
 CCG_CATEGORY = "183454"
 
 
+def cmd_deals(args, cfg: Config, store: Store) -> int:
+    """Rank actual listings, not cards. Spends eBay calls, no PPT credits.
+
+    Everything before this ranked *cards*: what a copy would clear if you
+    could buy one at the market price. A deal is narrower and more useful --
+    this listing, at this price, right now. So the margin here is computed
+    from the seller's own asking price rather than from PPT's raw figure, and
+    a card ranked tenth whose only live copy is cheap beats one ranked first
+    whose copies are all dear.
+
+    One search per card. Every filter the single-card command learned the hard
+    way applies: wrong cards dropped, damaged copies skipped, unknown postage
+    never counted as free.
+    """
+    import json as _json
+    import time
+
+    from gapscan.providers.ebay import (EbayAuthError, EbayClient, EbayError,
+                                        EbayRateLimited, delivered, gradeable,
+                                        is_same_card, listing_concerns,
+                                        parse_title, search_text, summarise)
+
+    path = store.root / "rankings.json"
+    if not path.exists():
+        print("No rankings yet -- run `rank` first.")
+        return 1
+    payload = _json.loads(path.read_text())
+    universe = store.load_universe()
+    wanted = [v.strip() for v in args.verdict.split(",") if v.strip()]
+    cards = [r for r in payload.get("rows", [])
+             if r.get("verdict") in wanted and r.get("psa9")]
+    cards.sort(key=lambda r: r.get("floor_profit") or 0, reverse=True)
+    cards = cards[:args.scan]
+    if not cards:
+        print(f"No cards with verdict in {wanted}.")
+        return 1
+
+    econ, th = cfg.econ, cfg.thresholds
+    client = EbayClient()
+    print(f"Searching eBay for live copies of the top {len(cards)} cards "
+          f"({len(cards)} calls)...\n")
+
+    deals, scanned, skipped_dmg = [], 0, 0
+    for i, row in enumerate(cards, 1):
+        entry = universe.get(row["id"]) or {}
+        number = entry.get("number") or row.get("number")
+        set_name = entry.get("set_name") or row.get("set_name")
+        psa9 = row["psa9"]
+        cap = econ.max_raw_price(psa9, th.min_floor_profit, th.min_floor_roi)
+        if cap <= 0:
+            continue
+        query = search_text(row.get("name"), set_name, number)
+        try:
+            blob = client.search(query, args.limit, category=CCG_CATEGORY,
+                                 filters=f"price:[..{cap:.0f}],priceCurrency:USD",
+                                 sort="price")
+        except EbayRateLimited:
+            print(f"  rate limited after {scanned} card(s); ranking what we have.")
+            break
+        except (EbayAuthError, EbayError) as exc:
+            print(f"  ! {row.get('name')}: {exc}")
+            continue
+        scanned += 1
+        if args.verbose:
+            print(f"  [{i}/{len(cards)}] {row.get('name')} -- "
+                  f"{blob.get('total', 0)} matches under ${cap:,.0f}")
+
+        for item in summarise(blob, args.limit):
+            if not is_same_card(item["title"], number, set_name):
+                continue
+            parsed = parse_title(item["title"], item["condition"])
+            if parsed["graded"]:
+                continue
+            if not gradeable(item["title"]):
+                skipped_dmg += 1
+                continue
+            cash, known = delivered(item)
+            if cash <= 0:
+                continue
+            # The margin on *this* copy. all_in pads a quoted market price by
+            # raw_premium_pct because you rarely buy at guide; an asking price
+            # is the number itself, so it is not padded again.
+            spend = cash if known else cash + args.assume_post
+            all_in = spend + econ.fee_for(psa9) + econ.sub_ship_per_card
+            profit = econ.net_proceeds(psa9) - all_in
+            if profit < args.min_profit:
+                continue
+            deals.append({
+                "profit": profit, "roi": profit / all_in, "spend": spend,
+                "known": known, "psa9": psa9, "all_in": all_in,
+                "name": row.get("name"), "set": set_name, "number": number,
+                "title": item["title"], "url": item["url"],
+                "printings": parsed["printings"],
+                "played": listing_concerns(item["title"])["played"],
+                "visible": row.get("observed_sales_9"),
+                "claimed": row.get("sales_9"),
+                "split": bool(row.get("comps_split")),
+            })
+        time.sleep(args.pace)
+
+    if not deals:
+        print(f"\nNo listings clear ${args.min_profit:,.0f} right now across "
+              f"{scanned} card(s).")
+        return 0
+
+    deals.sort(key=lambda d: d["roi" if args.by == "roi" else "profit"],
+               reverse=True)
+    print(f"\n{len(deals)} listing(s) clear ${args.min_profit:,.0f}; "
+          f"showing top {min(args.top, len(deals))} by "
+          f"{'return on capital' if args.by == 'roi' else 'profit'}.")
+    print(f"({scanned} cards searched, {skipped_dmg} damaged copies skipped)\n")
+
+    for i, d in enumerate(deals[:args.top], 1):
+        pay = f"${d['spend']:,.2f}" + ("" if d["known"] else
+                                       f" (est. -- postage not quoted)")
+        print(f"{i:>3}. ${d['profit']:>8,.2f}  {d['roi']*100:>5.0f}%   "
+              f"{d['name']} -- {d['set']} #{d['number']}")
+        print(f"      pay {pay}  ->  all-in ${d['all_in']:,.2f}  ->  "
+              f"PSA 9 at ${d['psa9']:,.0f}")
+        notes = []
+        if d["printings"]:
+            notes.append(", ".join(d["printings"]))
+        if d["played"]:
+            notes.append(f"seller says {', '.join(d['played'])}")
+        if d["split"]:
+            notes.append("graded comps are two printings pooled")
+        if d["visible"] is not None and d["visible"] < th.comps_split_min_sample:
+            notes.append(f"only {d['visible']} PSA 9 sales visible "
+                         f"({d['claimed']} claimed)")
+        if notes:
+            print(f"      [{' | '.join(notes)}]")
+        print(f"      {d['title'][:74]}")
+        print(f"      {d['url']}")
+
+    print(f"\n{client.calls} eBay call(s). Every figure assumes the card "
+          f"grades a PSA 9 --\nnothing here has seen the photos, and an 8 is "
+          f"usually a loss.")
+    return 0
+
+
 def cmd_listings(args, cfg: Config, store: Store) -> int:
     """What you could actually buy right now, and which printing it is.
 
@@ -2215,6 +2355,19 @@ def main() -> int:
     p.add_argument("--grade", default="psa9", help="raw, psa8, psa9, psa10, cgc9...")
     p.add_argument("--days", type=int, default=90, help="window to summarise")
     p.set_defaults(func=cmd_series)
+
+    p = sub.add_parser("deals", help="rank live listings across cards by real margin")
+    p.add_argument("--top", type=int, default=30, help="deals to print")
+    p.add_argument("--scan", type=int, default=40, help="cards to search (1 call each)")
+    p.add_argument("--limit", type=int, default=50, help="listings per card")
+    p.add_argument("--by", default="profit", choices=("profit", "roi"))
+    p.add_argument("--min-profit", type=float, default=50.0)
+    p.add_argument("--assume-post", type=float, default=15.0,
+                   help="postage assumed when a listing quotes none")
+    p.add_argument("--pace", type=float, default=0.3, help="seconds between calls")
+    p.add_argument("--verdict", default="no_brainer,floor_positive")
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_deals)
 
     p = sub.add_parser("listings", help="live copies to buy, and the asks by printing")
     p.add_argument("--card", required=True, help="a universe card id")

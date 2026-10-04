@@ -1087,3 +1087,54 @@ class MaxRawPriceTest(unittest.TestCase):
     def test_it_agrees_with_all_in_on_a_real_card(self):
         """Rayquaza ex delta, from a live run: raw $273, PSA 9 $1,536."""
         self.assertAlmostEqual(self.econ.all_in(273.0, 1536.0), 487.69, places=2)
+
+
+class DealMarginTest(unittest.TestCase):
+    """The margin on a real listing, not on a market price.
+
+    `deals` prices the seller's own asking number. That differs from the
+    ranking in one way that is easy to get wrong in the flattering direction:
+    `all_in` pads a quoted market price by raw_premium_pct, because you rarely
+    buy at guide -- and an asking price is already the number, so padding it
+    again would understate every deal.
+    """
+
+    def setUp(self):
+        self.econ = Economics()
+
+    def _deal(self, cash, psa9):
+        all_in = cash + self.econ.fee_for(psa9) + self.econ.sub_ship_per_card
+        return self.econ.net_proceeds(psa9) - all_in, all_in
+
+    def test_the_real_rayquaza_listing(self):
+        """$199.50 + $10.69 postage, against a PSA 9 at $1,536."""
+        profit, all_in = self._deal(210.19, 1536.0)
+        self.assertAlmostEqual(all_in, 383.93, places=2)
+        self.assertAlmostEqual(profit, 943.55, places=2)
+
+    def test_an_asking_price_is_not_padded_like_a_guide_price(self):
+        """The ranking's $487.69 all-in comes from $273 guide + 15%. The same
+        cash spent on a listing must cost less than that, not the same."""
+        self.assertAlmostEqual(self.econ.all_in(273.0, 1536.0), 487.69, places=2)
+        _, listing_all_in = self._deal(273.0, 1536.0)
+        self.assertLess(listing_all_in, self.econ.all_in(273.0, 1536.0))
+        self.assertAlmostEqual(
+            self.econ.all_in(273.0, 1536.0) - listing_all_in,
+            273.0 * self.econ.raw_premium_pct, places=6)
+
+    def test_a_deal_at_the_walk_away_price_clears_the_thresholds(self):
+        """The two commands must agree at the boundary: pay the maximum
+        `max_raw_price` allows and the deal margin is exactly the minimum."""
+        th = Thresholds()
+        psa9 = 1536.0
+        cash = self.econ.max_raw_price(psa9, th.min_floor_profit, th.min_floor_roi)
+        profit, all_in = self._deal(cash, psa9)
+        self.assertAlmostEqual(profit / all_in, th.min_floor_roi, places=6)
+        self.assertGreaterEqual(profit, th.min_floor_profit)
+
+    def test_unquoted_postage_is_added_before_the_margin_not_after(self):
+        """A listing with no postage must be costed with an assumption, or its
+        margin reads better than one that quotes a real figure."""
+        bare, _ = self._deal(200.0, 1536.0)
+        assumed, _ = self._deal(200.0 + 15.0, 1536.0)
+        self.assertAlmostEqual(bare - assumed, 15.0, places=6)
