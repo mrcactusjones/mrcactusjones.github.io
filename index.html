@@ -890,6 +890,166 @@
   #page-scaler .sc-dropveil .sc-dialog-body .ico { font-size:30px; line-height:1; }
   #page-scaler .sc-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#ffffe1; border:1px solid #000; padding:7px 14px; font-size:11px; color:#000; pointer-events:none; opacity:0; transition:all .3s; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:9999; max-width:90vw; }
   #page-scaler .sc-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE 10: CARD SWIPER — Win95 style
+     ═══════════════════════════════════════════════════════════════ */
+  #page-cards {
+    background:#008080;
+    background-image:radial-gradient(circle at 22% 28%, #007070 0%, transparent 50%), radial-gradient(circle at 78% 78%, #006868 0%, transparent 50%);
+    padding:24px 14px 40px;
+    font-family:'IBM Plex Mono','Courier New',monospace; font-size:12px; color:#000;
+  }
+  #page-cards [hidden] { display:none !important; }
+  #page-cards .cs-app { max-width:1180px; margin:0 auto; background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; box-shadow:1px 1px 0 #000; }
+  #page-cards .cs-title-bar { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:2px 4px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:13px; user-select:none; height:22px; }
+  #page-cards .cs-title-bar .title-bar-text { display:flex; align-items:center; gap:5px; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-cards .cs-title-icon { width:16px; height:16px; background:#fff; color:#d00000; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; border:1px solid #000; flex-shrink:0; }
+  #page-cards .cs-title-buttons { display:flex; gap:2px; flex-shrink:0; }
+  #page-cards .cs-title-buttons div { width:18px; height:16px; background:#c0c0c0; border-top:1px solid #fff; border-left:1px solid #fff; border-right:1px solid #404040; border-bottom:1px solid #404040; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#000; }
+
+  #page-cards .cs-toolbar { display:flex; flex-wrap:wrap; gap:4px; align-items:center; padding:5px 6px; border-bottom:1px solid #808080; box-shadow:0 1px 0 #fff; }
+  #page-cards .cs-tb-sep { flex:1; }
+  #page-cards .cs-btn {
+    font-family:inherit; font-size:12px; color:#000; background:#c0c0c0; padding:4px 12px; border-radius:0; cursor:pointer; white-space:nowrap; text-decoration:none; display:inline-block; line-height:1.35;
+    border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080;
+  }
+  #page-cards .cs-btn:hover { background:#c8c8c8; }
+  #page-cards .cs-btn:active { border-color:#000 #fff #fff #000; box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #dfdfdf; padding:5px 11px 3px 13px; }
+  #page-cards .cs-btn:focus-visible { outline:1px dotted #000; outline-offset:-5px; }
+  #page-cards .cs-btn:disabled, #page-cards .cs-btn.disabled { color:#808080; text-shadow:1px 1px 0 #fff; cursor:default; pointer-events:none; }
+  #page-cards .cs-btn.default { outline:1px solid #000; outline-offset:0; font-weight:700; }
+  #page-cards .cs-btn-sm { font-size:11px; padding:2px 8px; }
+  #page-cards .cs-btn-sm:active { padding:3px 7px 1px 9px; }
+
+  #page-cards .cs-group { border:1px solid #808080; box-shadow:inset 1px 1px 0 #fff, 1px 1px 0 #fff; padding:10px 8px 8px; margin:0 0 10px; min-width:0; }
+  #page-cards .cs-group legend { padding:0 3px; font-size:12px; }
+  #page-cards .cs-field {
+    font-family:inherit; font-size:12px; color:#000; background:#fff; padding:3px 4px; border-radius:0; outline:none; width:100%;
+    border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  }
+  #page-cards .cs-field:focus { outline:1px dotted #000; outline-offset:-4px; }
+  #page-cards .cs-note { font-size:10.5px; color:#404040; margin-top:6px; line-height:1.45; }
+  #page-cards .cs-note b { color:#000080; }
+  #page-cards .cs-note a { color:#000080; }
+  #page-cards .cs-check { display:flex; gap:6px; align-items:flex-start; margin-top:2px; font-size:11px; cursor:pointer; }
+  #page-cards .cs-check input { accent-color:#000080; margin:2px 0 0; flex-shrink:0; }
+  #page-cards .cs-lbl { display:block; font-size:11px; margin:10px 0 3px; }
+  #page-cards .cs-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; }
+
+  /* ---- loader ---- */
+  #page-cards .cs-loader { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:10px; padding:10px; }
+  @media (max-width:900px){ #page-cards .cs-loader { grid-template-columns:minmax(0,1fr); } }
+  #page-cards .cs-paste { min-height:360px; resize:vertical; font-size:11.5px; line-height:1.5; white-space:pre; overflow:auto; }
+  #page-cards .cs-paste-info { font-size:11px; color:#000080; margin-left:auto; }
+  #page-cards .cs-howto { margin:0; padding-left:18px; font-size:11px; line-height:1.55; }
+  #page-cards .cs-howto li { margin-bottom:5px; }
+  #page-cards .cs-keys { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; font-size:11px; margin-top:4px; }
+  #page-cards .cs-kbd { display:inline-block; min-width:18px; padding:0 4px; text-align:center; background:#c0c0c0; border:1px solid; border-color:#fff #404040 #404040 #fff; font-size:10.5px; line-height:15px; margin-right:2px; }
+
+  /* ---- swiper ---- */
+  #page-cards .cs-body { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:10px; padding:10px; }
+  @media (max-width:900px){ #page-cards .cs-body { grid-template-columns:minmax(0,1fr); } }
+  #page-cards .cs-stage {
+    position:relative; height:clamp(420px, calc(100vh - 260px), 680px); overflow:hidden; container-type:size;
+    display:flex; align-items:center; justify-content:center;
+    background:#0a0a2e radial-gradient(ellipse at 50% 40%, #1c1c5a 0%, #0a0a2e 70%);
+    border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
+  }
+  @media (max-width:900px){ #page-cards .cs-stage { height:clamp(400px, 70vh, 600px); } }
+  #page-cards .cs-deck { position:relative; width:min(calc(100cqw - 40px), calc((100cqh - 40px) * 0.716)); aspect-ratio:63 / 88; }
+  #page-cards .cs-card { position:absolute; inset:0; z-index:2; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; will-change:transform; transition:transform .25s ease, filter .25s ease; }
+  #page-cards .cs-card.dragging { cursor:grabbing; }
+  #page-cards .cs-card.under { z-index:1; transform:translateY(14px) scale(.94); filter:brightness(.55); pointer-events:none; }
+  #page-cards .cs-card.fly { z-index:3; pointer-events:none; }
+  #page-cards .cs-face { position:absolute; inset:0; border-radius:4.6% / 3.3%; overflow:hidden; background:#10103a; box-shadow:0 14px 34px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); }
+  #page-cards .cs-face img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .18s; pointer-events:none; -webkit-user-drag:none; }
+  #page-cards .cs-face img.on { opacity:1; }
+  #page-cards .cs-ph { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:14%; text-align:center; color:#fff;
+    border:9px solid #f2cf3a; border-radius:inherit; background:linear-gradient(160deg,#1f3d9a 0%,#0e1c5c 55%,#0a0f3a 100%); }
+  #page-cards .cs-ph-name { font-family:'VT323',monospace; font-size:30px; line-height:1; letter-spacing:1px; color:#ffe14d; word-break:break-word; }
+  #page-cards .cs-ph-sub { font-size:11px; color:#c9d3ff; word-break:break-word; }
+  #page-cards .cs-ph-state { font-family:'VT323',monospace; font-size:20px; color:#8fd; letter-spacing:2px; animation:csblink 1s steps(1) infinite; }
+  #page-cards .cs-ph.missing .cs-ph-state { animation:none; color:#ff9a9a; }
+  @keyframes csblink { 50% { opacity:.35; } }
+  #page-cards .cs-badges { position:absolute; left:6px; top:6px; right:6px; display:flex; flex-wrap:wrap; gap:4px; pointer-events:none; z-index:2; }
+  #page-cards .cs-badge { background:#ffffe1; color:#000; border:1px solid #000; font-size:10.5px; font-weight:700; padding:1px 5px; box-shadow:1px 1px 0 rgba(0,0,0,.45); }
+  #page-cards .cs-badge.foil { background:linear-gradient(90deg,#ffd6f5,#d6f0ff,#e7ffd6); }
+  #page-cards .cs-badge.second { background:#ffd93d; }
+  #page-cards .cs-stamp { position:absolute; top:9%; z-index:3; padding:2px 12px; font-family:'VT323',monospace; font-size:clamp(30px, 9cqw, 52px); letter-spacing:3px; line-height:1; border:4px solid; border-radius:6px; opacity:0; pointer-events:none; background:rgba(0,0,0,.45); }
+  #page-cards .cs-stamp.want { left:7%; color:#3dff7a; border-color:#3dff7a; transform:rotate(-14deg); text-shadow:0 0 10px #3dff7a88; }
+  #page-cards .cs-stamp.pass { right:7%; color:#ff5050; border-color:#ff5050; transform:rotate(14deg); text-shadow:0 0 10px #ff505088; }
+  #page-cards .cs-stamp.maybe { top:auto; bottom:12%; left:50%; color:#ffd93d; border-color:#ffd93d; transform:translateX(-50%) rotate(-5deg); text-shadow:0 0 10px #ffd93d88; }
+  #page-cards .cs-stage-hint { position:absolute; left:0; right:0; bottom:6px; text-align:center; font-size:10.5px; color:#8f9bd6; pointer-events:none; }
+
+  #page-cards .cs-done { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; z-index:5; }
+  #page-cards .cs-dialog { background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 3px 3px 0 #0006; padding:2px; width:min(440px, 100%); }
+  #page-cards .cs-dialog-title { height:20px; padding:0 5px; display:flex; align-items:center; font-weight:700; color:#fff; background:linear-gradient(90deg,#000080,#1084d0); }
+  #page-cards .cs-dialog-body { padding:14px 16px 6px; display:flex; gap:12px; align-items:flex-start; font-size:12px; line-height:1.6; }
+  #page-cards .cs-dialog-body .ico { font-size:30px; line-height:1; }
+  #page-cards .cs-dialog-btns { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; padding:8px 12px 10px; }
+
+  #page-cards .cs-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; padding:10px 0 2px; }
+  #page-cards .cs-act { min-width:104px; font-size:14px; font-weight:700; padding:7px 12px; text-align:center; }
+  #page-cards .cs-act:active { padding:8px 11px 6px 13px; }
+  #page-cards .cs-act .ico { font-size:16px; }
+  #page-cards .cs-act.pass .ico { color:#c00000; }
+  #page-cards .cs-act.maybe .ico { color:#8a6d00; }
+  #page-cards .cs-act.want .ico { color:#d0006f; }
+  #page-cards .cs-act .k { display:block; font-size:9.5px; font-weight:400; color:#404040; margin-top:1px; }
+  #page-cards .cs-act:disabled .k { color:#808080; }
+  @media (max-width:520px){ #page-cards .cs-actions { flex-wrap:nowrap; gap:5px; } #page-cards .cs-act { min-width:0; flex:1; font-size:12px; padding:8px 2px; } #page-cards .cs-act:active { padding:9px 1px 7px 3px; } #page-cards .cs-act .k { display:none; } }
+
+  #page-cards .cs-prog-top { display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; }
+  #page-cards .cs-progress { height:18px; padding:2px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040; }
+  #page-cards .cs-progress div { height:100%; width:0; background:repeating-linear-gradient(90deg,#000080 0 9px,transparent 9px 11px); transition:width .2s; }
+  #page-cards .cs-tally { display:flex; justify-content:space-between; gap:6px; margin-top:7px; font-size:11px; }
+  #page-cards .cs-tally .t-want b { color:#d0006f; }
+  #page-cards .cs-tally .t-pass b { color:#c00000; }
+  #page-cards .cs-tally .t-maybe b { color:#8a6d00; }
+
+  #page-cards .cs-name { font-family:'VT323',monospace; font-size:24px; line-height:1.05; color:#000080; letter-spacing:.5px; word-break:break-word; }
+  #page-cards .cs-line { margin-top:5px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040; padding:3px 5px; font-size:10.5px; word-break:break-all; max-height:66px; overflow:auto; }
+  #page-cards .cs-info { width:100%; border-collapse:collapse; margin-top:6px; font-size:11px; }
+  #page-cards .cs-info th { text-align:left; font-weight:400; color:#404040; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap; width:1%; }
+  #page-cards .cs-info td { padding:2px 0; vertical-align:top; word-break:break-word; }
+  #page-cards .cs-info .price { font-weight:700; color:#006000; }
+  #page-cards .cs-warn { color:#a00000; }
+  #page-cards .cs-prints { margin-top:8px; }
+  #page-cards .cs-prints-lbl { font-size:11px; margin-bottom:4px; }
+  #page-cards .cs-thumbs { display:flex; gap:4px; overflow-x:auto; padding-bottom:3px; }
+  #page-cards .cs-thumb { flex:0 0 auto; width:46px; aspect-ratio:63 / 88; padding:0; cursor:pointer; background:#10103a; border:2px solid transparent; outline:1px solid #808080; position:relative; overflow:hidden; }
+  #page-cards .cs-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  #page-cards .cs-thumb span { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; }
+  #page-cards .cs-thumb.sel { border-color:#000080; outline-color:#000; }
+
+  #page-cards .cs-wl-head { display:flex; justify-content:space-between; gap:6px; font-size:11px; margin-bottom:4px; }
+  #page-cards .cs-wl-head b { color:#006000; }
+  #page-cards .cs-wl { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf; padding:2px; height:230px; overflow-y:auto; }
+  #page-cards .cs-wl-empty { color:#808080; font-size:11px; padding:8px 6px; line-height:1.5; }
+  #page-cards .cs-wl-row { display:flex; align-items:center; gap:6px; padding:2px 3px; cursor:pointer; }
+  #page-cards .cs-wl-row:hover { background:#000080; color:#fff; }
+  #page-cards .cs-wl-row:hover .sub { color:#c9d3ff; }
+  #page-cards .cs-wl-row img, #page-cards .cs-wl-row .noimg { width:24px; height:33px; object-fit:cover; flex-shrink:0; background:#10103a; }
+  #page-cards .cs-wl-row .txt { flex:1; min-width:0; }
+  #page-cards .cs-wl-row .nm { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-cards .cs-wl-row .sub { font-size:10px; color:#606060; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-cards .cs-wl-row .x { flex-shrink:0; font-family:inherit; font-size:10px; line-height:1; width:18px; height:16px; padding:0; cursor:pointer; background:#c0c0c0; color:#000; border:1px solid; border-color:#fff #000 #000 #fff; }
+
+  #page-cards .cs-statusbar { display:flex; gap:2px; padding:2px; border-top:1px solid #808080; box-shadow:inset 0 1px 0 #fff; }
+  #page-cards .cs-cell { border:1px solid; border-color:#808080 #fff #fff #808080; padding:2px 6px; font-size:11px; white-space:nowrap; }
+  #page-cards .cs-cell.grow { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  #page-cards .cs-cell.cs-net { color:#a00000; font-weight:700; }
+  @media (max-width:700px){ #page-cards .cs-cell.hide-sm { display:none; } }
+
+  #page-cards .cs-lightbox { position:fixed; inset:0; z-index:9500; background:rgba(0,0,20,.86); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:20px; cursor:zoom-out; }
+  #page-cards .cs-lightbox img { max-width:100%; max-height:calc(100vh - 80px); border-radius:18px / 13px; box-shadow:0 20px 60px rgba(0,0,0,.7); }
+  #page-cards .cs-lb-cap { color:#fff; font-size:12px; text-align:center; }
+  #page-cards .cs-dropveil { position:fixed; inset:48px 0 0 0; z-index:9050; display:none; align-items:center; justify-content:center; background:rgba(0,0,128,.14); pointer-events:none; }
+  #page-cards .cs-dropveil.show { display:flex; }
+  #page-cards .cs-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#ffffe1; border:1px solid #000; padding:7px 14px; font-size:11px; color:#000; pointer-events:none; opacity:0; transition:all .3s; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:9999; max-width:90vw; }
+  #page-cards .cs-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  @media (prefers-reduced-motion: reduce){ #page-cards .cs-card, #page-cards .cs-face img, #page-cards .cs-progress div { transition:none !important; } }
 </style>
 </head>
 <body>
@@ -907,6 +1067,7 @@
   <button class="tab-btn" data-page="box">&#128230; Box Dieline</button>
   <button class="tab-btn" data-page="chess">&#9822; Chess Set</button>
   <button class="tab-btn" data-page="scaler">&#9878; Chess Scaler</button>
+  <button class="tab-btn" data-page="cards">&#9829; Card Swiper</button>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -999,10 +1160,18 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <div class="home-card" data-goto="cards">
+          <div class="hc-icon">&#9829;</div>
+          <div>
+            <div class="hc-name">CARD SWIPER</div>
+            <div class="hc-desc">A dating app for expensive cardboard. Paste a deckbuy list of Pok&eacute;mon cards, swipe right on the ones you want, and save the keepers as a deckbuy-ready .txt wishlist.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">9 PROGRAMS LOADED</span>
+      <span class="home-status-cell">10 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -1820,6 +1989,147 @@
   <div class="sc-toast" id="scToast"></div>
 </div>
 
+<!-- ═══════════════════════════════════ PAGE 10: CARD SWIPER ═══════════════════════════════════ -->
+<div id="page-cards" class="tool-page">
+  <div class="cs-app">
+    <div class="cs-title-bar">
+      <div class="title-bar-text"><span class="cs-title-icon">&#9829;</span>Card Swiper &mdash; SWIPE.EXE</div>
+      <div class="cs-title-buttons"><div>_</div><div>&#9633;</div><div>&times;</div></div>
+    </div>
+    <div class="cs-toolbar">
+      <button class="cs-btn" id="csNew" title="Load a different deckbuy list">&#128194; New list&hellip;</button>
+      <button class="cs-btn" id="csBack" hidden>&#9664; Back to the stack</button>
+      <span class="cs-tb-sep"></span>
+      <button class="cs-btn" id="csCopy" disabled title="Copy the wishlist to the clipboard in deckbuy format">&#128203; Copy</button>
+      <button class="cs-btn default" id="csExport" disabled title="Download the cards you swiped right on as a deckbuy .txt">&#128190; Save wishlist (.txt)</button>
+      <input type="file" id="csFile" accept=".txt,.dek,.list,text/plain" hidden>
+    </div>
+
+    <div class="cs-loader" id="csLoader">
+      <div>
+        <fieldset class="cs-group">
+          <legend>Paste a deckbuy list</legend>
+          <textarea class="cs-field cs-paste" id="csPaste" spellcheck="false" autocomplete="off" aria-label="Deckbuy list" placeholder="One card per line, in deckbuy format:
+
+1 Charizard ex (Obsidian Flames) 223
+2x Pikachu (SVI 025)
+1 Mew ex MEW 151
+1 Pikachu (base1-58) | Pikachu (xy12-35)
+// comments, blank lines and headers like Pok&eacute;mon: 13 are fine"></textarea>
+          <div class="cs-row">
+            <button class="cs-btn default" id="csStart">&#9654; Start swiping</button>
+            <button class="cs-btn" id="csOpen">&#128194; Open .txt&hellip;</button>
+            <button class="cs-btn" id="csSample">Load sample</button>
+            <span class="cs-paste-info" id="csPasteInfo"></span>
+          </div>
+        </fieldset>
+      </div>
+      <div>
+        <fieldset class="cs-group">
+          <legend>How it works</legend>
+          <ol class="cs-howto">
+            <li>Paste or open a list. You can also drop a .txt anywhere on this page.</li>
+            <li>Swipe <b>right</b> on cards you want, <b>left</b> to pass, <b>up</b> for maybe. Maybes come back for a second look at the end.</li>
+            <li>Hit <b>Save wishlist</b> to get a .txt of every line you swiped right on, copied exactly from your list and ready for deckbuy.</li>
+          </ol>
+          <div class="cs-keys">
+            <span><span class="cs-kbd">&rarr;</span><span class="cs-kbd">D</span></span><span>Want</span>
+            <span><span class="cs-kbd">&larr;</span><span class="cs-kbd">A</span></span><span>Pass</span>
+            <span><span class="cs-kbd">&uarr;</span><span class="cs-kbd">W</span></span><span>Maybe</span>
+            <span><span class="cs-kbd">Z</span><span class="cs-kbd">Bksp</span></span><span>Undo</span>
+            <span><span class="cs-kbd">Space</span></span><span>Full-size image</span>
+            <span><span class="cs-kbd">&darr;</span><span class="cs-kbd">P</span></span><span>Next printing (on <b>|</b> lines)</span>
+            <span><span class="cs-kbd">T</span></span><span>Open on TCGplayer</span>
+          </div>
+          <div class="cs-note">Progress saves in this browser, so a long list can take a few sittings. Your list stays on your computer. Only card lookups go out, to the free Pok&eacute;mon TCG API.</div>
+        </fieldset>
+        <fieldset class="cs-group">
+          <legend>Options</legend>
+          <label class="cs-check"><input type="checkbox" id="csHires" checked> High-res card images</label>
+          <label class="cs-lbl" for="csKey">Pok&eacute;mon TCG API key (optional)</label>
+          <input class="cs-field" id="csKey" type="password" autocomplete="off" spellcheck="false" placeholder="Not needed for most lists">
+          <div class="cs-note">A free key from <a href="https://dev.pokemontcg.io/" target="_blank" rel="noopener">dev.pokemontcg.io</a> raises the lookup rate limit. It helps with lists over about 1,000 cards. The key stays in this browser.</div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="cs-body" id="csSwiper" hidden>
+      <div class="cs-main">
+        <div class="cs-stage" id="csStage">
+          <div class="cs-deck" id="csDeck"></div>
+          <div class="cs-stage-hint" id="csHint">Drag the card, or use the buttons. Click it for full size.</div>
+          <div class="cs-done" id="csDone" hidden>
+            <div class="cs-dialog" role="dialog" aria-labelledby="csDoneTitle">
+              <div class="cs-dialog-title" id="csDoneTitle">Swipe complete</div>
+              <div class="cs-dialog-body">
+                <span class="ico">&#127881;</span>
+                <div><b id="csDoneHead">That's the whole stack.</b><br><span id="csDoneStats"></span></div>
+              </div>
+              <div class="cs-dialog-btns">
+                <button class="cs-btn" id="csReview">Review maybes</button>
+                <button class="cs-btn default" id="csDoneSave">&#128190; Save wishlist</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cs-actions">
+          <button class="cs-btn cs-act pass" id="csPass" aria-label="Pass"><span class="ico">&#10006;</span> Pass<span class="k">&larr; / A</span></button>
+          <button class="cs-btn cs-act maybe" id="csMaybe" aria-label="Maybe"><span class="ico">?</span> Maybe<span class="k">&uarr; / W</span></button>
+          <button class="cs-btn cs-act want" id="csWant" aria-label="Want"><span class="ico">&#9829;</span> Want<span class="k">&rarr; / D</span></button>
+          <button class="cs-btn cs-act undo" id="csUndo" aria-label="Undo"><span class="ico">&#8630;</span> Undo<span class="k">Z / Bksp</span></button>
+        </div>
+      </div>
+      <div class="cs-side">
+        <fieldset class="cs-group">
+          <legend>Progress</legend>
+          <div class="cs-prog-top"><span id="csPosTxt">&mdash;</span><span id="csPct">0%</span></div>
+          <div class="cs-progress"><div id="csBar"></div></div>
+          <div class="cs-tally">
+            <span class="t-want">&#9829; <b id="csNWant">0</b> want</span>
+            <span class="t-pass">&#10006; <b id="csNPass">0</b> pass</span>
+            <span class="t-maybe">? <b id="csNMaybe">0</b> maybe</span>
+          </div>
+        </fieldset>
+        <fieldset class="cs-group">
+          <legend>This card</legend>
+          <div class="cs-name" id="csName">&mdash;</div>
+          <div class="cs-line" id="csLine" title="The line from your list, exactly as it will be exported"></div>
+          <table class="cs-info"><tbody id="csInfo"></tbody></table>
+          <div class="cs-prints" id="csPrints" hidden>
+            <div class="cs-prints-lbl" id="csPrintsLbl"></div>
+            <div class="cs-thumbs" id="csThumbs"></div>
+          </div>
+          <div class="cs-row">
+            <a class="cs-btn cs-btn-sm" id="csTcg" href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGplayer &#8599;</a>
+            <button class="cs-btn cs-btn-sm" id="csZoom">&#128269; Full size</button>
+          </div>
+        </fieldset>
+        <fieldset class="cs-group">
+          <legend>Wishlist</legend>
+          <div class="cs-wl-head"><span id="csWlCount">Empty</span><span id="csWlTotal"></span></div>
+          <div class="cs-wl" id="csWl"></div>
+          <div class="cs-note">Click a row to see the card, or &times; to take it off the list. Totals use TCGplayer market prices for the cheapest printing on each line.</div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="cs-statusbar">
+      <span class="cs-cell hide-sm" id="csStFile">No list</span>
+      <span class="cs-cell" id="csStPos">0 / 0</span>
+      <span class="cs-cell cs-net" id="csStNet" hidden title="The Pok&eacute;mon TCG API isn't answering. Images from the card CDN still load, and names always show.">&#9888; Lookups failing</span>
+      <span class="cs-cell grow" id="csStMsg">Paste a deckbuy list or drop a .txt file to start</span>
+    </div>
+  </div>
+  <div class="cs-lightbox" id="csLightbox" hidden><img id="csLbImg" alt=""><div class="cs-lb-cap" id="csLbCap"></div></div>
+  <div class="cs-dropveil" id="csVeil">
+    <div class="cs-dialog">
+      <div class="cs-dialog-title">Load list</div>
+      <div class="cs-dialog-body"><span class="ico">&#128194;</span><span>Drop a deckbuy <b>.txt</b> list to start swiping.</span></div>
+    </div>
+  </div>
+  <div class="cs-toast" id="csToast" role="status" aria-live="polite"></div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -1837,7 +2147,7 @@ tabBtns.forEach(btn => {
     btn.scrollIntoView({ block:'nearest', inline:'nearest' });
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08', scaler:'#008080' };
+    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08', scaler:'#008080', cards:'#008080' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -5126,6 +5436,1001 @@ try {
   refresh();
   if (page.classList.contains('active')) start();
 
+})();
+// ═══════════════════════════════════════════════════════════════
+// PAGE 10: CARD SWIPER — swipe through a deckbuy list, export the keepers
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  const page = document.getElementById('page-cards');
+  if (!page) return;
+  const $ = id => document.getElementById(id);
+  const API = 'https://api.pokemontcg.io/v2/';
+  const IMG = 'https://images.pokemontcg.io/';
+  const TCGDEX = 'https://api.tcgdex.net/v2/en/';
+  const SELECT = 'id,name,number,rarity,artist,set,images,tcgplayer';
+  const LS = { text:'cardswiper.text.v1', session:'cardswiper.session.v1', cache:'cardswiper.cache.v1', sets:'cardswiper.sets.v1', opts:'cardswiper.opts.v1' };
+  const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  const lsGet = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const money = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+  // ---------------------------------------------------------------- deckbuy list parsing
+  // Same rules as deckbuy: qty prefix (4, 4x) or suffix (x4), optional "(set) number" hints,
+  // PTCGL "Name SET 123", [COND] tags, *F* / foil / holo, "|" between interchangeable printings,
+  // // comments, blank lines and section headers. Identical lines merge, as deckbuy sums them.
+  const NUM = '#?[A-Za-z]{0,6}\\d+[A-Za-z]?(?:\\/[A-Za-z]*\\d+)?';            // 125, 025/198, TG01, SWSH001
+  const RE_PAREN = new RegExp('^(.*?)\\s*\\(([^()]*)\\)\\s*(' + NUM + ')?\\s*$');
+  const RE_IDISH = new RegExp('^([A-Za-z0-9.]+)-(' + NUM + ')$');              // neo4-118, sv3pt5-25
+  const RE_SETNUM = new RegExp('^(.+?)\\s+(' + NUM + ')$');                    // SVI 025, Obsidian Flames 81
+  const RE_PTCGL = new RegExp('^(.*\\S)\\s+([A-Z][A-Z0-9]{1,4}(?:-[A-Z0-9]{1,4})?)\\s+(' + NUM + ')$');
+  const RE_TRAIL = new RegExp('^(.*\\S)\\s+(' + NUM + ')$');
+  const RE_HEADER = /^(sideboard|maybeboard|main\s*deck|deck|commander|companions?|battlefields?|runes?|legends?|champions?|extra\s*deck|side\s*deck|pok[eé]mon|trainers?|energ(?:y|ies))\s*:?\s*\(?\d*\)?\s*$/i;
+  const RE_COUNTHEAD = /^[^\d:\/|\[\]()]{1,40}:\s*\(?\d*\)?\s*$/;
+  const RE_COND = /\[\s*([a-z ]+?)\s*\]/i;
+  const RE_FOIL = /\*f\*|\bfoil\b|\bholo\b/i;
+  const RE_FOIL_G = /\*f\*|\*?\bfoil\b\*?|\*?\bholo\b\*?/gi;
+
+  function parseAlt(t) {
+    t = t.replace(/\s+/g, ' ').trim();
+    const a = { name:t, paren:'', trail:'', code:'' };
+    let m;
+    if ((m = t.match(RE_PAREN)) && m[1]) { a.name = m[1].trim(); a.paren = m[2].trim(); a.trail = m[3] || ''; }
+    else if ((m = t.match(RE_PTCGL))) { a.name = m[1]; a.code = m[2]; a.trail = m[3]; }
+    else if ((m = t.match(RE_TRAIL))) { a.name = m[1]; a.trail = m[2]; }
+    a.key = [a.name, a.paren, a.code, a.trail].join('|').toLowerCase();
+    return a;
+  }
+
+  function parseList(text) {
+    const list = [], byKey = new Map();
+    let section = '';
+    String(text || '').replace(/\r\n?/g, '\n').split('\n').forEach(raw => {
+      const s = raw.trim();
+      if (!s) return;
+      if (/^(\/\/|#)/.test(s)) {
+        const body = s.replace(/^(\/\/|#)\s*/, '');
+        if (body && !/^\d+\s*x?\s+\S/i.test(body)) section = s.startsWith('//') ? s : '// ' + body;   // a heading, not a commented-out card
+        return;
+      }
+      if (RE_HEADER.test(s) || RE_COUNTHEAD.test(s)) { section = '// ' + s.replace(/\s*:?\s*\(?\d*\)?\s*$/, ''); return; }
+      let qty = 1, rest = s, m;
+      if ((m = s.match(/^(\d+)\s*[xX]?\s+(\S.*)$/)) || (m = s.match(/^(\d+)[xX](\S.*)$/))) { qty = +m[1]; rest = m[2]; }
+      else if ((m = s.match(/^(.*\S)\s+[xX](\d+)$/))) { rest = m[1]; qty = +m[2]; }
+      if (!qty) return;
+      let cond = '', foil = false;
+      const cm = rest.match(RE_COND);
+      if (cm) { cond = cm[1].toUpperCase(); rest = rest.replace(RE_COND, ' '); }
+      if (RE_FOIL.test(rest)) { foil = true; rest = rest.replace(RE_FOIL_G, ' '); }
+      const alts = rest.split('|').map(parseAlt).filter(a => a.name);
+      if (!alts.length) return;
+      const key = alts.map(a => a.key).join('||') + '#' + cond + (foil ? '#F' : '');
+      const dup = byKey.get(key);
+      if (dup) { dup.qty += qty; dup.lines.push(s); return; }
+      const it = { qty, alts, cond, foil, lines:[s], section };
+      byKey.set(key, it);
+      list.push(it);
+    });
+    return list;
+  }
+
+  // ---------------------------------------------------------------- set lookup (codes, names, ids)
+  // Fallback for when the live set list can't be fetched. Live data from the API always wins.
+  const FALLBACK_SETS = (
+    'base1|Base;base2|Jungle;base3|Fossil;base4|Base Set 2;base5|Team Rocket;gym1|Gym Heroes;gym2|Gym Challenge;' +
+    'neo1|Neo Genesis;neo2|Neo Discovery;neo3|Neo Revelation;neo4|Neo Destiny;base6|Legendary Collection;' +
+    'xy1|XY|XY;xy2|Flashfire|FLF;xy3|Furious Fists|FFI;xy4|Phantom Forces|PHF;xy5|Primal Clash|PRC;xy6|Roaring Skies|ROS;' +
+    'xy7|Ancient Origins|AOR;xy8|BREAKthrough|BKT;xy9|BREAKpoint|BKP;g1|Generations|GEN;xy10|Fates Collide|FCO;' +
+    'xy11|Steam Siege|STS;xy12|Evolutions|EVO;xyp|XY Black Star Promos|PR-XY;' +
+    'sm1|Sun & Moon|SUM;sm2|Guardians Rising|GRI;sm3|Burning Shadows|BUS;sm35|Shining Legends|SLG;sm4|Crimson Invasion|CIN;' +
+    'sm5|Ultra Prism|UPR;sm6|Forbidden Light|FLI;sm7|Celestial Storm|CES;sm75|Dragon Majesty|DRM;sm8|Lost Thunder|LOT;' +
+    'sm9|Team Up|TEU;det1|Detective Pikachu|DET;sm10|Unbroken Bonds|UNB;sm11|Unified Minds|UNM;sm115|Hidden Fates|HIF;' +
+    'sma|Shiny Vault|HIF;sm12|Cosmic Eclipse|CEC;smp|SM Black Star Promos|PR-SM;' +
+    'swsh1|Sword & Shield|SSH;swsh2|Rebel Clash|RCL;swsh3|Darkness Ablaze|DAA;swsh35|Champion\'s Path|CPA;swsh4|Vivid Voltage|VIV;' +
+    'swsh45|Shining Fates|SHF;swsh45sv|Shining Fates Shiny Vault|SHF;swsh5|Battle Styles|BST;swsh6|Chilling Reign|CRE;' +
+    'swsh7|Evolving Skies|EVS;cel25|Celebrations|CEL;cel25c|Celebrations: Classic Collection|CEL;swsh8|Fusion Strike|FST;' +
+    'swsh9|Brilliant Stars|BRS;swsh9tg|Brilliant Stars Trainer Gallery|BRS;swsh10|Astral Radiance|ASR;' +
+    'swsh10tg|Astral Radiance Trainer Gallery|ASR;pgo|Pokémon GO|PGO;swsh11|Lost Origin|LOR;swsh11tg|Lost Origin Trainer Gallery|LOR;' +
+    'swsh12|Silver Tempest|SIT;swsh12tg|Silver Tempest Trainer Gallery|SIT;swsh12pt5|Crown Zenith|CRZ;' +
+    'swsh12pt5gg|Crown Zenith Galarian Gallery|CRZ;swshp|SWSH Black Star Promos|PR-SW;' +
+    'sv1|Scarlet & Violet|SVI|Scarlet & Violet;sv2|Paldea Evolved|PAL;sv3|Obsidian Flames|OBF;sv3pt5|151|MEW|Scarlet & Violet;' +
+    'sv4|Paradox Rift|PAR;sv4pt5|Paldean Fates|PAF;sv5|Temporal Forces|TEF;sv6|Twilight Masquerade|TWM;sv6pt5|Shrouded Fable|SFA;' +
+    'sv7|Stellar Crown|SCR;sv8|Surging Sparks|SSP;sv8pt5|Prismatic Evolutions|PRE;sv9|Journey Together|JTG;sv10|Destined Rivals|DRI;' +
+    'svp|Scarlet & Violet Black Star Promos|PR-SV;sve|Scarlet & Violet Energies|SVE'
+  ).split(';').map(r => { const [id, name, ptcgoCode = '', series = ''] = r.split('|'); return { id, name, ptcgoCode, series }; });
+  const CODE_ALIAS = { 'SVP':'svp', 'PR-SV':'svp', 'SWSHP':'swshp', 'PR-SW':'swshp', 'SMP':'smp', 'PR-SM':'smp', 'XYP':'xyp', 'PR-XY':'xyp', 'BWP':'bwp', 'PR-BLW':'bwp', 'SVE':'sve', 'CEL':'cel25', 'PGO':'pgo' };
+  const NAME_ALIAS = { 'baseset':'base1', 'sm':'sm1', 'shinyvault':'sma', 'hiddenfatesshinyvault':'sma', 'celebrations25thanniversary':'cel25' };
+  const sets = { byId:{}, byCode:{}, byName:{} };
+  let setsFinal = false, setsReady = null;
+  const normName = s => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/pok[eé]mon/g, 'pokemon').replace(/[^a-z0-9]/g, '');
+  const stripPrefix = s => String(s).replace(/^[A-Za-z]{1,5}\d*(?:\.\d+)?[a-z]?\s*[:\-–—]\s*/, '');
+  const isSubset = id => /\d(tg|gg|sv|c)$/.test(id) || id === 'sma';
+
+  function indexSets(list) {
+    const byId = {}, byCode = {}, byName = {};
+    list.forEach(s => {
+      const id = String(s.id).toLowerCase();
+      byId[id] = s;
+      const c = String(s.ptcgoCode || '').toUpperCase();
+      if (c && (!byCode[c] || (isSubset(byCode[c]) && !isSubset(id)))) byCode[c] = id;
+      [s.name, (s.series || '') + ' ' + s.name].forEach(n => {
+        n = normName(n);
+        if (n && (!byName[n] || (isSubset(byName[n]) && !isSubset(id)))) byName[n] = id;
+      });
+    });
+    Object.keys(CODE_ALIAS).forEach(c => { if (!byCode[c] && byId[CODE_ALIAS[c]]) byCode[c] = CODE_ALIAS[c]; });
+    sets.byId = byId; sets.byCode = byCode; sets.byName = byName;
+  }
+
+  function setFromTok(tok) {
+    const t = String(tok || '').trim();
+    if (!t) return '';
+    const low = t.toLowerCase(), up = t.toUpperCase();
+    if (sets.byId[low]) return low;
+    if (sets.byCode[up]) return sets.byCode[up];
+    for (const v of [t, stripPrefix(t)]) {
+      const n = normName(v);
+      if (sets.byName[n]) return sets.byName[n];
+      if (NAME_ALIAS[n] && sets.byId[NAME_ALIAS[n]]) return NAME_ALIAS[n];
+      if (n.endsWith('baseset') && sets.byName[n.slice(0, -7)]) return sets.byName[n.slice(0, -7)];   // "Scarlet & Violet Base Set"
+    }
+    return '';
+  }
+
+  function normNum(n) {
+    n = String(n).replace(/^#/, '').split('/')[0].trim();
+    return /^\d+$/.test(n) ? String(parseInt(n, 10)) : n.toUpperCase();
+  }
+  function numKey(n) {                                                           // compare 025 = 25, SV001 = SV1
+    const s = String(n || '').replace(/^#/, '').split('/')[0].trim().toUpperCase();
+    const m = s.match(/^([A-Z]*)0*(\d+)([A-Z]?)$/);
+    return m ? m[1] + m[2] + m[3] : s;
+  }
+  function subsetFor(sid, num) {                                                 // TG / GG / Shiny Vault numbers live in their own sets
+    const pick = id => (sets.byId[id] ? id : sid);
+    if (/^TG\d+$/.test(num) && /^swsh(9|10|11|12)$/.test(sid)) return pick(sid + 'tg');
+    if (/^GG\d+$/.test(num) && sid === 'swsh12pt5') return pick('swsh12pt5gg');
+    if (/^SV\d+$/.test(num) && sid === 'swsh45') return pick('swsh45sv');
+    if (/^SV\d+$/.test(num) && sid === 'sm115') return pick('sma');
+    return sid;
+  }
+
+  // Turn a parsed printing into { name, searchName, setId, num, id } once sets are known.
+  function derive(a) {
+    if (a.d) return a.d;
+    const d = { name:a.name, setId:'', num:'', id:'' };
+    let num = a.trail;
+    if (a.code) {
+      const sid = setFromTok(a.code);
+      if (sid) d.setId = sid; else d.name = a.name + ' ' + a.code;               // "Charizard VMAX 20": VMAX isn't a set
+    } else if (a.paren) {
+      let sid = setFromTok(a.paren);
+      if (!sid && !num) {
+        const m = a.paren.match(RE_IDISH) || a.paren.match(RE_SETNUM);
+        if (m) { num = m[2]; sid = setFromTok(m[1]); }
+      }
+      if (sid) d.setId = sid;
+      else if (!/\d/.test(a.paren)) d.name = a.name + ' (' + a.paren + ')';    // a qualifier like (Delta Species)
+    }
+    if (num) d.num = normNum(num);
+    if (d.setId && d.num) { d.setId = subsetFor(d.setId, d.num); d.id = d.setId + '-' + d.num; }
+    d.searchName = d.name.replace(/\([^)]*\)/g, ' ').replace(/["\\*?:]/g, '').replace(/\s+/g, ' ').trim() || d.name;
+    if (setsFinal) a.d = d;
+    return d;
+  }
+  const guessUrls = d => d && d.id ? { sm:IMG + d.setId + '/' + d.num + '.png', lg:IMG + d.setId + '/' + d.num + '_hires.png' } : null;
+
+  // ---------------------------------------------------------------- Pokémon TCG API (queued, rate-limit aware)
+  const opts = Object.assign({ hires:true, key:'' }, lsGet(LS.opts) || {});
+  const queue = [];
+  let active = 0, blockedUntil = 0, lastTrouble = 0;
+  function api(path, timeout) {
+    return new Promise((resolve, reject) => { queue.push({ path, timeout:timeout || 15000, resolve, reject }); pump(); });
+  }
+  function pump() {
+    while (active < 3 && queue.length) {
+      const job = queue.shift();
+      active++;
+      runJob(job).then(() => { active--; pump(); });
+    }
+  }
+  async function runJob(job) {
+    for (let attempt = 0; ; attempt++) {
+      const wait = blockedUntil - Date.now();
+      if (wait > 0) await sleep(wait);
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), job.timeout);
+      try {
+        const headers = opts.key ? { 'X-Api-Key':opts.key } : {};
+        const res = await fetch(API + job.path, { headers, signal:ctl.signal });
+        if ((res.status === 429 || res.status >= 500) && attempt < 3) { blockedUntil = Date.now() + 1500 * 2 ** attempt; continue; }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        job.resolve(await res.json());
+        $('csStNet').hidden = true;
+      } catch (e) {
+        noteTrouble();
+        job.reject(e);
+      } finally { clearTimeout(timer); }
+      return;
+    }
+  }
+  function noteTrouble() {
+    $('csStNet').hidden = false;
+    if (Date.now() - lastTrouble < 30000) return;
+    lastTrouble = Date.now();
+    setMsg('Card lookups are failing right now. Images may still load; names always show.');
+  }
+
+  function loadSets() {
+    if (setsReady) return setsReady;
+    const cached = lsGet(LS.sets);
+    if (cached && cached.list && cached.list.length > 50) {
+      indexSets(cached.list); setsFinal = true;
+      if (Date.now() - cached.ts > 3 * 864e5) fetchSets();
+      return (setsReady = Promise.resolve());
+    }
+    indexSets(FALLBACK_SETS);
+    setsReady = fetchSets().then(() => { setsFinal = true; });
+    return setsReady;
+  }
+  function fetchSets() {
+    return api('sets?pageSize=250&select=id,name,series,ptcgoCode', 10000).then(j => {
+      const list = (j.data || []).map(s => ({ id:s.id, name:s.name, series:s.series || '', ptcgoCode:s.ptcgoCode || '' }));
+      if (list.length > 50) { indexSets(list); lsSet(LS.sets, { ts:Date.now(), list }); }
+    }).catch(() => {});
+  }
+
+  // ---------------------------------------------------------------- card cache + lookups
+  const cache = { cards:{}, q:{} };
+  (function () {
+    const c = lsGet(LS.cache), cutoff = Date.now() - 7 * 864e5;
+    if (!c) return;
+    for (const k in c.cards || {}) if (c.cards[k] && c.cards[k].t > cutoff) cache.cards[k] = c.cards[k];
+    for (const k in c.q || {}) if (c.q[k] && c.q[k].t > cutoff) cache.q[k] = c.q[k];
+  })();
+  let cacheTimer = 0;
+  function saveCacheSoon() {
+    clearTimeout(cacheTimer);
+    cacheTimer = setTimeout(() => {
+      const keys = Object.keys(cache.cards);
+      if (keys.length > 4000) keys.sort((x, y) => cache.cards[x].t - cache.cards[y].t).slice(0, keys.length - 3000).forEach(k => delete cache.cards[k]);
+      if (!lsSet(LS.cache, cache)) { cache.q = {}; Object.keys(cache.cards).slice(0, keys.length >> 1).forEach(k => delete cache.cards[k]); lsSet(LS.cache, cache); }
+    }, 1000);
+  }
+  function compact(c) {
+    const p = {}, tp = c.tcgplayer || {};
+    for (const k in tp.prices || {}) {
+      const v = tp.prices[k], m = v && (v.market != null ? v.market : v.mid != null ? v.mid : v.low);
+      if (m != null) p[k] = Math.round(m * 100) / 100;
+    }
+    const s = c.set || {}, im = c.images || {};
+    return { id:c.id, n:c.name, no:c.number, s:s.name || '', si:s.id || '', r:c.rarity || '', a:c.artist || '', sm:im.small || '', lg:im.large || '', u:tp.url || '', p, up:tp.updatedAt || '', t:Date.now() };
+  }
+  const putCard = c => { cache.cards[String(c.id).toLowerCase()] = c; saveCacheSoon(); return c; };
+  const cardById = id => id ? cache.cards[String(id).toLowerCase()] || null : null;
+  const nameOk = (c, d) => { const x = normName(c.n), y = normName(d.searchName); return !y || x.includes(y) || y.includes(x) || x.slice(0, 5) === y.slice(0, 5); };
+  const qKey = d => [d.searchName, d.setId, d.num].join('|').toLowerCase();
+
+  // Exact printings are fetched 30 at a time by id, ahead of where you are in the stack.
+  const pending = new Map(), missing = new Set();
+  function fetchIds(ids) {
+    ids = ids.filter(id => { const k = id.toLowerCase(); return !cache.cards[k] && !pending.has(k) && !missing.has(k); });
+    if (!ids.length) return;
+    const q = ids.map(id => 'id:"' + id + '"').join(' OR ');
+    const p = api('cards?pageSize=250&select=' + SELECT + '&q=' + encodeURIComponent(q))
+      .then(j => { (j.data || []).forEach(c => putCard(compact(c))); ids.forEach(id => { if (!cardById(id)) missing.add(id.toLowerCase()); }); })
+      .catch(() => {})
+      .then(() => ids.forEach(id => pending.delete(id.toLowerCase())));
+    ids.forEach(id => pending.set(id.toLowerCase(), p));
+  }
+  function prefetch(from) {
+    loadSets().then(() => {
+      const todo = [];
+      let urgent = false;
+      for (let i = Math.max(0, from), n = 0; i < items.length && n < 40; i++) {
+        if (S.dec[i] !== undefined) continue;
+        n++;
+        items[i].alts.forEach(a => {
+          const d = derive(a), k = d.id.toLowerCase();
+          if (d.id && !cache.cards[k] && !pending.has(k) && !missing.has(k)) { todo.push(d.id); if (n <= 4) urgent = true; }
+        });
+      }
+      if (!urgent && todo.length < 20) return;
+      for (let k = 0; k < todo.length; k += 30) fetchIds(todo.slice(k, k + 30));
+    });
+  }
+
+  // Resolve one printing to { card, mode, ids }. mode: exact | set | any | approx | none.
+  // Resolves to null only when the API can't be reached, so it gets retried later.
+  function resolveAlt(a) {
+    if (a._r) return a._r;
+    const p = (async () => {
+      await loadSets();
+      const d = derive(a);
+      if (d.id) {
+        const k = d.id.toLowerCase();
+        if (!cache.cards[k] && !missing.has(k)) { fetchIds([d.id]); await pending.get(k); }
+        const c = cache.cards[k];
+        if (c && nameOk(c, d)) return { card:c, mode:'exact', ids:[c.id] };
+      }
+      return search(d);
+    })();
+    a._r = p;
+    p.then(r => { if (!r) delete a._r; });
+    return p;
+  }
+  const fromQ = h => { const ids = h.ids.filter(cardById); return { card:ids.length ? cardById(ids[0]) : null, mode:ids.length ? h.mode : 'none', ids }; };
+  const searching = new Map();
+  function search(d) {
+    const qk = qKey(d);
+    if (cache.q[qk]) return Promise.resolve(fromQ(cache.q[qk]));
+    if (searching.has(qk)) return searching.get(qk);
+    const run = q => api('cards?pageSize=120&orderBy=-set.releaseDate&select=' + SELECT + '&q=' + encodeURIComponent(q)).then(j => (j.data || []).map(compact));
+    const done = (list, mode) => { list.forEach(putCard); cache.q[qk] = { ids:list.map(c => c.id), mode, t:Date.now() }; saveCacheSoon(); return fromQ(cache.q[qk]); };
+    const numHit = c => numKey(c.no) === numKey(d.num);
+    const p = (async () => {
+      const nm = 'name:"' + d.searchName + '"';
+      const words = d.searchName.split(/[\s-]+/).filter(Boolean);
+      try {
+        let list;
+        if (d.setId) {
+          list = await run('set.id:' + d.setId + ' ' + nm);
+          if (d.num) list = list.filter(numHit);
+          if (list.length) return done(list.slice(0, 24), d.num ? 'exact' : 'set');
+        }
+        list = await run(nm);
+        if (!list.length && words.length > 1 && words.every(w => /^[a-z0-9é]+$/i.test(w))) list = await run('name:' + words.join('*'));
+        if (d.num) { const hit = list.filter(numHit); if (hit.length) return done(hit.slice(0, 24), 'exact'); }
+        if (list.length) return done(list.slice(0, 24), d.setId || d.num ? 'approx' : 'any');
+        return done([], 'none');
+      } catch (e) { return null; }
+    })();
+    searching.set(qk, p);
+    p.then(() => searching.delete(qk));
+    return p;
+  }
+
+  // Last resort for images when pokemontcg.io is down or doesn't know the card.
+  const tdCache = new Map();
+  const tdKey = s => String(s).toLowerCase().replace(/\.5$/, 'pt5').replace(/([a-z])0+(\d)/g, '$1$2');
+  function tcgdex(d) {
+    const k = qKey(d);
+    if (tdCache.has(k)) return tdCache.get(k);
+    const p = fetch(TCGDEX + 'cards?name=eq:' + encodeURIComponent(d.searchName))
+      .then(r => r.ok ? r.json() : [])
+      .then(list => {
+        list = (Array.isArray(list) ? list : []).filter(c => c && c.image);
+        const same = d.num ? list.filter(c => numKey(c.localId) === numKey(d.num)) : [];
+        const sk = d.setId ? tdKey(d.setId) : '';
+        const best = (sk && same.find(c => tdKey(String(c.id).replace(/-[^-]*$/, '')) === sk)) || same[0] || (!d.num && !d.setId ? list[list.length - 1] : null);
+        if (!best) return null;
+        return { card:{ id:'tcgdex-' + best.id, n:best.name, no:best.localId, s:'', si:'', r:'', a:'', sm:best.image + '/low.webp', lg:best.image + '/high.webp', u:'', p:{} }, mode:same.length ? 'exact' : 'any', ids:[] };
+      })
+      .catch(() => null);
+    tdCache.set(k, p);
+    return p;
+  }
+
+  // Best known card for a printing without waiting on the network (wishlist rows, totals).
+  function cardFor(a) {
+    const d = derive(a), c = cardById(d.id);
+    if (c && nameOk(c, d)) return c;
+    const h = cache.q[qKey(d)];
+    return h && h.ids.length ? cardById(h.ids[0]) : null;
+  }
+  function cheapest(c, foil) {
+    const e = Object.entries((c && c.p) || {});
+    if (!e.length) return null;
+    const f = foil ? e.filter(([k]) => /holo|foil/i.test(k)) : [];
+    return Math.min(...(f.length ? f : e).map(x => x[1]));
+  }
+  function linePrice(it) {
+    let best = null;
+    it.alts.forEach(a => { const v = cheapest(cardFor(a), it.foil); if (v != null && (best == null || v < best)) best = v; });
+    return best == null ? null : best * it.qty;
+  }
+  const VARIANT = { normal:'Normal', holofoil:'Holofoil', reverseHolofoil:'Reverse holo', '1stEditionHolofoil':'1st Ed. holo', '1stEditionNormal':'1st Edition', unlimitedHolofoil:'Unlimited holo', unlimited:'Unlimited' };
+
+  // ---------------------------------------------------------------- session
+  let S = null, items = [], cur = -1, topEl = null, underEl = null, started = false;
+  let view = { i:-1, alt:0, pick:null };
+  const deck = $('csDeck'), lb = $('csLightbox');
+
+  function save() {
+    if (!S) return;
+    lsSet(LS.session, { dec:S.dec, hist:S.hist, second:S.second, saved:S.saved, changed:S.changed, len:items.length });
+  }
+  function counts() { const c = { y:0, n:0, m:0 }; for (const k in S.dec) c[S.dec[k]]++; return c; }
+  function nextIndex(from) { for (let i = from || 0; i < items.length; i++) if (S.dec[i] === undefined) return i; return -1; }
+  const hasUnsaved = () => S && counts().y > 0 && S.changed > S.saved;
+
+  function startList(text, file) {
+    const parsed = parseList(text);
+    if (!parsed.length) { toast('No cards found in that list'); setMsg('No card lines found. Check the format: one card per line, like "1 Charizard ex (Obsidian Flames) 223".'); return false; }
+    if (S && S.text === text) { showSwiper(); return true; }          // same list: pick up where you left off
+    if (hasUnsaved() && !confirm('Start a new list? Your current wishlist has ' + counts().y + ' card' + (counts().y === 1 ? '' : 's') + ' you haven\'t saved yet.')) return false;
+    S = { text, file:file || 'Pasted list', dec:{}, hist:[], second:{}, saved:0, changed:0 };
+    items = parsed;
+    if (!lsSet(LS.text, { text, file:S.file })) toast('This list is too big to remember between visits. Save your wishlist before you leave.');
+    save();
+    showSwiper();
+    setMsg('Loaded ' + items.length + ' card' + (items.length === 1 ? '' : 's') + ' from ' + S.file);
+    return true;
+  }
+
+  function showSwiper() {
+    $('csLoader').hidden = true; $('csSwiper').hidden = false;
+    $('csBack').hidden = true; $('csNew').hidden = false;
+    $('csStFile').textContent = S.file;
+    started = true;
+    loadSets();
+    rebuild();
+  }
+  function showLoader() {
+    $('csSwiper').hidden = true; $('csLoader').hidden = false;
+    $('csNew').hidden = true; $('csBack').hidden = !(S && items.length);
+    closeLightbox();
+    $('csPaste').value = ''; pasteInfo();
+    $('csPaste').focus();
+  }
+
+  // ---------------------------------------------------------------- the stack
+  function makeCard(i) {
+    const it = items[i], el = document.createElement('div');
+    el.className = 'cs-card';
+    el.dataset.i = i;
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', it.alts[0].name);
+    el.innerHTML = '<div class="cs-face"><div class="cs-ph"><div class="cs-ph-name"></div><div class="cs-ph-sub"></div><div class="cs-ph-state"></div></div><img alt="" draggable="false"></div>' +
+      '<div class="cs-badges"></div><div class="cs-stamp want">WANT</div><div class="cs-stamp pass">PASS</div><div class="cs-stamp maybe">MAYBE</div>';
+    const b = [];
+    if (it.qty > 1) b.push('<span class="cs-badge">&times;' + it.qty + '</span>');
+    if (it.foil) b.push('<span class="cs-badge foil">FOIL</span>');
+    if (it.cond) b.push('<span class="cs-badge">[' + esc(it.cond) + ']</span>');
+    if (it.alts.length > 1) b.push('<span class="cs-badge">' + it.alts.length + ' printings</span>');
+    if (S.second[i]) b.push('<span class="cs-badge second">2nd look</span>');
+    el.querySelector('.cs-badges').innerHTML = b.join('');
+    paint(el, i);
+    return el;
+  }
+
+  // Load a card's image: guessed CDN url first (no API call), then the API's own images, hi-res last.
+  function paint(el, i) {
+    const it = items[i], v = view.i === i ? view : { alt:0, pick:null };
+    const a = it.alts[v.alt] || it.alts[0];
+    const tok = el._tok = {};
+    if (el._alt !== v.alt) el._base = undefined;      // same printing line: keep the lookup so the thumbnail strip doesn't flicker
+    el._alt = v.alt; el._q = 0; el._card = null; el._d = null;
+    const img = el.querySelector('img'), ph = el.querySelector('.cs-ph');
+    img.classList.remove('on'); img.removeAttribute('src');
+    ph.classList.remove('missing'); ph.style.visibility = '';
+    ph.querySelector('.cs-ph-name').textContent = a.name;
+    ph.querySelector('.cs-ph-sub').textContent = [a.paren || a.code, a.trail].filter(Boolean).join(' ');
+    ph.querySelector('.cs-ph-state').textContent = 'LOADING...';
+    const show = (url, q) => new Promise(res => {
+      if (!url) return res(false);
+      const im = new Image();
+      im.onload = () => { if (el._tok === tok && q >= el._q) { img.src = url; img.classList.add('on'); ph.style.visibility = 'hidden'; el._q = q; } res(true); };
+      im.onerror = () => res(false);
+      im.src = url;
+    });
+    (async () => {
+      await loadSets();
+      if (el._tok !== tok) return;
+      const d = el._d = derive(a), guess = guessUrls(d);
+      const picked = v.pick ? cardById(v.pick) : null;
+      const known = picked || cardFor(a);
+      const first = show(known ? known.sm : guess && guess.sm, 1);
+      let r = await resolveAlt(a);
+      if (el._tok !== tok) return;
+      if (!r || !r.card) { const t = await tcgdex(d); if (el._tok !== tok) return; if (t) r = Object.assign({}, t, { ids:r ? r.ids : [] }); }
+      el._base = r;
+      const card = el._card = picked || (r && r.card) || null;
+      if (el === topEl) renderInfo();
+      const okGuess = await first;
+      if (el._tok !== tok) return;
+      if (card) {
+        const ok = await show(card.sm, 2);
+        if (el._tok !== tok) return;
+        if (opts.hires && card.lg) show(card.lg, 3);
+        if (ok || okGuess) return;
+      } else if (okGuess) {
+        if (opts.hires && guess) show(guess.lg, 3);
+        return;
+      }
+      ph.classList.add('missing');
+      ph.querySelector('.cs-ph-state').textContent = r === null ? 'OFFLINE?' : 'NO IMAGE FOUND';
+    })();
+  }
+
+  function rebuild(enter) {
+    deck.querySelectorAll('.cs-card:not(.fly)').forEach(e => e.remove());
+    topEl = underEl = null;
+    advance(enter);
+  }
+  function advance(enter) {
+    const i = nextIndex(0);
+    if (i !== view.i || !topEl) view = { i, alt:0, pick:null };
+    cur = i;
+    if (i < 0) {
+      if (underEl) { underEl.remove(); underEl = null; }
+      topEl = null;
+      showDone(); updateAll();
+      return;
+    }
+    $('csDone').hidden = true;
+    if (underEl && +underEl.dataset.i === i) { topEl = underEl; underEl = null; topEl.classList.remove('under'); }
+    else { if (underEl) { underEl.remove(); underEl = null; } topEl = makeCard(i); deck.appendChild(topEl); }
+    attachDrag(topEl);
+    if (enter) enterAnim(topEl, enter);
+    const ni = nextIndex(i + 1);
+    if (ni >= 0) {
+      underEl = makeCard(ni); underEl.classList.add('under'); deck.insertBefore(underEl, deck.firstChild);
+      const nn = nextIndex(ni + 1);
+      if (nn >= 0) items[nn].alts.slice(0, 1).forEach(a => resolveAlt(a).then(r => { if (r && r.card) { new Image().src = opts.hires && r.card.lg ? r.card.lg : r.card.sm; } }));
+    }
+    prefetch(i);
+    updateAll();
+  }
+
+  function decide(kind) {
+    if (!S || cur < 0 || !topEl) return;
+    const i = cur, el = topEl;
+    S.hist.push({ i, prev:S.dec[i] === undefined ? null : S.dec[i] });
+    if (S.hist.length > 10000) S.hist.splice(0, S.hist.length - 10000);
+    S.dec[i] = kind;
+    S.changed = Date.now();
+    save();
+    topEl = null;
+    fling(el, kind);
+    advance();
+    const nm = items[i].alts[0].name;
+    setMsg(kind === 'y' ? '\u2665 Added ' + nm + ' to the wishlist' : kind === 'n' ? '\u2716 Passed on ' + nm : '? ' + nm + ' went in the maybe pile');
+  }
+
+  function undo() {
+    if (!S) return;
+    const h = S.hist.pop();
+    if (!h) { toast('Nothing to undo'); return; }
+    S.changed = Date.now();
+    if (h.review) {
+      h.review.forEach(i => { if (S.dec[i] === undefined) S.dec[i] = 'm'; delete S.second[i]; });
+      save(); rebuild(); setMsg('Maybe pile put back');
+      return;
+    }
+    const was = S.dec[h.i];
+    if (h.prev == null) delete S.dec[h.i]; else S.dec[h.i] = h.prev;
+    save();
+    const nm = items[h.i] ? items[h.i].alts[0].name : 'card';
+    if (S.dec[h.i] === undefined) { rebuild(was); setMsg('\u21B6 Back to ' + nm); }
+    else { updateAll(); setMsg('\u21B6 ' + nm + (S.dec[h.i] === 'y' ? ' is back on the wishlist' : ' restored')); }
+  }
+
+  function removeFromWishlist(i) {
+    if (S.dec[i] !== 'y') return;
+    S.hist.push({ i, prev:'y' });
+    S.dec[i] = 'n';
+    S.changed = Date.now();
+    save(); updateAll();
+    toast('Removed ' + items[i].alts[0].name + '. Undo puts it back.');
+  }
+
+  function reviewMaybes() {
+    const idx = Object.keys(S.dec).filter(k => S.dec[k] === 'm').map(Number);
+    if (!idx.length) return;
+    idx.forEach(i => { delete S.dec[i]; S.second[i] = 1; });
+    S.hist.push({ review:idx });
+    S.changed = Date.now();
+    save(); rebuild();
+    setMsg('Second look at ' + idx.length + ' maybe' + (idx.length === 1 ? '' : 's'));
+  }
+
+  // ---------------------------------------------------------------- swipe physics
+  const STAMP = { y:'want', n:'pass', m:'maybe' };
+  function setStamp(el, kind, o) {
+    el.querySelectorAll('.cs-stamp').forEach(s => { s.style.opacity = kind && s.classList.contains(STAMP[kind]) ? o : 0; });
+  }
+  function fling(el, kind) {
+    if (el._detach) el._detach();
+    el.classList.add('fly');
+    setStamp(el, kind, 1);
+    if (reduceMotion) { el.remove(); return; }
+    const w = deck.clientWidth || 300, h = deck.clientHeight || 420, at = el._drag || { x:0, y:0 };
+    const to = kind === 'y' ? [w * 1.9, at.y + 40, 28] : kind === 'n' ? [-w * 1.9, at.y + 40, -28] : [at.x, -h * 1.5, at.x * 0.05];
+    el.style.transition = 'transform .38s cubic-bezier(.2,.7,.3,1), opacity .38s ease-in';
+    requestAnimationFrame(() => { el.style.transform = 'translate(' + to[0] + 'px,' + to[1] + 'px) rotate(' + to[2] + 'deg)'; el.style.opacity = '0'; });
+    setTimeout(() => el.remove(), 430);
+  }
+  function enterAnim(el, kind) {
+    if (reduceMotion) return;
+    const w = deck.clientWidth || 300, h = deck.clientHeight || 420;
+    el.style.transition = 'none';
+    el.style.transform = kind === 'y' ? 'translate(' + w * 1.6 + 'px,30px) rotate(25deg)' : kind === 'n' ? 'translate(' + -w * 1.6 + 'px,30px) rotate(-25deg)' : 'translate(0,' + -h * 1.3 + 'px)';
+    el.getBoundingClientRect();
+    el.style.transition = 'transform .32s cubic-bezier(.2,.8,.3,1)';
+    el.style.transform = '';
+  }
+  function attachDrag(el) {
+    let pid = null, sx = 0, sy = 0, st = 0, moved = false, lx = 0, lt = 0, vx = 0;
+    const springBack = () => {
+      el.classList.remove('dragging');
+      el.style.transition = reduceMotion ? 'none' : 'transform .28s cubic-bezier(.3,1.5,.5,1)';
+      el.style.transform = ''; el._drag = null; setStamp(el, null, 0);
+    };
+    const down = e => {
+      if (e.button) return;
+      pid = e.pointerId; try { el.setPointerCapture(pid); } catch (err) {}
+      sx = lx = e.clientX; sy = e.clientY; st = lt = performance.now(); moved = false; vx = 0;
+      el.style.transition = 'none'; el.classList.add('dragging');
+    };
+    const move = e => {
+      if (e.pointerId !== pid) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy, now = performance.now();
+      if (!moved && Math.hypot(dx, dy) > 6) moved = true;
+      if (!moved) return;
+      if (now > lt) { vx = (e.clientX - lx) / (now - lt); lx = e.clientX; lt = now; }
+      el._drag = { x:dx, y:dy };
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + dx * 0.06 + 'deg)';
+      const up = -dy > Math.abs(dx);
+      setStamp(el, up ? 'm' : dx > 0 ? 'y' : 'n', Math.min(1, (up ? -dy : Math.abs(dx)) / 110));
+    };
+    const end = e => {
+      if (e.pointerId !== pid) return;
+      pid = null;
+      if (!moved) { springBack(); if (performance.now() - st < 500) openLightbox(); return; }
+      const d = el._drag || { x:0, y:0 }, T = Math.min(120, (deck.clientWidth || 300) * 0.33);
+      el.classList.remove('dragging');
+      if (-d.y > T && -d.y > Math.abs(d.x)) return decide('m');
+      if (d.x > T || (d.x > 40 && vx > 0.6)) return decide('y');
+      if (d.x < -T || (d.x < -40 && vx < -0.6)) return decide('n');
+      springBack();
+    };
+    const cancel = e => { if (e.pointerId === pid) { pid = null; springBack(); } };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', cancel);
+    el._detach = () => {
+      el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', end); el.removeEventListener('pointercancel', cancel);
+    };
+  }
+
+  // ---------------------------------------------------------------- side panel
+  function updateAll() {
+    if (!S) return;
+    renderInfo(); renderProgress(); renderWishlist();
+    const c = counts(), live = cur >= 0;
+    $('csPass').disabled = $('csMaybe').disabled = $('csWant').disabled = !live;
+    $('csUndo').disabled = !S.hist.length;
+    $('csExport').disabled = $('csCopy').disabled = !c.y;
+    $('csHint').hidden = !live || S.hist.length > 0;
+  }
+
+  function renderProgress() {
+    const total = items.length, done = Object.keys(S.dec).length, c = counts();
+    $('csPosTxt').textContent = cur >= 0 ? 'Card ' + Math.min(done + 1, total) + ' of ' + total : 'All ' + total + ' swiped';
+    const pct = total ? Math.floor(done / total * 100) : 0;
+    $('csPct').textContent = pct + '%';
+    $('csBar').style.width = pct + '%';
+    $('csNWant').textContent = c.y; $('csNPass').textContent = c.n; $('csNMaybe').textContent = c.m;
+    $('csStPos').textContent = done + ' / ' + total;
+  }
+
+  function renderInfo() {
+    const it = cur >= 0 ? items[cur] : null, tcg = $('csTcg');
+    if (!it || !topEl) {
+      $('csName').textContent = '\u2014'; $('csLine').textContent = ''; $('csInfo').innerHTML = '';
+      $('csPrints').hidden = true; tcg.classList.add('disabled'); $('csZoom').disabled = true;
+      $('csLine').hidden = true; printsSig = '';
+      return;
+    }
+    const a = it.alts[view.alt] || it.alts[0], c = topEl._card, r = topEl._base, d = topEl._d;
+    $('csName').textContent = (c && c.n) || a.name;
+    $('csLine').textContent = it.lines.join('\n');
+    $('csLine').hidden = false;
+    const rows = [];
+    rows.push(['Qty', esc(it.qty + (it.lines.length > 1 ? ' (from ' + it.lines.length + ' identical lines)' : ''))]);
+    if (c && c.s) rows.push(['Set', esc(c.s)]);
+    else if (a.paren || a.code) rows.push(['Set', esc(a.paren || a.code)]);
+    const no = (c && c.no) || (d && d.num);
+    if (no) rows.push(['Number', esc('#' + no)]);
+    if (c && c.r) rows.push(['Rarity', esc(c.r)]);
+    if (c && c.a) rows.push(['Artist', esc(c.a)]);
+    const wants = [it.cond && '[' + it.cond + '] or better', it.foil && 'Foil'].filter(Boolean);
+    if (wants.length) rows.push(['Wants', esc(wants.join(', '))]);
+    if (c && Object.keys(c.p || {}).length) {
+      rows.push(['Market', Object.entries(c.p).sort((x, y) => x[1] - y[1]).map(([k, v]) => esc(VARIANT[k] || k) + ' <span class="price">' + money(v) + '</span>').join('<br>')]);
+    } else if (c && !String(c.id).startsWith('tcgdex')) rows.push(['Market', 'No TCGplayer price listed']);
+    if (r === undefined) rows.push(['Lookup', 'Looking up\u2026']);
+    else if (r === null) rows.push(['Lookup', '<span class="cs-warn">Card database unreachable</span>']);
+    else if (r.mode === 'approx') rows.push(['Match', '<span class="cs-warn">Closest match. That exact printing wasn\'t found, so check it.</span>']);
+    else if (r.mode === 'none') rows.push(['Match', '<span class="cs-warn">Not found in the card database</span>']);
+    else if (r.mode === 'any') rows.push(['Match', 'Any printing (newest shown)']);
+    $('csInfo').innerHTML = rows.map(([k, v]) => '<tr><th>' + esc(k) + '</th><td>' + v + '</td></tr>').join('');
+    tcg.classList.remove('disabled');
+    tcg.href = (c && c.u) || 'https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=' + encodeURIComponent(((c && c.n) || (d ? d.searchName : a.name)) + (no ? ' ' + no : ''));
+    $('csZoom').disabled = false;
+    renderPrints();
+  }
+
+  function thumbBtn(sel, label) {
+    const b = document.createElement('button');
+    b.className = 'cs-thumb' + (sel ? ' sel' : '');
+    b.title = label; b.setAttribute('aria-label', label);
+    b.innerHTML = '<span>?</span>';
+    return b;
+  }
+  function setThumb(b, url) {
+    if (!url) return;
+    let im = b.querySelector('img');
+    if (!im) { im = document.createElement('img'); im.alt = ''; im.onload = () => { const s = b.querySelector('span'); if (s) s.remove(); }; b.appendChild(im); }
+    if (im.getAttribute('src') !== url) im.src = url;
+  }
+  let printsSig = '';
+  function renderPrints() {
+    const box = $('csPrints'), th = $('csThumbs'), it = items[cur], base = topEl._base;
+    const sig = [cur, view.alt, view.pick, it.alts.length, base && base.ids ? base.ids.join(',') : ''].join('|');
+    if (sig === printsSig) return;
+    printsSig = sig;
+    th.innerHTML = '';
+    if (it.alts.length > 1) {
+      box.hidden = false;
+      $('csPrintsLbl').textContent = 'Any of these ' + it.alts.length + ' printings fills this line:';
+      it.alts.forEach((a, k) => {
+        const b = thumbBtn(k === view.alt, a.name + ' ' + [a.paren || a.code, a.trail].filter(Boolean).join(' '));
+        b.onclick = () => { view.alt = k; view.pick = null; repaintTop(); };
+        th.appendChild(b);
+        loadSets().then(() => { const known = cardFor(a), g = guessUrls(derive(a)); setThumb(b, known ? known.sm : g && g.sm); return known ? null : resolveAlt(a); })
+          .then(r => { if (r && r.card) setThumb(b, r.card.sm); });
+      });
+      return;
+    }
+    if (base && base.ids && base.ids.length > 1) {
+      box.hidden = false;
+      $('csPrintsLbl').textContent = (base.mode === 'approx' ? 'Possible matches' : 'Printings found') + ' (' + base.ids.length + '). Click one to look:';
+      const sel = view.pick || base.ids[0];
+      base.ids.forEach(id => {
+        const c = cardById(id);
+        if (!c) return;
+        const b = thumbBtn(id === sel, c.n + ' \u00b7 ' + c.s + ' #' + c.no);
+        setThumb(b, c.sm);
+        b.onclick = () => { view.pick = id; repaintTop(); };
+        th.appendChild(b);
+      });
+      return;
+    }
+    box.hidden = true;
+  }
+  function repaintTop() { if (topEl) { paint(topEl, cur); renderInfo(); } }
+  function cyclePrinting() {
+    if (!topEl) return;
+    const it = items[cur];
+    if (it.alts.length > 1) { view.alt = (view.alt + 1) % it.alts.length; view.pick = null; repaintTop(); return; }
+    const base = topEl._base;
+    if (base && base.ids && base.ids.length > 1) {
+      const k = base.ids.indexOf(view.pick || base.ids[0]);
+      view.pick = base.ids[(k + 1) % base.ids.length];
+      repaintTop();
+    }
+  }
+
+  let wlTimer = 0, wlRows = new Map();
+  function renderWishlist() {
+    clearTimeout(wlTimer);
+    const wl = $('csWl'), yes = [];
+    items.forEach((it, i) => { if (S.dec[i] === 'y') yes.push(i); });
+    let total = 0, unpriced = 0;
+    if (!yes.length) { wl.innerHTML = '<div class="cs-wl-empty">Nothing here yet. Swipe right on a card to add it.</div>'; wlRows.clear(); }
+    else {
+      const html = yes.slice().reverse().map(i => {
+      const it = items[i], a = it.alts[0], c = cardFor(a), g = guessUrls(derive(a)), price = linePrice(it);
+      if (price == null) unpriced++; else total += price;
+      if (!c && !it._wlTry) { it._wlTry = true; resolveAlt(a).then(r => { if (r && r.card) { clearTimeout(wlTimer); wlTimer = setTimeout(renderWishlist, 300); } }); }
+      const src = (c && c.sm) || (g && g.sm);
+      const sub = [c ? c.s : a.paren || a.code, (c && c.no) || a.trail ? '#' + ((c && c.no) || a.trail) : '', it.alts.length > 1 ? 'any of ' + it.alts.length : '', price != null ? money(price) : ''].filter(Boolean).join(' \u00b7 ');
+      return '<div class="cs-wl-row" data-i="' + i + '">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy">' : '<span class="noimg"></span>') +
+        '<div class="txt"><div class="nm">' + esc(it.qty + '\u00d7 ' + ((c && c.n) || a.name)) + '</div><div class="sub">' + esc(sub) + '</div></div>' +
+        '<button class="x" data-x="' + i + '" title="Take off the wishlist" aria-label="Remove ' + esc(a.name) + '">\u2716</button></div>';
+      });
+      const keep = new Map(), frag = document.createDocumentFragment(), tmp = document.createElement('div');
+      html.forEach(h => {
+        let el = wlRows.get(h);
+        if (!el) { tmp.innerHTML = h; el = tmp.firstChild; }
+        keep.set(h, el); frag.appendChild(el);
+      });
+      wl.innerHTML = ''; wl.appendChild(frag);
+      wlRows = keep;
+    }
+    $('csWlCount').textContent = yes.length ? yes.length + ' line' + (yes.length === 1 ? '' : 's') + ', ' + yes.reduce((n, i) => n + items[i].qty, 0) + ' cards' : 'Empty';
+    $('csWlTotal').innerHTML = yes.length && total ? '\u2248 <b>' + money(total) + '</b>' + (unpriced ? ' +' + unpriced + ' unpriced' : '') : '';
+  }
+
+  function showDone() {
+    const c = counts();
+    $('csDoneHead').textContent = c.m ? 'Main stack done.' : 'That\'s the whole stack.';
+    $('csDoneStats').innerHTML = '\u2665 ' + c.y + ' want \u00b7 \u2716 ' + c.n + ' pass \u00b7 ? ' + c.m + ' maybe' + (c.m ? '<br>Take a second look at the maybes, or save now.' : '');
+    $('csReview').hidden = !c.m;
+    $('csReview').textContent = 'Review ' + c.m + ' maybe' + (c.m === 1 ? '' : 's');
+    $('csDoneSave').disabled = !c.y;
+    $('csDone').hidden = false;
+  }
+
+  // ---------------------------------------------------------------- export (deckbuy format)
+  // Kept lines are copied verbatim from the input, under the comment or header they sat under.
+  function buildExport() {
+    const yes = items.filter((it, i) => S.dec[i] === 'y');
+    const out = ['// Wishlist from Card Swiper, ' + today(), '// ' + yes.length + ' of ' + items.length + ' lines from ' + S.file, ''];
+    let sec = null;
+    yes.forEach(it => {
+      if (it.section && it.section !== sec) { if (out[out.length - 1] !== '') out.push(''); out.push(it.section); }
+      sec = it.section;
+      out.push(...it.lines);
+    });
+    return out.join('\n') + '\n';
+  }
+  function saveFile() {
+    if (!S || !counts().y) return;
+    const url = URL.createObjectURL(new Blob([buildExport()], { type:'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'wishlist-deckbuy-' + today() + '.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    S.saved = Date.now(); save();
+    toast('Saved ' + a.download);
+  }
+  function copyText() {
+    if (!S || !counts().y) return;
+    const text = buildExport();
+    const ok = () => { S.saved = Date.now(); save(); toast('Wishlist copied. Paste it into deckbuy.'); };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      let done = false; try { done = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      done ? ok() : toast('Copy failed. Use Save wishlist instead.');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
+  }
+
+  // ---------------------------------------------------------------- lightbox, status, toast
+  let lbTok = 0;
+  function openLightbox(card) {
+    if (!card) {
+      if (!topEl) return;
+      card = topEl._card;
+      const g = guessUrls(topEl._d);
+      if (!card && g) card = { sm:g.sm, lg:g.lg, n:items[cur].alts[view.alt].name };
+    }
+    if (!card || !(card.sm || card.lg)) { toast('No image for this card yet'); return; }
+    const tok = ++lbTok, im = $('csLbImg');
+    im.src = card.sm || card.lg;
+    im.alt = card.n || '';
+    if (card.lg && card.lg !== im.src) { const pre = new Image(); pre.onload = () => { if (tok === lbTok && !lb.hidden) im.src = card.lg; }; pre.src = card.lg; }
+    $('csLbCap').textContent = [card.n, card.s, card.no && '#' + card.no].filter(Boolean).join(' \u00b7 ') + '   (click or Esc to close)';
+    lb.hidden = false;
+  }
+  function closeLightbox() { lb.hidden = true; lbTok++; }
+  function setMsg(t) { $('csStMsg').textContent = t; }
+  let toastTimer = 0;
+  function toast(t) {
+    const el = $('csToast');
+    el.textContent = t; el.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // ---------------------------------------------------------------- loading a list
+  const SAMPLE = [
+    '// Card Swiper sample: a few chase cards in deckbuy format',
+    '// Specific printings',
+    '1 Charizard ex (Obsidian Flames) 223',
+    '1 Umbreon VMAX (Evolving Skies) 215',
+    '1 Giratina V (Lost Origin) 186',
+    '1 Mew ex MEW 151',
+    '1 Pikachu with Grey Felt Hat (SVP 085)',
+    '// Either printing of the same artwork',
+    '1 Pikachu (base1-58) | Pikachu (xy12-35)',
+    '// Any printing at all',
+    '1 Lugia V'
+  ].join('\n');
+  let pasteTimer = 0;
+  function pasteInfo() {
+    const t = $('csPaste').value, el = $('csPasteInfo');
+    if (!t.trim()) { el.textContent = ''; return; }
+    const n = parseList(t);
+    el.textContent = n.length + ' card line' + (n.length === 1 ? '' : 's') + ' found';
+  }
+  function readFile(f) {
+    if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast('That file is too big for a card list'); return; }
+    const r = new FileReader();
+    r.onload = () => { $('csPaste').value = String(r.result || ''); pasteInfo(); startList($('csPaste').value, f.name); };
+    r.onerror = () => toast('Couldn\'t read ' + f.name);
+    r.readAsText(f);
+  }
+
+  $('csPaste').addEventListener('input', () => { clearTimeout(pasteTimer); pasteTimer = setTimeout(pasteInfo, 250); });
+  $('csStart').addEventListener('click', () => startList($('csPaste').value, ''));
+  $('csSample').addEventListener('click', () => { $('csPaste').value = SAMPLE; pasteInfo(); });
+  $('csOpen').addEventListener('click', () => $('csFile').click());
+  $('csFile').addEventListener('change', e => { readFile(e.target.files[0]); e.target.value = ''; });
+  $('csNew').addEventListener('click', showLoader);
+  $('csBack').addEventListener('click', () => { if (S && items.length) showSwiper(); });
+  $('csExport').addEventListener('click', saveFile);
+  $('csDoneSave').addEventListener('click', saveFile);
+  $('csCopy').addEventListener('click', copyText);
+  $('csReview').addEventListener('click', reviewMaybes);
+  $('csWant').addEventListener('click', () => decide('y'));
+  $('csPass').addEventListener('click', () => decide('n'));
+  $('csMaybe').addEventListener('click', () => decide('m'));
+  $('csUndo').addEventListener('click', undo);
+  $('csZoom').addEventListener('click', () => openLightbox());
+  lb.addEventListener('click', closeLightbox);
+  $('csWl').addEventListener('click', e => {
+    const x = e.target.closest('[data-x]');
+    if (x) { removeFromWishlist(+x.dataset.x); return; }
+    const row = e.target.closest('.cs-wl-row');
+    if (!row) return;
+    const it = items[+row.dataset.i], a = it.alts[0], c = cardFor(a), g = guessUrls(derive(a));
+    openLightbox(c || (g && { sm:g.sm, lg:g.lg, n:a.name }));
+  });
+  $('csHires').checked = !!opts.hires;
+  $('csHires').addEventListener('change', e => { opts.hires = e.target.checked; lsSet(LS.opts, opts); });
+  $('csKey').value = opts.key || '';
+  $('csKey').addEventListener('change', e => { opts.key = e.target.value.trim(); lsSet(LS.opts, opts); });
+
+  document.addEventListener('keydown', e => {
+    if (activePage !== 'cards') return;
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!lb.hidden) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); closeLightbox(); } return; }
+    if ($('csSwiper').hidden || !S) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const act = { ArrowRight:() => decide('y'), d:() => decide('y'), ArrowLeft:() => decide('n'), a:() => decide('n'), ArrowUp:() => decide('m'), w:() => decide('m'),
+      Backspace:undo, z:undo, ' ':() => openLightbox(), Enter:() => openLightbox(), ArrowDown:cyclePrinting, p:cyclePrinting, t:() => { if (topEl) $('csTcg').click(); } }[k];
+    if (!act) return;
+    e.preventDefault();
+    act();
+  });
+
+  const veil = $('csVeil');
+  const hasFiles = e => !!(e.dataTransfer && Array.prototype.includes.call(e.dataTransfer.types || [], 'Files'));
+  page.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; veil.classList.add('show'); });
+  page.addEventListener('dragleave', e => { if (!e.relatedTarget || !page.contains(e.relatedTarget)) veil.classList.remove('show'); });
+  page.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); veil.classList.remove('show'); readFile(e.dataTransfer.files[0]); });
+  window.addEventListener('dragover', e => { if (page.classList.contains('active') && hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', e => { if (page.classList.contains('active') && hasFiles(e)) { e.preventDefault(); veil.classList.remove('show'); } });
+
+  // ---------------------------------------------------------------- boot: resume a saved session
+  (function () {
+    const t = lsGet(LS.text), st = lsGet(LS.session);
+    if (!t || !t.text || !st) return;
+    const parsed = parseList(t.text);
+    if (!parsed.length) return;
+    items = parsed;
+    S = { text:t.text, file:t.file || 'Pasted list', dec:{}, hist:[], second:{}, saved:st.saved || 0, changed:st.changed || 0 };
+    if (st.len === parsed.length) { S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; }
+    else toast('Your saved list reads differently now, so it starts fresh.');
+    $('csLoader').hidden = true; $('csSwiper').hidden = false;
+    $('csNew').hidden = false; $('csBack').hidden = true;
+    $('csStFile').textContent = S.file;
+    const n = Object.keys(S.dec).length;
+    setMsg('Welcome back: ' + n + ' of ' + items.length + ' swiped in ' + S.file);
+  })();
+  function activate() {
+    if (started) return;
+    started = true;
+    loadSets();
+    if (S && items.length) rebuild();
+  }
+  new MutationObserver(() => { if (page.classList.contains('active')) activate(); }).observe(page, { attributes:true, attributeFilter:['class'] });
+  if (page.classList.contains('active')) activate();
 })();
 </script>
 </body>
