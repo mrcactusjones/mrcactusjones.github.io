@@ -637,8 +637,10 @@
   // "Basic {R} Energy" = "Basic Fire Energy", "Kingdra Delta Species" = "Kingdra δ", "Nidoran F" = "Nidoran♀".
   const nameKey = (n, poss) => normName(String(n || '').replace(poss ? /['\u2019`]s\b/gi : /(?!)/, '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
     .replace(/δ/g, ' delta species ').replace(/◇/g, ' prism star ').replace(/★/g, ' star ').replace(/♀/g, ' f ').replace(/♂/g, ' m '));
-  // Also "Boss Orders" = "Boss's Orders" (possessive dropped) and "Boss's Orders" = "Boss's Orders (Ghetsis)" (API qualifier dropped, unless the line names a different one).
-  const nameOk = (c, d) => [[c.n, [d.searchName, d.matchName]], [String(c.n || '').replace(/\s*\([^)]*\)$/, ''), [d.matchName]]].some(([cn, typed]) => [false, true].some(poss => {
+  // Also "Boss Orders" = "Boss's Orders" (possessive dropped), "Boss's Orders" = "Boss's Orders (Ghetsis)" (API qualifier dropped, unless the line names a
+  // different one) and "(Sada)" = "(Professor Sada)".
+  const nameOk = (c, d) => [[c.n, [d.searchName, d.matchName]], [String(c.n || '').replace(/\s*\([^)]*\)$/, ''), [d.matchName]],
+      [String(c.n || '').replace(/\([^()]*\s([^()\s]+)\s*\)$/, '($1)'), [d.matchName]]].some(([cn, typed]) => [false, true].some(poss => {
     const x = nameKey(cn, poss);
     return typed.some(n => {
       const y = nameKey(n, poss);
@@ -727,7 +729,9 @@
           list = await run('set.id:' + d.setId + ' ' + nm);
           if (d.num) list = list.filter(numHit);
           list = byCase(list);
-          if (list.length) return done(list.slice(0, 24), d.num ? 'exact' : 'set');
+          const named = c => nameOk(c, d) || nameKey(d.matchName) === nameKey(d.searchName);   // true unless a typed qualifier contradicts it
+          if (d.num) list.sort((x, y) => named(y) - named(x));
+          if (list.length) return done(list.slice(0, 24), !d.num ? 'set' : named(list[0]) ? 'exact' : 'approx');
         }
         list = await run(nm);
         if (!list.length && words.length > 1 && words.every(w => /^[a-z0-9é]+$/i.test(w))) list = await run('name:' + words.join('*'));
@@ -820,11 +824,11 @@
   }
   function save() {
     if (!S || S.noPersist) return;
-    const data = { fp:S.fp, dec:S.dec, hist:S.hist, second:S.second, savedSig:S.savedSig, len:items.length };
-    if (lsSet(LS.session, data)) { if (saveFailing) storageOk(); return; }
+    const data = { fp:S.fp, dec:S.dec, hist:S.hist, second:S.second, savedSig:S.savedSig, len:items.length, rev:(S.rev || 0) + 1 };   // rev: which tab's copy is newer
+    if (lsSet(LS.session, data)) { S.rev = data.rev; if (saveFailing) storageOk(); return; }
     cacheBroken = true;                         // make room: the card cache can always be fetched again
     try { localStorage.removeItem(LS.cache); } catch (e) {}
-    if (lsSet(LS.session, data)) { if (saveFailing) storageOk(); return; }
+    if (lsSet(LS.session, data)) { S.rev = data.rev; if (saveFailing) storageOk(); return; }
     saveFailing = true;
     storageWarning();
   }
@@ -1423,9 +1427,9 @@
         }
         const n = seq(i);
         if (!n) { bad++; i++; continue; }
-        if (n > 1) {                            // likely ranges, a combining accent after a letter (Mac NFD), or a run of CJK (Japanese names)
+        if (n > 1) {                            // likely ranges, a combining accent that composes with its letter (Mac NFD), or a run of CJK (Japanese names)
           const c = cp(i, n);
-          if (likely(c) || (c >= 0x300 && c <= 0x36F && /[A-Za-z]/.test(String.fromCharCode(b[i - 1]))) || (n === 3 && c >= 0x3000 && (seq(i + 3) === 3 || run3 === i))) good++; else odd++;
+          if (likely(c) || (c >= 0x300 && c <= 0x36F && /[A-Za-z]/.test(String.fromCharCode(b[i - 1])) && String.fromCharCode(b[i - 1], c).normalize('NFC').length === 1) || (n === 3 && c >= 0x3000 && (seq(i + 3) === 3 || run3 === i))) good++; else odd++;
           if (n === 3) run3 = i + 3;
         }
         i += n;
@@ -1547,7 +1551,7 @@
     wlRows.clear();
     storageOk();
     S = { text:t.text, fp:fp(t.text), file:t.file || 'Pasted list', dec:{}, hist:[], second:{}, savedSig:'' };
-    if (st.fp === S.fp && st.len === parsed.length) { S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || ''; }
+    if (st.fp === S.fp && st.len === parsed.length) { S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || ''; S.rev = st.rev || 0; }
     else toast('Your saved swipes don\'t match this list, so it starts fresh.');
     $('csLoader').hidden = true; $('csSwiper').hidden = false;
     $('csNew').hidden = false; $('csBack').hidden = true;
@@ -1562,8 +1566,9 @@
     if (!t || !t.text || !st) return;           // nothing complete to follow
     if (st.fp !== fp(t.text)) return;           // the other tab is mid-write
     if (S && st.fp === S.fp && !S.noPersist) {
-      if (saveFailing && Object.keys(st.dec || {}).every(k => S.dec[k] === st.dec[k])) { save(); return; }   // storage only has an older copy of ours: keep ours, store it again
-      S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
+      if (saveFailing && (st.rev || 0) <= (S.rev || 0) && Object.keys(st.dec || {}).every(k => S.dec[k] === st.dec[k])) { save(); return; }   // storage only has an older copy of ours: keep ours, store it again
+      S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || ''; S.rev = st.rev || 0;
+      if (saveFailing) storageOk();             // we now hold exactly what storage holds
       if (started && !$('csSwiper').hidden) rebuild(); else updateAll();
       setMsg('Synced with your other Card Swiper tab');
       return;
