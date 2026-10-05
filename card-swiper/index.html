@@ -359,9 +359,9 @@
   const RE_COND = /\[\s*([a-z ]+?)\s*\]/i;
   const RE_FOIL = /\*f\*|\bfoil\b|\bholo\b/i;
   const RE_FOIL_G = /\*f\*|\*?\bfoil\b\*?|\*?\bholo\b\*?/gi;
-  const RE_NAME_SUFFIX = /^(EX|GX|BREAK|VMAX|VSTAR|LEGEND|PRIME)$/;
+  const RE_NAME_SUFFIX = /^(EX|GX|BREAK|VMAX|VSTAR|LEGEND|PRIME)$/;          // "Mewtwo EX 54": EX ends the name, it isn't Expedition's code
   const ENERGY = { G:'Grass', R:'Fire', W:'Water', L:'Lightning', P:'Psychic', F:'Fighting', D:'Darkness', M:'Metal', Y:'Fairy', N:'Dragon', C:'Colorless' };
-  const RE_EX_UPPER = /\sEX$/;                                               // "Venusaur EX" (XY era), not "Venusaur ex" (Scarlet & Violet)          // "Mewtwo EX 54": EX ends the name, it isn't Expedition's code
+  const RE_EX_UPPER = /[\s-]EX$/;                                            // "Venusaur EX" / "Venusaur-EX" (XY era), not "Venusaur ex" (Scarlet & Violet)
 
   function parseAlt(t) {
     t = t.replace(/\s+/g, ' ').trim();
@@ -383,9 +383,9 @@
       if (!s) { inBlock = false; return; }       // a blank line ends a heading block
       if (/^(\/\/|#)/.test(s)) {
         if (/^\/\/ (Wishlist from Card Swiper, |\d+ of \d+ lines from )/.test(s)) return;   // our own export header, when a wishlist is loaded back in
-        const body = s.replace(/^(\/\/|#)\s*/, ''), cm = body.match(/^\d+\s*(x?)\s+(.+)$/i);
-        const ca = cm && parseAlt(cm[2].replace(RE_COND, ' ').replace(RE_FOIL_G, ' ').split('|')[0]);
-        if (body && !(cm && cm[1]) && !(ca && (ca.paren || ca.code || ca.trail))) heading(s.startsWith('//') ? s : '// ' + body);   // a heading, not a commented-out card
+        const body = s.replace(/^(\/\/|#)\s*/, ''), bare = body.replace(RE_COND, ' ').replace(RE_FOIL_G, ' ').replace(/\s+/g, ' ').trim();
+        const cm = bare.match(/^\d+\s*(x?)\s+(.+)$/i), sx = /^.*\S\s+x\d+$/i.test(bare), ca = cm && parseAlt(cm[2].split('|')[0]);
+        if (body && !sx && !(cm && cm[1]) && !(ca && (ca.paren || ca.code || ca.trail))) heading(s.startsWith('//') ? s : '// ' + body);   // a heading, not a commented-out card
         return;
       }
       if (RE_HEADER.test(s) || RE_COUNTHEAD.test(s)) { heading('// ' + s.replace(/\s*:?\s*\(?\d*\)?\s*$/, '')); return; }
@@ -692,7 +692,10 @@
           if (c && nameOk(c, d)) return { card:c, mode:'exact', ids:[c.id] };
         }
         const r = await search(d, a._i);
-        if (r && r.mode === 'none' && c) return { card:c, mode:'approx', ids:[c.id] };   // nothing better: the card at that set and number, flagged
+        if (r && r.mode === 'none' && c) {      // nothing better: the card at that set and number, flagged
+          cache.q[qKey(d)] = { ids:[c.id], mode:'approx', t:Date.now() }; saveCacheSoon();
+          return { card:c, mode:'approx', ids:[c.id] };
+        }
         if (!r || r.mode !== 'stale') return r;
         if (!needed(a._i)) return null;          // dropped because it was swiped past; if it comes back it asks again
       }
@@ -710,7 +713,7 @@
     if (searching.has(qk)) return searching.get(qk);
     const exUp = RE_EX_UPPER.test(d.searchName);
     const byCase = l => { if (!exUp) return l; const k = l.filter(c => /EX$/.test(c.n)); return k.length ? k : l; };
-    const run = q => api('cards?pageSize=120&orderBy=-set.releaseDate&select=' + SELECT + '&q=' + encodeURIComponent(q), 0, i == null ? undefined : [i]).then(j => byCase((j.data || []).map(compact)));
+    const run = q => api('cards?pageSize=120&orderBy=-set.releaseDate&select=' + SELECT + '&q=' + encodeURIComponent(q), 0, i == null ? undefined : [i]).then(j => (j.data || []).map(compact));
     const done = (list, mode) => { list.forEach(putCard); cache.q[qk] = { ids:list.map(c => c.id), mode, t:Date.now() }; saveCacheSoon(); return fromQ(cache.q[qk]); };
     const numHit = c => numKey(c.no) === numKey(d.num);
     const p = (async () => {
@@ -721,15 +724,16 @@
         if (d.setId) {
           list = await run('set.id:' + d.setId + ' ' + nm);
           if (d.num) list = list.filter(numHit);
+          list = byCase(list);
           if (list.length) return done(list.slice(0, 24), d.num ? 'exact' : 'set');
         }
         list = await run(nm);
         if (!list.length && words.length > 1 && words.every(w => /^[a-z0-9é]+$/i.test(w))) list = await run('name:' + words.join('*'));
         if (d.num) {
-          const hit = list.filter(numHit).sort((x, y) => (y.si === d.setId) - (x.si === d.setId));
+          const hit = byCase(list.filter(numHit)).sort((x, y) => (y.si === d.setId) - (x.si === d.setId));
           if (hit.length) return done(hit.slice(0, 24), d.setId && hit[0].si !== d.setId ? 'approx' : 'exact');   // right number but another set: flag it
         }
-        if (list.length) return done(list.slice(0, 24), d.setId || d.num ? 'approx' : 'any');
+        if (list.length) return done(byCase(list).slice(0, 24), d.setId || d.num ? 'approx' : 'any');
         return done([], 'none');
       } catch (e) { return e && e.message === 'stale' ? { card:null, mode:'stale', ids:[] } : null; }
     })();
@@ -834,6 +838,11 @@
     const n = S ? Object.keys(S.dec).length : 0;
     if (n && !confirm('Start a new list? This replaces your progress on ' + S.file + ' (' + n + ' of ' + items.length + ' swiped' +
         (hasUnsaved() ? ', with ' + counts().y + ' want' + (counts().y === 1 ? '' : 's') + ' you haven\'t saved' : '') + ').')) return false;
+    const ot = lsGet(LS.text), os = lsGet(LS.session);
+    if (ot && ot.text && normText(ot.text) === normText(text) && os && os.fp === fp(ot.text) && boot()) {   // another tab is on this list: pick up its progress
+      showSwiper(); setMsg('Picked up ' + S.file + ' where your other tab left it');
+      return true;
+    }
     S = { text, fp:fp(text), file:file || 'Pasted list', dec:{}, hist:[], second:{}, savedSig:'' };
     items = parsed;
     wlRows.clear();
@@ -844,9 +853,12 @@
       try { localStorage.removeItem(LS.cache); } catch (e) {}
       stored = lsSet(LS.text, { text, file:S.file });
     }
+    if (!stored) {                              // then the previous list's swipes, which the user just agreed to replace
+      try { localStorage.removeItem(LS.session); } catch (e) {}
+      stored = lsSet(LS.text, { text, file:S.file });
+    }
     if (!stored) {
-      try { localStorage.removeItem(LS.text); localStorage.removeItem(LS.session); } catch (e) {}
-      S.noPersist = true;                       // never leave the old list's text beside this list's swipes
+      S.noPersist = true;                       // save() never writes this list's swipes, so they can't land beside another list's text
       storageWarning('This list is too big to remember between visits. Save your wishlist before you close the tab.');
     }
     save();
@@ -1235,7 +1247,11 @@
       yes.forEach(i => items[i].alts.forEach(a => { const d = derive(a); if (d.id && !cardById(d.id) && ids.indexOf(d.id) < 0) { ids.push(d.id); idx.push(i); } }));
       for (let k = 0; k < ids.length; k += 30) fetchIds(ids.slice(k, k + 30), idx.slice(k, k + 30));
     });
-    if (!yes.length) { wl.innerHTML = '<div class="cs-wl-empty">Nothing here yet. Swipe right on a card to add it.</div>'; wlRows.clear(); }
+    if (!yes.length) {
+      const had = wl.contains(document.activeElement);
+      wl.innerHTML = '<div class="cs-wl-empty">Nothing here yet. Swipe right on a card to add it.</div>'; wlRows.clear();
+      if (had) { wl.tabIndex = -1; wl.focus({ preventScroll:true }); }   // removed the last row by keyboard: stay in the list
+    }
     else {
       const html = yes.slice().reverse().map(i => {
       const it = items[i], a = it.alts[0], c = lineCard(it) || cardFor(a), g = guessUrls(derive(a)), price = linePrice(it);
@@ -1250,7 +1266,7 @@
         '<button type="button" class="txt" title="Show this card"><span class="nm">' + esc(it.qty + '\u00d7 ' + ((c && c.n) || a.name)) + '</span><span class="sub">' + esc(sub) + '</span></button>' +
         '<button class="x" data-x="' + i + '" title="Take off the wishlist" aria-label="Remove ' + esc(a.name) + '">\u2716</button></div>';
       });
-      const fa = wl.contains(document.activeElement) ? document.activeElement : null, fi = fa ? [...wl.querySelectorAll('button')].indexOf(fa) : -1;
+      const fa = wl.contains(document.activeElement) ? document.activeElement : null, fi = fa ? [...wl.querySelectorAll('button')].indexOf(fa) : -1, wst = wl.scrollTop;
       const keep = new Map(), frag = document.createDocumentFragment(), tmp = document.createElement('div');
       html.forEach(h => {
         let el = wlRows.get(h);
@@ -1259,7 +1275,8 @@
       });
       wl.innerHTML = ''; wl.appendChild(frag);
       wlRows = keep;
-      if (fa) { const bs = wl.querySelectorAll('button'), t = fa.isConnected ? fa : bs[Math.min(fi, bs.length - 1)]; if (t) t.focus({ preventScroll:true }); }
+      wl.scrollTop = wst;
+      if (fa) { const bs = wl.querySelectorAll('button'), t = fa.isConnected ? fa : bs[Math.min(fi, bs.length - 1)]; if (t) { t.focus({ preventScroll:true }); t.scrollIntoView({ block:'nearest' }); } }
     }
     $('csWlCount').textContent = yes.length ? yes.length + ' line' + (yes.length === 1 ? '' : 's') + ', ' + yes.reduce((n, i) => n + items[i].qty, 0) + ' cards' : 'Empty';
     $('csWlTotal').innerHTML = yes.length && total ? '\u2248 <b>' + money(total) + '</b>' + (unpriced ? ' +' + unpriced + ' unpriced' : '') : '';
@@ -1367,15 +1384,20 @@
     if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
     if (b.indexOf(0) !== -1) return null;
     try { return new TextDecoder('utf-8', { fatal:true }).decode(b); }
-    catch (e) {                                 // mostly UTF-8 with stray Windows-1252 bytes: decode line by line
-      const u8 = new TextDecoder('utf-8', { fatal:true }), w = new TextDecoder('windows-1252'), out = [];
-      for (let i = 0, st = 0; i <= b.length; i++) {
-        if (i < b.length && b[i] !== 10) continue;
-        const seg = b.subarray(st, i);
-        try { out.push(u8.decode(seg)); } catch (err) { out.push(w.decode(seg)); }
-        st = i + 1;
+    catch (e) {                                 // mostly UTF-8 with stray Windows-1252 bytes: keep the UTF-8, map only the stray bytes
+      const u8 = new TextDecoder('utf-8', { ignoreBOM:true }), w = new TextDecoder('windows-1252'), out = [];
+      let i = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 3 : 0, run = i;
+      while (i < b.length) {
+        const c = b[i], n = c < 0x80 ? 1 : c >= 0xC2 && c < 0xE0 ? 2 : c >= 0xE0 && c < 0xF0 ? 3 : c >= 0xF0 && c < 0xF5 ? 4 : 0;
+        let ok = n > 0 && i + n <= b.length;
+        for (let k = 1; ok && k < n; k++) ok = (b[i + k] & 0xC0) === 0x80;
+        if (ok) { i += n; continue; }
+        if (i > run) out.push(u8.decode(b.subarray(run, i)));
+        out.push(w.decode(b.subarray(i, i + 1)));
+        run = ++i;
       }
-      return out.join('\n');
+      if (i > run) out.push(u8.decode(b.subarray(run, i)));
+      return out.join('');
     }
   }
   function readFile(f) {
@@ -1424,14 +1446,15 @@
     if (x) { removeFromWishlist(+x.dataset.x); return; }
     const row = e.target.closest('.cs-wl-row');
     if (!row) return;
-    const it = items[+row.dataset.i], a = it.alts[0], c = cardFor(a), g = guessUrls(derive(a));
+    const it = items[+row.dataset.i], a = it.alts[0], c = lineCard(it) || cardFor(a), g = guessUrls(derive(a));
     const card = c || (g && { sm:g.sm, lg:g.lg, n:a.name });
     if (card) openLightbox(card); else toast('No image for this card yet');
   });
   page.addEventListener('click', e => {         // a mouse click shouldn't leave focus on a button for Space/Enter to press again
     if (!e.detail) return;
-    const b = e.target.closest('button, a[href]');
+    const b = e.target.closest('button, a[href]'), f = document.activeElement;
     if (b) b.blur();
+    if (b && f && f !== b && f.closest && f.closest('button, a[href], #csWl')) f.blur();
   });
   $('csHires').checked = !!opts.hires;
   $('csHires').addEventListener('change', e => { opts.hires = e.target.checked; lsSet(LS.opts, opts); });
@@ -1446,7 +1469,7 @@
       if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); closeLightbox(); }
       return;
     }
-    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('button, a[href]')) { if (e.repeat) e.preventDefault(); return; }   // focused buttons work, once per press
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('button, a[href], #csWl')) { if (e.repeat) e.preventDefault(); return; }   // focused buttons work, once per press
     if ($('csSwiper').hidden || !S) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); if (!e.repeat) undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1489,7 +1512,11 @@
   window.addEventListener('storage', e => {
     if (e.key !== LS.session && e.key !== LS.text) return;
     const t = lsGet(LS.text), st = lsGet(LS.session);
-    if (!t || !t.text || !st || st.fp !== fp(t.text)) return;   // the other tab is mid-write
+    if (!t || !t.text || !st) {                 // another tab cleared storage (its list was too big): put ours back
+      if (S && !S.noPersist) { if (!t || t.text !== S.text) lsSet(LS.text, { text:S.text, file:S.file }); save(); }
+      return;
+    }
+    if (st.fp !== fp(t.text)) return;           // the other tab is mid-write
     if (S && st.fp === S.fp && !S.noPersist) {
       S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
       if (started && !$('csSwiper').hidden) rebuild(); else updateAll();
