@@ -637,15 +637,16 @@
   // "Basic {R} Energy" = "Basic Fire Energy", "Kingdra Delta Species" = "Kingdra δ", "Nidoran F" = "Nidoran♀".
   const nameKey = (n, poss) => normName(String(n || '').replace(poss ? /['\u2019`]s\b/gi : /(?!)/, '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
     .replace(/δ/g, ' delta species ').replace(/◇/g, ' prism star ').replace(/★/g, ' star ').replace(/♀/g, ' f ').replace(/♂/g, ' m '));
-  // Also "Boss Orders" = "Boss's Orders" (possessive dropped) and "Boss's Orders" = "Boss's Orders (Ghetsis)" (API qualifier dropped).
-  const nameOk = (c, d) => [c.n, String(c.n || '').replace(/\s*\([^)]*\)$/, '')].some(cn => [false, true].some(poss => {
+  // Also "Boss Orders" = "Boss's Orders" (possessive dropped) and "Boss's Orders" = "Boss's Orders (Ghetsis)" (API qualifier dropped, unless the line names a different one).
+  const nameOk = (c, d) => [[c.n, [d.searchName, d.matchName]], [String(c.n || '').replace(/\s*\([^)]*\)$/, ''), [d.matchName]]].some(([cn, typed]) => [false, true].some(poss => {
     const x = nameKey(cn, poss);
-    return [d.searchName, d.matchName].some(n => {
+    return typed.some(n => {
       const y = nameKey(n, poss);
       return !y || x === y || x === 'basic' + y || y === 'basic' + x || (y.startsWith(x) && /^\d+$/.test(y.slice(x.length)));
     });
   }));
-  const qKey = d => [d.searchName, d.setId, d.num].join('|').toLowerCase() + (RE_EX_UPPER.test(d.searchName) ? '#EX' : '');
+  const qKey = d => [d.searchName, d.setId, d.num, nameKey(d.matchName) !== nameKey(d.searchName) ? d.matchName.trim() : ''].join('|').toLowerCase()   // a typed qualifier gets its own entry
+    + (RE_EX_UPPER.test(d.searchName) ? '#EX' : '');
 
   // Exact printings are fetched 30 at a time by id, ahead of where you are in the stack.
   const pending = new Map(), missing = new Set();
@@ -1409,11 +1410,11 @@
       };
       const cp = (i, n) => n === 2 ? ((b[i] & 0x1F) << 6) | (b[i + 1] & 0x3F) : n === 3 ? ((b[i] & 0x0F) << 12) | ((b[i + 1] & 0x3F) << 6) | (b[i + 2] & 0x3F)
         : ((b[i] & 0x07) << 18) | ((b[i + 1] & 0x3F) << 12) | ((b[i + 2] & 0x3F) << 6) | (b[i + 3] & 0x3F);
-      const likely = c => (c >= 0xA0 && c <= 0x17F) || (c >= 0x370 && c <= 0x3FF) || (c >= 0x2000 && c <= 0x206F) || (c >= 0x2100 && c <= 0x27BF)
+      const likely = c => (c >= 0xA0 && c <= 0x17F) || (c >= 0x391 && c <= 0x3C9) || (c >= 0x2000 && c <= 0x206F) || (c >= 0x2100 && c <= 0x27BF)
         || c === 0x20AC || c === 0xFEFF || c >= 0x1F300;   // accents, Greek (δ), punctuation, symbols (★ ◇ ♀ ♂), €, BOM, emoji
       // Per line: invalid bytes and unlikely sequences ("É’" read as U+0252) point to Windows-1252, likely ones (é, –, €, emoji) to UTF-8.
       const start = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 3 : 0, lines = [];
-      let tb = 0, tg = 0;
+      let tb = 0, tg = 0, run3 = -1;
       for (let i = start, ls = start, bad = 0, odd = 0, good = 0; ; ) {
         if (i >= b.length || b[i] === 10) {
           lines.push([ls, i, bad, odd, good]); tb += bad; tg += good; bad = odd = good = 0;
@@ -1422,7 +1423,11 @@
         }
         const n = seq(i);
         if (!n) { bad++; i++; continue; }
-        if (n > 1) { if (likely(cp(i, n))) good++; else odd++; }
+        if (n > 1) {                            // likely ranges, a combining accent after a letter (Mac NFD), or a run of CJK (Japanese names)
+          const c = cp(i, n);
+          if (likely(c) || (c >= 0x300 && c <= 0x36F && /[A-Za-z]/.test(String.fromCharCode(b[i - 1]))) || (n === 3 && c >= 0x3000 && (seq(i + 3) === 3 || run3 === i))) good++; else odd++;
+          if (n === 3) run3 = i + 3;
+        }
         i += n;
       }
       const ansiFile = tb > tg;                   // more stray bytes than likely UTF-8 characters: mostly Windows-1252
@@ -1557,7 +1562,7 @@
     if (!t || !t.text || !st) return;           // nothing complete to follow
     if (st.fp !== fp(t.text)) return;           // the other tab is mid-write
     if (S && st.fp === S.fp && !S.noPersist) {
-      if (saveFailing) { save(); return; }       // our newer swipes never reached storage: keep them, try to store them again
+      if (saveFailing && Object.keys(st.dec || {}).every(k => S.dec[k] === st.dec[k])) { save(); return; }   // storage only has an older copy of ours: keep ours, store it again
       S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
       if (started && !$('csSwiper').hidden) rebuild(); else updateAll();
       setMsg('Synced with your other Card Swiper tab');
