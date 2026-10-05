@@ -392,7 +392,7 @@
       inBlock = false;
       let qty = 1, rest = s, m;
       if ((m = s.match(/^(\d+)\s*[xX]?\s+(\S.*)$/)) || (m = s.match(/^(\d+)[xX](\S.*)$/))) { qty = +m[1]; rest = m[2]; }
-      else if ((m = s.match(/^(.*\S)\s+[xX](\d+)((?:\s*(?:\[[^\]]*\]|\*f\*|\*?\b(?:foil|holo)\b\*?))*)$/i))) { rest = m[1] + m[3]; qty = +m[2]; }
+      else if ((m = s.match(/^(.*\S)\s+[xX](\d+)((?:\s*(?:\[[^\]]*\]|\*f\*|\*?\b(?:foil|holo)\b(?:\*|(?!\*))))*)$/i))) { rest = m[1] + m[3]; qty = +m[2]; }   // each tag owns its trailing *: no backtracking blow-up
       if (!qty) return;
       let cond = '', foil = false;
       const cm = rest.match(RE_COND);
@@ -635,15 +635,16 @@
   const cardById = id => id ? cache.cards[String(id).toLowerCase()] || null : null;
   // Is the card at a derived id really the card on the line? "Basic Fire Energy" = "Fire Energy", "Mewtwo EX" = "Mewtwo-EX",
   // "Basic {R} Energy" = "Basic Fire Energy", "Kingdra Delta Species" = "Kingdra δ", "Nidoran F" = "Nidoran♀".
-  const nameKey = n => normName(String(n || '').replace(/['\u2019`]s\b/gi, '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
+  const nameKey = (n, poss) => normName(String(n || '').replace(poss ? /['\u2019`]s\b/gi : /(?!)/, '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
     .replace(/δ/g, ' delta species ').replace(/◇/g, ' prism star ').replace(/★/g, ' star ').replace(/♀/g, ' f ').replace(/♂/g, ' m '));
-  const nameOk = (c, d) => {
-    const x = nameKey(c.n);
+  // Also "Boss Orders" = "Boss's Orders" (possessive dropped) and "Boss's Orders" = "Boss's Orders (Ghetsis)" (API qualifier dropped).
+  const nameOk = (c, d) => [c.n, String(c.n || '').replace(/\s*\([^)]*\)$/, '')].some(cn => [false, true].some(poss => {
+    const x = nameKey(cn, poss);
     return [d.searchName, d.matchName].some(n => {
-      const y = nameKey(n);
+      const y = nameKey(n, poss);
       return !y || x === y || x === 'basic' + y || y === 'basic' + x || (y.startsWith(x) && /^\d+$/.test(y.slice(x.length)));
     });
-  };
+  }));
   const qKey = d => [d.searchName, d.setId, d.num].join('|').toLowerCase() + (RE_EX_UPPER.test(d.searchName) ? '#EX' : '');
 
   // Exact printings are fetched 30 at a time by id, ahead of where you are in the stack.
@@ -839,8 +840,8 @@
     if (n && !confirm('Start a new list? This replaces your progress on ' + S.file + ' (' + n + ' of ' + items.length + ' swiped' +
         (hasUnsaved() ? ', with ' + counts().y + ' want' + (counts().y === 1 ? '' : 's') + ' you haven\'t saved' : '') + ').')) return false;
     const ot = lsGet(LS.text), os = lsGet(LS.session);
-    if (ot && ot.text && normText(ot.text) === normText(text) && os && os.fp === fp(ot.text) && boot()) {   // another tab is on this list: pick up its progress
-      showSwiper(); setMsg('Picked up ' + S.file + ' where your other tab left it');
+    if (ot && ot.text && normText(ot.text) === normText(text) && os && os.fp === fp(ot.text) && boot()) {   // this list is already stored (another tab, or earlier): pick up its progress
+      showSwiper(); setMsg('Picked up ' + S.file + ' where you left off');
       return true;
     }
     S = { text, fp:fp(text), file:file || 'Pasted list', dec:{}, hist:[], second:{}, savedSig:'' };
@@ -1408,7 +1409,8 @@
       };
       const cp = (i, n) => n === 2 ? ((b[i] & 0x1F) << 6) | (b[i + 1] & 0x3F) : n === 3 ? ((b[i] & 0x0F) << 12) | ((b[i + 1] & 0x3F) << 6) | (b[i + 2] & 0x3F)
         : ((b[i] & 0x07) << 18) | ((b[i + 1] & 0x3F) << 12) | ((b[i + 2] & 0x3F) << 6) | (b[i + 3] & 0x3F);
-      const likely = c => (c >= 0xA0 && c <= 0x17F) || (c >= 0x2000 && c <= 0x206F) || c === 0x20AC || c >= 0x1F300;   // accents, punctuation, €, emoji
+      const likely = c => (c >= 0xA0 && c <= 0x17F) || (c >= 0x370 && c <= 0x3FF) || (c >= 0x2000 && c <= 0x206F) || (c >= 0x2100 && c <= 0x27BF)
+        || c === 0x20AC || c === 0xFEFF || c >= 0x1F300;   // accents, Greek (δ), punctuation, symbols (★ ◇ ♀ ♂), €, BOM, emoji
       // Per line: invalid bytes and unlikely sequences ("É’" read as U+0252) point to Windows-1252, likely ones (é, –, €, emoji) to UTF-8.
       const start = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 3 : 0, lines = [];
       let tb = 0, tg = 0;
@@ -1425,8 +1427,8 @@
       }
       const ansiFile = tb > tg;                   // more stray bytes than likely UTF-8 characters: mostly Windows-1252
       return lines.map(([from, to, bad, odd, good]) => {
-        // A line with stray bytes is 1252 unless its UTF-8 looks real; a clean line only when it's one odd pair in a 1252 file ("×\u00a02").
-        if (bad ? bad + odd > good : odd === 1 && !good && ansiFile) return ansi(from, to);   // a Windows-1252 line ("Flabébé »", "POKÉ’S")
+        // A line with stray bytes stays UTF-8 if it has real-looking UTF-8 (é, –, δ, ★); a clean line is 1252 only as one odd pair in a 1252 file ("×\u00a02").
+        if (bad ? !good || odd > good : odd === 1 && !good && ansiFile) return ansi(from, to);   // a Windows-1252 line ("Flabébé »", "POKÉ’S")
         let o = '', run = from;
         for (let i = from; i < to; ) {
           const n = seq(i);
@@ -1555,6 +1557,7 @@
     if (!t || !t.text || !st) return;           // nothing complete to follow
     if (st.fp !== fp(t.text)) return;           // the other tab is mid-write
     if (S && st.fp === S.fp && !S.noPersist) {
+      if (saveFailing) { save(); return; }       // our newer swipes never reached storage: keep them, try to store them again
       S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
       if (started && !$('csSwiper').hidden) rebuild(); else updateAll();
       setMsg('Synced with your other Card Swiper tab');
