@@ -392,7 +392,7 @@
       inBlock = false;
       let qty = 1, rest = s, m;
       if ((m = s.match(/^(\d+)\s*[xX]?\s+(\S.*)$/)) || (m = s.match(/^(\d+)[xX](\S.*)$/))) { qty = +m[1]; rest = m[2]; }
-      else if ((m = s.match(/^(.*\S)\s+[xX](\d+)$/))) { rest = m[1]; qty = +m[2]; }
+      else if ((m = s.match(/^(.*\S)\s+[xX](\d+)((?:\s*(?:\[[^\]]*\]|\*f\*|\*?\b(?:foil|holo)\b\*?))*)$/i))) { rest = m[1] + m[3]; qty = +m[2]; }
       if (!qty) return;
       let cond = '', foil = false;
       const cm = rest.match(RE_COND);
@@ -635,7 +635,7 @@
   const cardById = id => id ? cache.cards[String(id).toLowerCase()] || null : null;
   // Is the card at a derived id really the card on the line? "Basic Fire Energy" = "Fire Energy", "Mewtwo EX" = "Mewtwo-EX",
   // "Basic {R} Energy" = "Basic Fire Energy", "Kingdra Delta Species" = "Kingdra δ", "Nidoran F" = "Nidoran♀".
-  const nameKey = n => normName(String(n || '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
+  const nameKey = n => normName(String(n || '').replace(/['\u2019`]s\b/gi, '').replace(/\{([A-Za-z])\}/g, (m, c) => ENERGY[c.toUpperCase()] || c)
     .replace(/δ/g, ' delta species ').replace(/◇/g, ' prism star ').replace(/★/g, ' star ').replace(/♀/g, ' f ').replace(/♂/g, ' m '));
   const nameOk = (c, d) => {
     const x = nameKey(c.n);
@@ -730,8 +730,8 @@
         list = await run(nm);
         if (!list.length && words.length > 1 && words.every(w => /^[a-z0-9é]+$/i.test(w))) list = await run('name:' + words.join('*'));
         if (d.num) {
-          const hit = byCase(list.filter(numHit)).sort((x, y) => (y.si === d.setId) - (x.si === d.setId));
-          if (hit.length) return done(hit.slice(0, 24), d.setId && hit[0].si !== d.setId ? 'approx' : 'exact');   // right number but another set: flag it
+          const hit = byCase(list.filter(numHit)).sort((x, y) => (y.si === d.setId) - (x.si === d.setId) || nameOk(y, d) - nameOk(x, d));
+          if (hit.length) return done(hit.slice(0, 24), (d.setId && hit[0].si !== d.setId) || !nameOk(hit[0], d) ? 'approx' : 'exact');   // another set or another name: flag it
         }
         if (list.length) return done(byCase(list).slice(0, 24), d.setId || d.num ? 'approx' : 'any');
         return done([], 'none');
@@ -854,8 +854,10 @@
       stored = lsSet(LS.text, { text, file:S.file });
     }
     if (!stored) {                              // then the previous list's swipes, which the user just agreed to replace
-      try { localStorage.removeItem(LS.session); } catch (e) {}
+      let old = null;
+      try { old = localStorage.getItem(LS.session); localStorage.removeItem(LS.session); } catch (e) {}
       stored = lsSet(LS.text, { text, file:S.file });
+      if (!stored && old != null) try { localStorage.setItem(LS.session, old); } catch (e) {}   // still too big: put it back for whoever owns it
     }
     if (!stored) {
       S.noPersist = true;                       // save() never writes this list's swipes, so they can't land beside another list's text
@@ -1250,7 +1252,10 @@
     if (!yes.length) {
       const had = wl.contains(document.activeElement);
       wl.innerHTML = '<div class="cs-wl-empty">Nothing here yet. Swipe right on a card to add it.</div>'; wlRows.clear();
-      if (had) { wl.tabIndex = -1; wl.focus({ preventScroll:true }); }   // removed the last row by keyboard: stay in the list
+      if (had) {                                // removed the last row: keep focus in the list until it moves on
+        wl.tabIndex = -1; wl.focus({ preventScroll:true });
+        wl.addEventListener('blur', () => wl.removeAttribute('tabindex'), { once:true });
+      }
     }
     else {
       const html = yes.slice().reverse().map(i => {
@@ -1276,7 +1281,14 @@
       wl.innerHTML = ''; wl.appendChild(frag);
       wlRows = keep;
       wl.scrollTop = wst;
-      if (fa) { const bs = wl.querySelectorAll('button'), t = fa.isConnected ? fa : bs[Math.min(fi, bs.length - 1)]; if (t) { t.focus({ preventScroll:true }); t.scrollIntoView({ block:'nearest' }); } }
+      if (fa) {
+        const bs = wl.querySelectorAll('button'), t = fa === wl ? bs[0] : fa.isConnected ? fa : bs[Math.min(fi, bs.length - 1)];
+        if (t) {
+          t.focus({ preventScroll:true });
+          const r = t.getBoundingClientRect(), w = wl.getBoundingClientRect();   // bring it into view inside the list only
+          if (r.top < w.top) wl.scrollTop -= w.top - r.top; else if (r.bottom > w.bottom) wl.scrollTop += r.bottom - w.bottom;
+        }
+      }
     }
     $('csWlCount').textContent = yes.length ? yes.length + ' line' + (yes.length === 1 ? '' : 's') + ', ' + yes.reduce((n, i) => n + items[i].qty, 0) + ' cards' : 'Empty';
     $('csWlTotal').innerHTML = yes.length && total ? '\u2248 <b>' + money(total) + '</b>' + (unpriced ? ' +' + unpriced + ' unpriced' : '') : '';
@@ -1384,20 +1396,48 @@
     if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
     if (b.indexOf(0) !== -1) return null;
     try { return new TextDecoder('utf-8', { fatal:true }).decode(b); }
-    catch (e) {                                 // mostly UTF-8 with stray Windows-1252 bytes: keep the UTF-8, map only the stray bytes
-      const u8 = new TextDecoder('utf-8', { ignoreBOM:true }), w = new TextDecoder('windows-1252'), out = [];
-      let i = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 3 : 0, run = i;
-      while (i < b.length) {
+    catch (e) {                                 // not clean UTF-8: decide per line whether it's UTF-8 with stray bytes or a Windows-1252 line
+      const u8 = new TextDecoder('utf-8', { ignoreBOM:true }), w = new TextDecoder('windows-1252'), W = new Uint16Array(256);
+      for (let k = 0; k < 256; k++) W[k] = w.decode(Uint8Array.of(k)).charCodeAt(0);
+      const ansi = (from, to) => { let o = ''; for (let k = from; k < to; k += 8192) o += String.fromCharCode.apply(null, Array.from(b.subarray(k, Math.min(to, k + 8192)), x => W[x])); return o; };
+      const seq = i => {                        // length of a well-formed UTF-8 sequence at i, or 0
         const c = b[i], n = c < 0x80 ? 1 : c >= 0xC2 && c < 0xE0 ? 2 : c >= 0xE0 && c < 0xF0 ? 3 : c >= 0xF0 && c < 0xF5 ? 4 : 0;
-        let ok = n > 0 && i + n <= b.length;
-        for (let k = 1; ok && k < n; k++) ok = (b[i + k] & 0xC0) === 0x80;
-        if (ok) { i += n; continue; }
-        if (i > run) out.push(u8.decode(b.subarray(run, i)));
-        out.push(w.decode(b.subarray(i, i + 1)));
-        run = ++i;
+        if (!n || i + n > b.length) return 0;
+        for (let k = 1; k < n; k++) if ((b[i + k] & 0xC0) !== 0x80) return 0;
+        return n;
+      };
+      const cp = (i, n) => n === 2 ? ((b[i] & 0x1F) << 6) | (b[i + 1] & 0x3F) : n === 3 ? ((b[i] & 0x0F) << 12) | ((b[i + 1] & 0x3F) << 6) | (b[i + 2] & 0x3F)
+        : ((b[i] & 0x07) << 18) | ((b[i + 1] & 0x3F) << 12) | ((b[i + 2] & 0x3F) << 6) | (b[i + 3] & 0x3F);
+      const likely = c => (c >= 0xA0 && c <= 0x17F) || (c >= 0x2000 && c <= 0x206F) || c === 0x20AC || c >= 0x1F300;   // accents, punctuation, €, emoji
+      // Per line: invalid bytes and unlikely sequences ("É’" read as U+0252) point to Windows-1252, likely ones (é, –, €, emoji) to UTF-8.
+      const start = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 3 : 0, lines = [];
+      let tb = 0, tg = 0;
+      for (let i = start, ls = start, bad = 0, odd = 0, good = 0; ; ) {
+        if (i >= b.length || b[i] === 10) {
+          lines.push([ls, i, bad, odd, good]); tb += bad; tg += good; bad = odd = good = 0;
+          if (i >= b.length) break;
+          ls = ++i; continue;
+        }
+        const n = seq(i);
+        if (!n) { bad++; i++; continue; }
+        if (n > 1) { if (likely(cp(i, n))) good++; else odd++; }
+        i += n;
       }
-      if (i > run) out.push(u8.decode(b.subarray(run, i)));
-      return out.join('');
+      const ansiFile = tb > tg;                   // more stray bytes than likely UTF-8 characters: mostly Windows-1252
+      return lines.map(([from, to, bad, odd, good]) => {
+        // A line with stray bytes is 1252 unless its UTF-8 looks real; a clean line only when it's one odd pair in a 1252 file ("×\u00a02").
+        if (bad ? bad + odd > good : odd === 1 && !good && ansiFile) return ansi(from, to);   // a Windows-1252 line ("Flabébé »", "POKÉ’S")
+        let o = '', run = from;
+        for (let i = from; i < to; ) {
+          const n = seq(i);
+          if (n) { i += n; continue; }
+          if (i > run) o += u8.decode(b.subarray(run, i));
+          o += String.fromCharCode(W[b[i]]);       // a stray byte in a UTF-8 line
+          run = ++i;
+        }
+        if (to > run) o += u8.decode(b.subarray(run, to));
+        return o;
+      }).join('\n');
     }
   }
   function readFile(f) {
@@ -1512,10 +1552,7 @@
   window.addEventListener('storage', e => {
     if (e.key !== LS.session && e.key !== LS.text) return;
     const t = lsGet(LS.text), st = lsGet(LS.session);
-    if (!t || !t.text || !st) {                 // another tab cleared storage (its list was too big): put ours back
-      if (S && !S.noPersist) { if (!t || t.text !== S.text) lsSet(LS.text, { text:S.text, file:S.file }); save(); }
-      return;
-    }
+    if (!t || !t.text || !st) return;           // nothing complete to follow
     if (st.fp !== fp(t.text)) return;           // the other tab is mid-write
     if (S && st.fp === S.fp && !S.noPersist) {
       S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
