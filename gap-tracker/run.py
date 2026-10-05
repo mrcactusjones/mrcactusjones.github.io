@@ -1339,7 +1339,18 @@ def cmd_sheet(args, cfg: Config, store: Store) -> int:
     payload = _json.loads(path.read_text())
     wanted = [v.strip() for v in args.verdict.split(",") if v.strip()]
     rows = [r for r in payload.get("rows", []) if r.get("verdict") in wanted]
-    rows.sort(key=lambda r: r.get("floor_profit") or 0, reverse=True)
+    # A budget cap changes which cards are worth looking at entirely. Under
+    # $201 the $79.99 grading fee is the dominant cost, so what matters is the
+    # multiple rather than the absolute gap -- and nearly every card from an
+    # unfiltered top fifteen is priced out.
+    if args.max_raw:
+        rows = [r for r in rows if (r.get("raw") or 0) <= args.max_raw]
+    if args.min_raw:
+        rows = [r for r in rows if (r.get("raw") or 0) >= args.min_raw]
+    key = {"profit": lambda r: r.get("floor_profit") or 0,
+           "roi": lambda r: r.get("floor_roi") or 0,
+           "conviction": lambda r: r.get("conviction") or 0}[args.by]
+    rows.sort(key=key, reverse=True)
     rows = rows[:args.top]
     if not rows:
         print(f"No cards with verdict in {wanted}. "
@@ -1487,6 +1498,20 @@ def cmd_sheet(args, cfg: Config, store: Store) -> int:
 </div>""")
 
     generated = payload.get("generated_at", "")[:10]
+
+    # The appendix works the cost model by hand, so a reader can redo it once
+    # this data is stale. Everything is derived from the live config rather
+    # than typed, or the sheet would start lying the moment a setting changed.
+    keep = 1 - econ.sale_fee_pct
+    fee_rows = "".join(
+        f"<tr><td>up to ${cap:,.0f}</td><td class=r>${fee:,.2f}</td></tr>"
+        for cap, fee in econ.fee_tiers[:4])
+    ex_psa9 = 900.0
+    ex_net = econ.net_proceeds(ex_psa9)
+    ex_fixed = econ.fee_for(ex_psa9) + econ.sub_ship_per_card
+    ex_cap = econ.max_raw_price(ex_psa9, th.min_floor_profit, th.min_floor_roi)
+    ex_profit = ex_net - (ex_cap + ex_fixed)
+
     doc = f"""<!doctype html>
 <meta charset="utf-8">
 <title>Field sheet {generated}</title>
@@ -1538,6 +1563,22 @@ def cmd_sheet(args, cfg: Config, store: Store) -> int:
   .legend {{ font-size: 7.5pt; border: 1px solid #000; padding: 5px 7px;
             margin-top: 6px; break-inside: avoid; }}
   .legend b {{ display: block; margin-bottom: 2px; font-size: 8.5pt; }}
+  .ref {{ page-break-before: always; break-before: page; }}
+  .ref h2 {{ font-size: 12pt; margin: 0 0 4px; border-bottom: 2px solid #000;
+            padding-bottom: 3px; }}
+  .ref h3 {{ font-size: 9.5pt; margin: 9px 0 3px; }}
+  .ref p {{ margin: 0 0 5px; font-size: 8pt; line-height: 1.35; }}
+  .ref p.intro {{ font-size: 8.5pt; margin-bottom: 7px; }}
+  .ref ul {{ margin: 0 0 5px; padding-left: 14px; font-size: 8pt; line-height: 1.35; }}
+  .ref li {{ margin-bottom: 2px; }}
+  .cols {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }}
+  table.calc {{ width: 100%; border-collapse: collapse; margin: 0 0 5px; }}
+  table.calc td {{ font-size: 8pt; padding: 1px 2px; border-bottom: 1px solid #eee; }}
+  table.calc td.r {{ text-align: right; }}
+  table.calc tr.tot td {{ font-weight: 700; border-top: 1px solid #000;
+                         border-bottom: none; }}
+  .formula {{ border: 1.5px solid #000; padding: 5px 7px; margin: 0 0 5px;
+             font-size: 8.5pt; font-weight: 700; }}
 </style>
 <div class="head">
   <h1>Grade-gap field sheet &middot; top {len(rows)}</h1>
@@ -1559,23 +1600,143 @@ def cmd_sheet(args, cfg: Config, store: Store) -> int:
   price may be an average of both. &nbsp;&middot;&nbsp; PSA 10 figures are upside,
   not the plan: the ranking is what clears at a 9.
 </div>
-<script>
-  // Pictures are derived from the card id against pokemontcg.io's public
-  // image CDN -- no key, no credits -- so an id it does not carry simply
-  // fails. Swap those for the placeholder rather than leaving a broken frame.
-  for (const img of document.querySelectorAll(".art img")) {{
-    img.addEventListener("error", () => {{
-      const d = document.createElement("div");
-      d.className = "noimg";
-      d.textContent = "#" + (img.dataset.num || "");
-      img.replaceWith(d);
-    }});
-  }}
-</script>
+
+<div class="ref">
+<h2>How these numbers are built</h2>
+
+<div class="cols">
+<div>
+<h3>The cost model</h3>
+<p>Every number on this sheet comes out of one equation. Nothing else in the
+tool matters if this is wrong.</p>
+<table class="calc">
+  <tr><td>raw price</td><td class="r">what you pay</td></tr>
+  <tr><td>+ grading fee</td><td class="r">by <i>slabbed</i> value, see tiers</td></tr>
+  <tr><td>+ submission post</td><td class="r">${econ.sub_ship_per_card:.2f}</td></tr>
+  <tr class="tot"><td>= all-in</td><td class="r">capital at risk</td></tr>
+  <tr><td>PSA 9 price</td><td class="r">what it sells for</td></tr>
+  <tr><td>&minus; selling fees</td><td class="r">{econ.sale_fee_pct*100:.2f}%</td></tr>
+  <tr><td>&minus; post to buyer</td><td class="r">${econ.ship_out:.2f}</td></tr>
+  <tr class="tot"><td>&minus; all-in</td><td class="r">= what you clear</td></tr>
+</table>
+<p><b>The fee keys off the slabbed value, not what you paid.</b> That is the
+single most counter-intuitive thing here. A $40 card that slabs at $1,600 costs
+more to grade than a $400 card that slabs at $900.</p>
+
+<h3>PSA fee tiers</h3>
+<table class="calc">
+{fee_rows}
+</table>
+<p>Plus <b>2% of declared value above $499</b>. The jump at $1,499 is the one
+that bites: a card valued $1,499 pays $99.99 all in, one valued $1,500 pays
+$169.02. If a card sits just under a line, a small price rise costs you ~$70 on
+an otherwise identical trade &mdash; that is what the <i>fee room</i> figure
+warns about.</p>
+</div>
+
+<div>
+<h3>Working out a maximum price by hand</h3>
+<p>When the data goes stale this is the calculation to redo yourself. Look up
+the current PSA 9 price anywhere, then:</p>
+<div class="formula">
+  max cash = (PSA 9 &times; {keep:.4f}) &minus; ${econ.ship_out:.0f} &minus; fee &minus; ${econ.sub_ship_per_card:.0f}<br>
+  <span class="dt">then subtract the profit you require</span>
+</div>
+<p>Worked example, PSA 9 at $900 and wanting $25 clear at 25% return:</p>
+<table class="calc">
+  <tr><td>$900 &times; {keep:.4f} &minus; ${econ.ship_out:.0f}</td><td class="r">${ex_net:,.2f}  net</td></tr>
+  <tr><td>fee at $900 + post</td><td class="r">&minus;${ex_fixed:,.2f}</td></tr>
+  <tr><td>required return</td><td class="r">&divide; 1.25</td></tr>
+  <tr class="tot"><td>pay no more than</td><td class="r">${ex_cap:,.2f}</td></tr>
+</table>
+<p>At that price it clears ${ex_profit:,.2f} &mdash; the margin, not the gap.
+The gap between $200 raw and a $900 slab looks like $700. It is not.</p>
+
+<h3>What makes a good candidate under $200</h3>
+<p>At this budget the <b>$79.99 fee is the dominant cost</b>, so the multiple
+matters more than the gap. A $40 card that slabs at $400 beats a $190 card that
+slabs at $600.</p>
+<ul>
+  <li><b>Stay under the $1,499 slab line.</b> Everything below it pays the same
+    $79.99 base, so that band is where a small budget works hardest.</li>
+  <li><b>Enough comps to believe the price.</b> Check <i>visible</i> sales, not
+    the count the provider claims &mdash; they differed by 5&times; on most cards
+    here.</li>
+  <li><b>One printing, or a known one.</b> Graded prices pool printings; see
+    overleaf.</li>
+  <li><b>Something that sells.</b> A 300% margin you wait two years to realise
+    is worse than 80% that moves in a month.</li>
+</ul>
+</div>
+</div>
+
+<h2>What goes wrong with the data</h2>
+<p class="intro">Every item below was found the hard way, by a number that
+looked right and was not. These are the questions to ask of any card-price
+source, not just this one.</p>
+
+<div class="cols">
+<div>
+<h3>Graded prices pool printings</h3>
+<p>Grades are read out of eBay listing titles, and a title carries the grade but
+not the printing. So one card's &ldquo;PSA 9 price&rdquo; can be 1st Edition and
+Unlimited averaged into a figure no copy ever sold for. You buy one printing;
+you are being quoted the blend of both.</p>
+<p><b>Check:</b> search the card's sold listings and see whether the prices fall
+into two clusters. If they do, the cheaper one is what a common copy fetches.</p>
+
+<h3>A short window is not the market</h3>
+<p>A &ldquo;market price&rdquo; computed over thirty days sits well above what
+the sales as a whole support on any card trending up. One card here read $2,801
+on the 30-day figure against a $1,536 median across all 27 of its sales
+&mdash; which doubled its apparent profit and put it top of the ranking.</p>
+<p><b>Check:</b> prefer a median over all sales to any &ldquo;market&rdquo; or
+&ldquo;smart&rdquo; price. Take the lower of the two.</p>
+
+<h3>Claimed comps versus visible ones</h3>
+<p>A source saying 27 sales may have two you can actually see. A price you
+cannot check against real sales is a price to distrust, however confident the
+number looks.</p>
+</div>
+
+<div>
+<h3>Asking prices are not sale prices</h3>
+<p>Active listings skew high by construction: copies priced to sell already
+sold, and what stays listed is the tail that will not. PSA 9 asks for one card
+here ran $6,250&ndash;$40,000 against a $1,536 market. <b>Never price a floor
+off an ask.</b> Use completed sales.</p>
+
+<h3>The cheap listings are cheap for a reason</h3>
+<p>Sort any search by price and the top of it will be damaged copies, foreign
+printings, accessories and fan art. A creased card grades a 2 and the fee is
+gone. Four of the eight cheapest copies of one card said DMG, HP or
+&ldquo;creases&rdquo; in their own titles.</p>
+<p><b>Check:</b> read the title, every time. If an item is far cheaper than the
+card trades for, that is information about the item, not a bargain.</p>
+
+<h3>Thin comps hide everything</h3>
+<p>The expensive cards sell rarely, so they have the fewest sales &mdash; and
+thin data is exactly where a pooled or stale price does the most damage and is
+hardest to detect. Scepticism should rise with price, not fall.</p>
+
+<h3>A margin is a ceiling over a price</h3>
+<p>Which means ranking by margin puts the least trustworthy rows first: the
+largest margins come from the most inflated ceilings divided by the least
+plausible prices. The best-looking row on a list is the one to check hardest.</p>
+</div>
+</div>
+</div>
 """
     out = store.root / "fieldsheet.html"
     out.write_text(doc, encoding="utf-8")
-    print(f"Wrote {out}  ({len(rows)} cards)")
+    bounds = []
+    if args.min_raw:
+        bounds.append(f"raw >= ${args.min_raw:,.0f}")
+    if args.max_raw:
+        bounds.append(f"raw <= ${args.max_raw:,.0f}")
+    print(f"Wrote {out}  ({len(rows)} cards"
+          + (f", {', '.join(bounds)}" if bounds else "")
+          + f", by {args.by})")
     print("Open it and print: Ctrl+P, background graphics off, margins default.")
     print("Images load from the web, so print while online.")
     return 0
@@ -2418,6 +2579,11 @@ def main() -> int:
 
     p = sub.add_parser("sheet", help="print-ready field sheet for a card show")
     p.add_argument("--top", type=int, default=15)
+    p.add_argument("--max-raw", type=float,
+                   help="only cards whose raw price is at or under this")
+    p.add_argument("--min-raw", type=float)
+    p.add_argument("--by", default="profit",
+                   choices=("profit", "roi", "conviction"))
     p.add_argument("--verdict", default="no_brainer,floor_positive",
                    help="comma-separated verdicts to include")
     p.set_defaults(func=cmd_sheet)
