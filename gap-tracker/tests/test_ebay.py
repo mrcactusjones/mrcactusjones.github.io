@@ -297,3 +297,60 @@ class GradeabilityTest(unittest.TestCase):
     def test_near_mint_raises_nothing(self):
         concerns = listing_concerns("Rayquaza ex 97/101 Dragon Frontiers NM Holo")
         self.assertEqual(concerns, {"wrong": [], "damage": [], "played": []})
+
+
+class NotACardTest(unittest.TestCase):
+    """The first `deals` run ranked display cases above cards.
+
+    Every junk title below is real, and all of them outranked genuine listings
+    because they cost $17 against a four-figure PSA 9. A margin is a ceiling
+    divided by a price, so the cheapest wrong item always wins.
+    """
+
+    JUNK = (
+        "Typhlosion 17/111 - Neo Genesis TYPHLOSION - Extended Art Case",
+        "Typhlosion 17/111 - Neo Genesis -Magnetic Extended Art Case",
+        "Umbreon 13/75 Pokemon Neo Discovery Extended Artwork Case",
+        "Vintage Umbreon 13/75 Neo Discovery High Quality Gold Metal Fan Art Card",
+        "Espeon ex 102 Unseen Forces Pokemon Extended  Artwork For PSA CGC BGS or T",
+        "Pokemon TCG Shining Tyranitar 113/105 Neo Destiny Novelty Keychain",
+        "Celebi ex 117/115 Unseen Forces Hand Painted On Holo Gold Energy Card by:",
+    )
+    FOREIGN = (
+        "Pokemon Card Houndoom H11/H32 Aquapolis 2002 ITA 70 PV Holographic",
+        "Pokemon Card TYRANITAR H28/H32 - Aquapolis - HOLO ITA",
+    )
+    PREGRADED = ("Pokemon Tyranitar Aquapolis 2003 Holo H28/H32 English GRADE 6 EX-MT",)
+
+    # The ones a careless word list would also reject. Gold Star is a real
+    # rarity, Alt Art and Full Art are real card types, and Shining is a real
+    # prefix -- blocking "gold" or "art" outright would lose all of them.
+    REAL = (
+        "Pokemon Card - Houndoom H11/H32 Aquapolis E-Series Holo Rare WOTC",
+        "Tyranitar H28/H32 Aquapolis Holo Ultra Rare Pokemon TCG Nintendo e-reader",
+        "Pokemon TCG Celebi ex 117/115 Unseen Forces Ultra Rare Holo EX EN 2005",
+        "Rayquaza ex (Delta Species) 97/101 EX Dragon Frontiers Holo",
+        "Charizard 4/102 1st Edition Shadowless PSA 10",
+        "Pikachu Gold Star 104/110 Holon Phantoms",
+        "Umbreon VMAX Alt Art 215/203 Evolving Skies",
+        "Shining Tyranitar 113/105 Neo Destiny Holo",
+    )
+
+    def test_accessories_and_fan_art_are_not_cards(self):
+        for title in self.JUNK:
+            self.assertFalse(gradeable(title), title)
+
+    def test_language_variants_are_rejected(self):
+        """PPT prices the English card; ITA is a different market. 'PV' is the
+        Italian and French printing of HP and gives away a title that says
+        nothing else."""
+        for title in self.FOREIGN:
+            self.assertFalse(gradeable(title), title)
+
+    def test_a_card_already_graded_low_is_not_a_raw_candidate(self):
+        for title in self.PREGRADED:
+            self.assertFalse(gradeable(title), title)
+
+    def test_real_cards_with_risky_words_all_survive(self):
+        for title in self.REAL:
+            self.assertTrue(gradeable(title), title)

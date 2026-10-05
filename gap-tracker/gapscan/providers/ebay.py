@@ -441,7 +441,10 @@ _DAMAGE = (r"damag\w*", r"\bdmg\b", r"creas\w*", r"\bbent\b", r"\bbend\w*\b",
            r"water\s*damag\w*", r"\bheav(?:y|ily)\s*play\w*", r"\bhp\b",
            r"\bmoderate(?:ly)?\s*play\w*", r"\bmp\b", r"\bpoor\b",
            r"\bscratch\w*", r"\bscuff\w*", r"whitening", r"\btorn\b",
-           r"\bwrinkl\w*", r"\bpeel\w*", r"\bink\b", r"\bstain\w*")
+           r"\bwrinkl\w*", r"\bpeel\w*", r"\bink\b", r"\bstain\w*",
+           # Already graded, and graded low: "GRADE 6 EX-MT" is neither raw
+           # nor a 9. A 9 or 10 is caught by the grader patterns instead.
+           r"\bgrade\s*[1-8]\b", r"\bex[\s\-]*mt\b", r"\bvg[\s\-]*ex\b")
 
 # Lightly played is a judgement call rather than a disqualification, so it is
 # reported separately: it can grade a 9 and usually will not.
@@ -450,6 +453,29 @@ _PLAYED = (r"\blp\b", r"\blight(?:ly)?\s*play\w*", r"\bplayed\b", r"\bpl\b")
 # Not this card at all, whatever the number says. World Championships promos
 # carry a different back; language variants, jumbos and proxies are their own
 # things; a lot or a playset is not one card.
+# Not a card at all. The whole top of the first `deals` run was these: empty
+# display cases, fan art and a keychain, which rank first precisely because
+# they cost $17 against a four-figure PSA 9. Note what is deliberately absent
+# -- "gold", "shining", "full art" and "alt art" all name real cards.
+_NOT_A_CARD = (r"\bcases?\b", r"extended\s*art(?:work)?", r"\bfan\s*art\b",
+               r"custom\s*art", r"hand[\s\-]*painted", r"\bairbrush\w*",
+               r"\bkey\s*chain\b", r"\bkeychain\b", r"\bkey\s*ring\b",
+               r"\bsleeves?\b", r"\btoploader\b", r"\bholders?\b",
+               r"\bbinder\b", r"\bmagnetic\b", r"\bmagnet\b",
+               r"\bnovelty\b", r"\breplica\b", r"\bsticker\b",
+               r"\bposter\b", r"\bplaque\b", r"\bcoin\b", r"\bpin\b",
+               r"\bbadge\b", r"\bframe\b", r"\bstand\b", r"\bdisplay\b",
+               r"metal\s*(?:card|art)", r"gold\s*metal", r"gold\s*plated",
+               r"for\s*psa\s*cgc", r"\bdecal\b", r"\bmousepad\b")
+
+# Language variants are a different market, and PPT prices the English card.
+# Sellers mark them with three-letter codes; "PV" is the Italian and French
+# printing of HP, which gives away a card whose title says nothing else.
+_NOT_ENGLISH = (r"\bita\b", r"\bital\b", r"\bfra\b", r"\bfre\b",
+                r"\bger\b", r"\bdeu\b", r"\besp\b", r"\bspa\b",
+                r"\bjpn\b", r"\bjap\b", r"\bkor\b", r"\bpor\b",
+                r"\bned\b", r"\bpv\b")
+
 _NOT_THE_CARD = (r"world\s*champion\w*", r"\bwcs?\b", r"\bproxy\b",
                  r"\bcustom\b", r"\bfake\b", r"\breprint\b", r"\bjumbo\b",
                  r"\boversiz\w*", r"japanese", r"korean", r"chinese",
@@ -466,8 +492,9 @@ def _concern_res():
     if _CONCERN_RES is None:
         _CONCERN_RES = tuple(
             (kind, tuple(re.compile(p, re.IGNORECASE) for p in pats))
-            for kind, pats in (("wrong", _NOT_THE_CARD), ("damage", _DAMAGE),
-                               ("played", _PLAYED)))
+            for kind, pats in (("wrong", _NOT_THE_CARD + _NOT_A_CARD
+                                + _NOT_ENGLISH),
+                               ("damage", _DAMAGE), ("played", _PLAYED)))
     return _CONCERN_RES
 
 

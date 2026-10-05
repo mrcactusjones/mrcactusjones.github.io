@@ -891,7 +891,7 @@ def cmd_deals(args, cfg: Config, store: Store) -> int:
     print(f"Searching eBay for live copies of the top {len(cards)} cards "
           f"({len(cards)} calls)...\n")
 
-    deals, scanned, skipped_dmg = [], 0, 0
+    deals, scanned, skipped_dmg, too_cheap = [], 0, 0, 0
     for i, row in enumerate(cards, 1):
         entry = universe.get(row["id"]) or {}
         number = entry.get("number") or row.get("number")
@@ -928,6 +928,15 @@ def cmd_deals(args, cfg: Config, store: Store) -> int:
             cash, known = delivered(item)
             if cash <= 0:
                 continue
+            # The generic catch for everything the word lists miss. A keyword
+            # list is always one novelty product behind; a price far under what
+            # the card itself trades for is evidence about the *item*, not a
+            # bargain. The first run's top four were $17 display cases against
+            # a card whose raw price is in the hundreds.
+            market = row.get("raw")
+            if market and cash < market * args.min_ratio:
+                too_cheap += 1
+                continue
             # The margin on *this* copy. all_in pads a quoted market price by
             # raw_premium_pct because you rarely buy at guide; an asking price
             # is the number itself, so it is not padded again.
@@ -959,7 +968,10 @@ def cmd_deals(args, cfg: Config, store: Store) -> int:
     print(f"\n{len(deals)} listing(s) clear ${args.min_profit:,.0f}; "
           f"showing top {min(args.top, len(deals))} by "
           f"{'return on capital' if args.by == 'roi' else 'profit'}.")
-    print(f"({scanned} cards searched, {skipped_dmg} damaged copies skipped)\n")
+    print(f"({scanned} cards searched, {skipped_dmg} damaged or non-card "
+          f"listings skipped,\n {too_cheap} priced under "
+          f"{args.min_ratio:.0%} of the card's own market value and treated as "
+          f"not the card)\n")
 
     for i, d in enumerate(deals[:args.top], 1):
         pay = f"${d['spend']:,.2f}" + ("" if d["known"] else
@@ -986,6 +998,18 @@ def cmd_deals(args, cfg: Config, store: Store) -> int:
     print(f"\n{client.calls} eBay call(s). Every figure assumes the card "
           f"grades a PSA 9 --\nnothing here has seen the photos, and an 8 is "
           f"usually a loss.")
+    # Worth saying where the list is read, not only in the README: sorting by
+    # margin puts the least trustworthy rows first by construction. The margin
+    # is a ceiling over a price, so it is largest where the ceiling is most
+    # inflated and the price least likely to be the card.
+    thin = [d for d in deals[:args.top]
+            if d["visible"] is not None and d["visible"] < 3]
+    if thin:
+        print(f"\n{len(thin)} of the top {min(args.top, len(deals))} rest on "
+              f"fewer than 3 visible PSA 9 sales. Ranking by\nmargin favours "
+              f"exactly those: the margin is a ceiling divided by a price, so "
+              f"it is\nlargest where the ceiling is least supported. Check "
+              f"those ceilings before acting.")
     return 0
 
 
@@ -2362,6 +2386,9 @@ def main() -> int:
     p.add_argument("--limit", type=int, default=50, help="listings per card")
     p.add_argument("--by", default="profit", choices=("profit", "roi"))
     p.add_argument("--min-profit", type=float, default=50.0)
+    p.add_argument("--min-ratio", type=float, default=0.25,
+                   help="skip asks below this fraction of the card's market "
+                        "raw price -- they are usually not the card")
     p.add_argument("--assume-post", type=float, default=15.0,
                    help="postage assumed when a listing quotes none")
     p.add_argument("--pace", type=float, default=0.3, help="seconds between calls")
