@@ -43,6 +43,7 @@
   #app .cs-btn:focus-visible { outline:1px dotted #000; outline-offset:-5px; }
   #app .cs-btn:disabled, #app .cs-btn.disabled { color:#808080; text-shadow:1px 1px 0 #fff; cursor:default; pointer-events:none; }
   #app .cs-btn.default { outline:1px solid #000; outline-offset:0; font-weight:700; }
+  #app .cs-btn.default:focus-visible { outline:1px dotted #000; outline-offset:-5px; box-shadow:0 0 0 1px #000, inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080; }
   #app .cs-btn-sm { font-size:11px; padding:2px 8px; }
   #app .cs-btn-sm:active { padding:3px 7px 1px 9px; }
 
@@ -81,6 +82,7 @@
     border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #404040, inset -1px -1px 0 #dfdfdf;
   }
   @media (max-width:900px){ #app .cs-stage { height:clamp(400px, 70vh, 600px); } }
+  @media (max-height:520px){ #app .cs-stage { height:clamp(240px, calc(100vh - 100px), 600px); } }
   #app .cs-deck { position:relative; width:min(calc(100cqw - 40px), calc((100cqh - 40px) * 0.716)); aspect-ratio:63 / 88; }
   #app .cs-card { position:absolute; inset:0; z-index:2; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; will-change:transform; transition:transform .25s ease, filter .25s ease; }
   #app .cs-card.dragging { cursor:grabbing; }
@@ -146,6 +148,7 @@
   #app .cs-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
   #app .cs-thumb span { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; }
   #app .cs-thumb.sel { border-color:#000080; outline-color:#000; }
+  #app .cs-thumb:focus-visible { outline:2px dotted #000; outline-offset:1px; }
 
   #app .cs-wl-head { display:flex; justify-content:space-between; gap:6px; font-size:11px; margin-bottom:4px; }
   #app .cs-wl-head b { color:#006000; }
@@ -155,9 +158,10 @@
   #app .cs-wl-row:hover { background:#000080; color:#fff; }
   #app .cs-wl-row:hover .sub { color:#c9d3ff; }
   #app .cs-wl-row img, #app .cs-wl-row .noimg { width:24px; height:33px; object-fit:cover; flex-shrink:0; background:#10103a; }
-  #app .cs-wl-row .txt { flex:1; min-width:0; }
-  #app .cs-wl-row .nm { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #app .cs-wl-row .sub { font-size:10px; color:#606060; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #app .cs-wl-row .txt { flex:1; min-width:0; display:block; text-align:left; background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer; }
+  #app .cs-wl-row .txt:focus-visible { outline:1px dotted currentColor; outline-offset:1px; }
+  #app .cs-wl-row .nm { display:block; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #app .cs-wl-row .sub { display:block; font-size:10px; color:#606060; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #app .cs-wl-row .x { flex-shrink:0; font-family:inherit; font-size:10px; line-height:1; width:18px; height:16px; padding:0; cursor:pointer; background:#c0c0c0; color:#000; border:1px solid; border-color:#fff #000 #000 #fff; }
 
   #app .cs-statusbar { display:flex; gap:2px; padding:2px; border-top:1px solid #808080; box-shadow:inset 0 1px 0 #fff; }
@@ -185,7 +189,7 @@
       <div class="cs-title-buttons"><div>_</div><div>&#9633;</div><div>&times;</div></div>
     </div>
     <div class="cs-toolbar">
-      <button class="cs-btn" id="csNew" title="Load a different deckbuy list">&#128194; New list&hellip;</button>
+      <button class="cs-btn" id="csNew" hidden title="Load a different deckbuy list">&#128194; New list&hellip;</button>
       <button class="cs-btn" id="csBack" hidden>&#9664; Back to the stack</button>
       <span class="cs-tb-sep"></span>
       <button class="cs-btn" id="csCopy" disabled title="Copy the wishlist to the clipboard in deckbuy format">&#128203; Copy</button>
@@ -304,6 +308,7 @@
     <div class="cs-statusbar">
       <span class="cs-cell hide-sm" id="csStFile">No list</span>
       <span class="cs-cell" id="csStPos">0 / 0</span>
+      <span class="cs-cell cs-net" id="csStSave" hidden title="This browser won't store any more. Save your wishlist before you close the tab.">&#9888; Progress not saving</span>
       <span class="cs-cell cs-net" id="csStNet" hidden title="The Pok&eacute;mon TCG API isn't answering. Images from the card CDN still load, and names always show.">&#9888; Lookups failing</span>
       <span class="cs-cell grow" id="csStMsg">Paste a deckbuy list or drop a .txt file to start</span>
     </div>
@@ -354,13 +359,14 @@
   const RE_COND = /\[\s*([a-z ]+?)\s*\]/i;
   const RE_FOIL = /\*f\*|\bfoil\b|\bholo\b/i;
   const RE_FOIL_G = /\*f\*|\*?\bfoil\b\*?|\*?\bholo\b\*?/gi;
+  const RE_NAME_SUFFIX = /^(EX|GX|BREAK|VMAX|VSTAR|LEGEND|PRIME)$/;          // "Mewtwo EX 54": EX ends the name, it isn't Expedition's code
 
   function parseAlt(t) {
     t = t.replace(/\s+/g, ' ').trim();
     const a = { name:t, paren:'', trail:'', code:'' };
     let m;
     if ((m = t.match(RE_PAREN)) && m[1]) { a.name = m[1].trim(); a.paren = m[2].trim(); a.trail = m[3] || ''; }
-    else if ((m = t.match(RE_PTCGL))) { a.name = m[1]; a.code = m[2]; a.trail = m[3]; }
+    else if ((m = t.match(RE_PTCGL)) && !RE_NAME_SUFFIX.test(m[2])) { a.name = m[1]; a.code = m[2]; a.trail = m[3]; }
     else if ((m = t.match(RE_TRAIL))) { a.name = m[1]; a.trail = m[2]; }
     a.key = [a.name, a.paren, a.code, a.trail].join('|').toLowerCase();
     return a;
@@ -368,16 +374,18 @@
 
   function parseList(text) {
     const list = [], byKey = new Map();
-    let section = '';
+    let section = '', block = [], inBlock = false;
+    const heading = h => { if (!inBlock) block = []; inBlock = true; block.push(h); section = block.join('\n'); };   // consecutive comment lines head the cards below them
     String(text || '').replace(/\r\n?/g, '\n').split('\n').forEach(raw => {
       const s = raw.trim();
       if (!s) return;
       if (/^(\/\/|#)/.test(s)) {
-        const body = s.replace(/^(\/\/|#)\s*/, '');
-        if (body && !/^\d+\s*x?\s+\S/i.test(body)) section = s.startsWith('//') ? s : '// ' + body;   // a heading, not a commented-out card
+        const body = s.replace(/^(\/\/|#)\s*/, ''), cm = body.match(/^\d+\s*x?\s+(.+)$/i), ca = cm && parseAlt(cm[1]);
+        if (body && !(ca && (ca.paren || ca.code || ca.trail))) heading(s.startsWith('//') ? s : '// ' + body);   // a heading, not a commented-out card
         return;
       }
-      if (RE_HEADER.test(s) || RE_COUNTHEAD.test(s)) { section = '// ' + s.replace(/\s*:?\s*\(?\d*\)?\s*$/, ''); return; }
+      if (RE_HEADER.test(s) || RE_COUNTHEAD.test(s)) { heading('// ' + s.replace(/\s*:?\s*\(?\d*\)?\s*$/, '')); return; }
+      inBlock = false;
       let qty = 1, rest = s, m;
       if ((m = s.match(/^(\d+)\s*[xX]?\s+(\S.*)$/)) || (m = s.match(/^(\d+)[xX](\S.*)$/))) { qty = +m[1]; rest = m[2]; }
       else if ((m = s.match(/^(.*\S)\s+[xX](\d+)$/))) { rest = m[1]; qty = +m[2]; }
@@ -395,33 +403,15 @@
       byKey.set(key, it);
       list.push(it);
     });
+    list.forEach((it, i) => it.alts.forEach(a => { a._i = i; }));
     return list;
   }
 
   // ---------------------------------------------------------------- set lookup (codes, names, ids)
-  // Fallback for when the live set list can't be fetched. Live data from the API always wins.
+  // Every English set in the Pokémon TCG API through 30th Celebration: Classic Collection (2026/09/16): id|name|PTCGL code|series.
   const FALLBACK_SETS = (
-    'base1|Base;base2|Jungle;base3|Fossil;base4|Base Set 2;base5|Team Rocket;gym1|Gym Heroes;gym2|Gym Challenge;' +
-    'neo1|Neo Genesis;neo2|Neo Discovery;neo3|Neo Revelation;neo4|Neo Destiny;base6|Legendary Collection;' +
-    'xy1|XY|XY;xy2|Flashfire|FLF;xy3|Furious Fists|FFI;xy4|Phantom Forces|PHF;xy5|Primal Clash|PRC;xy6|Roaring Skies|ROS;' +
-    'xy7|Ancient Origins|AOR;xy8|BREAKthrough|BKT;xy9|BREAKpoint|BKP;g1|Generations|GEN;xy10|Fates Collide|FCO;' +
-    'xy11|Steam Siege|STS;xy12|Evolutions|EVO;xyp|XY Black Star Promos|PR-XY;' +
-    'sm1|Sun & Moon|SUM;sm2|Guardians Rising|GRI;sm3|Burning Shadows|BUS;sm35|Shining Legends|SLG;sm4|Crimson Invasion|CIN;' +
-    'sm5|Ultra Prism|UPR;sm6|Forbidden Light|FLI;sm7|Celestial Storm|CES;sm75|Dragon Majesty|DRM;sm8|Lost Thunder|LOT;' +
-    'sm9|Team Up|TEU;det1|Detective Pikachu|DET;sm10|Unbroken Bonds|UNB;sm11|Unified Minds|UNM;sm115|Hidden Fates|HIF;' +
-    'sma|Shiny Vault|HIF;sm12|Cosmic Eclipse|CEC;smp|SM Black Star Promos|PR-SM;' +
-    'swsh1|Sword & Shield|SSH;swsh2|Rebel Clash|RCL;swsh3|Darkness Ablaze|DAA;swsh35|Champion\'s Path|CPA;swsh4|Vivid Voltage|VIV;' +
-    'swsh45|Shining Fates|SHF;swsh45sv|Shining Fates Shiny Vault|SHF;swsh5|Battle Styles|BST;swsh6|Chilling Reign|CRE;' +
-    'swsh7|Evolving Skies|EVS;cel25|Celebrations|CEL;cel25c|Celebrations: Classic Collection|CEL;swsh8|Fusion Strike|FST;' +
-    'swsh9|Brilliant Stars|BRS;swsh9tg|Brilliant Stars Trainer Gallery|BRS;swsh10|Astral Radiance|ASR;' +
-    'swsh10tg|Astral Radiance Trainer Gallery|ASR;pgo|Pokémon GO|PGO;swsh11|Lost Origin|LOR;swsh11tg|Lost Origin Trainer Gallery|LOR;' +
-    'swsh12|Silver Tempest|SIT;swsh12tg|Silver Tempest Trainer Gallery|SIT;swsh12pt5|Crown Zenith|CRZ;' +
-    'swsh12pt5gg|Crown Zenith Galarian Gallery|CRZ;swshp|SWSH Black Star Promos|PR-SW;' +
-    'sv1|Scarlet & Violet|SVI|Scarlet & Violet;sv2|Paldea Evolved|PAL;sv3|Obsidian Flames|OBF;sv3pt5|151|MEW|Scarlet & Violet;' +
-    'sv4|Paradox Rift|PAR;sv4pt5|Paldean Fates|PAF;sv5|Temporal Forces|TEF;sv6|Twilight Masquerade|TWM;sv6pt5|Shrouded Fable|SFA;' +
-    'sv7|Stellar Crown|SCR;sv8|Surging Sparks|SSP;sv8pt5|Prismatic Evolutions|PRE;sv9|Journey Together|JTG;sv10|Destined Rivals|DRI;' +
-    'svp|Scarlet & Violet Black Star Promos|PR-SV;sve|Scarlet & Violet Energies|SVE'
-  ).split(';').map(r => { const [id, name, ptcgoCode = '', series = ''] = r.split('|'); return { id, name, ptcgoCode, series }; });
+    "base1|Base|BS|Base;base2|Jungle|JU|Base;basep|Wizards Black Star Promos|PR|Base;base3|Fossil|FO|Base;base4|Base Set 2|B2|Base;base5|Team Rocket|TR|Base;gym1|Gym Heroes|G1|Gym;gym2|Gym Challenge|G2|Gym;neo1|Neo Genesis|N1|Neo;neo2|Neo Discovery|N2|Neo;si1|Southern Islands||Other;neo3|Neo Revelation|N3|Neo;neo4|Neo Destiny|N4|Neo;base6|Legendary Collection|LC|Other;ecard1|Expedition Base Set|EX|E-Card;bp|Best of Game|BP|Other;ecard2|Aquapolis|AQ|E-Card;ecard3|Skyridge|SK|E-Card;ex1|Ruby & Sapphire|RS|EX;ex2|Sandstorm|SS|EX;np|Nintendo Black Star Promos|PR-NP|NP;ex3|Dragon|DR|EX;ex4|Team Magma vs Team Aqua|MA|EX;tk1a|EX Trainer Kit Latias||EX;tk1b|EX Trainer Kit Latios||EX;ex5|Hidden Legends|HL|EX;ex6|FireRed & LeafGreen|RG|EX;pop1|POP Series 1||POP;ex7|Team Rocket Returns|TRR|EX;ex8|Deoxys|DX|EX;ex9|Emerald|EM|EX;ex10|Unseen Forces|UF|EX;pop2|POP Series 2||POP;ex11|Delta Species|DS|EX;ex12|Legend Maker|LM|EX;tk2a|EX Trainer Kit 2 Plusle||EX;tk2b|EX Trainer Kit 2 Minun||EX;pop3|POP Series 3||POP;ex13|Holon Phantoms|HP|EX;ex14|Crystal Guardians|CG|EX;pop4|POP Series 4||POP;ex15|Dragon Frontiers|DF|EX;ex16|Power Keepers|PK|EX;pop5|POP Series 5||POP;dp1|Diamond & Pearl|DP|Diamond & Pearl;dpp|DP Black Star Promos|PR-DPP|Diamond & Pearl;dp2|Mysterious Treasures|MT|Diamond & Pearl;pop6|POP Series 6||POP;dp3|Secret Wonders|SW|Diamond & Pearl;dp4|Great Encounters|GE|Diamond & Pearl;pop7|POP Series 7||POP;dp5|Majestic Dawn|MD|Diamond & Pearl;dp6|Legends Awakened|LA|Diamond & Pearl;pop8|POP Series 8||POP;dp7|Stormfront|SF|Diamond & Pearl;pl1|Platinum|PL|Platinum;pop9|POP Series 9||POP;pl2|Rising Rivals|RR|Platinum;pl3|Supreme Victors|SV|Platinum;pl4|Arceus|AR|Platinum;ru1|Pokémon Rumble||Other;hgss1|HeartGold & SoulSilver|HS|HeartGold & SoulSilver;hsp|HGSS Black Star Promos|PR-HS|HeartGold & SoulSilver;hgss2|HS—Unleashed|UL|HeartGold & SoulSilver;hgss3|HS—Undaunted|UD|HeartGold & SoulSilver;hgss4|HS—Triumphant|TM|HeartGold & SoulSilver;col1|Call of Legends|CL|HeartGold & SoulSilver;bwp|BW Black Star Promos|PR-BLW|Black & White;bw1|Black & White|BLW|Black & White;mcd11|McDonald's Collection 2011||Other;bw2|Emerging Powers|EPO|Black & White;bw3|Noble Victories|NVI|Black & White;bw4|Next Destinies|NXD|Black & White;bw5|Dark Explorers|DEX|Black & White;mcd12|McDonald's Collection 2012||Other;bw6|Dragons Exalted|DRX|Black & White;dv1|Dragon Vault|DRV|Black & White;bw7|Boundaries Crossed|BCR|Black & White;bw8|Plasma Storm|PLS|Black & White;bw9|Plasma Freeze|PLF|Black & White;bw10|Plasma Blast|PLB|Black & White;xyp|XY Black Star Promos|PR-XY|XY;bw11|Legendary Treasures|LTR|Black & White;xy0|Kalos Starter Set|KSS|XY;xy1|XY|XY|XY;xy2|Flashfire|FLF|XY;mcd14|McDonald's Collection 2014||Other;xy3|Furious Fists|FFI|XY;xy4|Phantom Forces|PHF|XY;xy5|Primal Clash|PRC|XY;dc1|Double Crisis|DCR|XY;xy6|Roaring Skies|ROS|XY;xy7|Ancient Origins|AOR|XY;xy8|BREAKthrough|BKT|XY;mcd15|McDonald's Collection 2015||Other;xy9|BREAKpoint|BKP|XY;g1|Generations|GEN|XY;xy10|Fates Collide|FCO|XY;xy11|Steam Siege|STS|XY;mcd16|McDonald's Collection 2016||Other;xy12|Evolutions|EVO|XY;sm1|Sun & Moon|SUM|Sun & Moon;smp|SM Black Star Promos|PR-SM|Sun & Moon;sm2|Guardians Rising|GRI|Sun & Moon;sm3|Burning Shadows|BUS|Sun & Moon;sm35|Shining Legends|SLG|Sun & Moon;sm4|Crimson Invasion|CIN|Sun & Moon;mcd17|McDonald's Collection 2017||Other;sm5|Ultra Prism|UPR|Sun & Moon;sm6|Forbidden Light|FLI|Sun & Moon;sm7|Celestial Storm|CES|Sun & Moon;sm75|Dragon Majesty|DRM|Sun & Moon;mcd18|McDonald's Collection 2018||Other;sm8|Lost Thunder|LOT|Sun & Moon;sm9|Team Up|TEU|Sun & Moon;det1|Detective Pikachu|DET|Sun & Moon;sm10|Unbroken Bonds|UNB|Sun & Moon;sm11|Unified Minds|UNM|Sun & Moon;sm115|Hidden Fates|HIF|Sun & Moon;sma|Hidden Fates Shiny Vault|HIF|Sun & Moon;mcd19|McDonald's Collection 2019||Other;sm12|Cosmic Eclipse|CEC|Sun & Moon;swshp|SWSH Black Star Promos|PR-SW|Sword & Shield;swsh1|Sword & Shield|SSH|Sword & Shield;swsh2|Rebel Clash|RCL|Sword & Shield;swsh3|Darkness Ablaze|DAA|Sword & Shield;fut20|Pokémon Futsal Collection|FUT20|Other;swsh35|Champion's Path|CPA|Sword & Shield;swsh4|Vivid Voltage|VIV|Sword & Shield;mcd21|McDonald's Collection 2021||Other;swsh45|Shining Fates|SHF|Sword & Shield;swsh45sv|Shining Fates Shiny Vault|SHF|Sword & Shield;swsh5|Battle Styles|BST|Sword & Shield;swsh6|Chilling Reign|CRE|Sword & Shield;swsh7|Evolving Skies|EVS|Sword & Shield;cel25|Celebrations|CEL|Sword & Shield;cel25c|Celebrations: Classic Collection|CEL|Sword & Shield;swsh8|Fusion Strike|FST|Sword & Shield;swsh9|Brilliant Stars|BRS|Sword & Shield;swsh9tg|Brilliant Stars Trainer Gallery|BRS|Sword & Shield;swsh10|Astral Radiance|ASR|Sword & Shield;swsh10tg|Astral Radiance Trainer Gallery|ASR|Sword & Shield;pgo|Pokémon GO|PGO|Sword & Shield;mcd22|McDonald's Collection 2022||Other;swsh11|Lost Origin|LOR|Sword & Shield;swsh11tg|Lost Origin Trainer Gallery|LOR|Sword & Shield;swsh12|Silver Tempest|SIT|Sword & Shield;swsh12tg|Silver Tempest Trainer Gallery|SIT|Sword & Shield;svp|Scarlet & Violet Black Star Promos|PR-SV|Scarlet & Violet;swsh12pt5|Crown Zenith|CRZ|Sword & Shield;swsh12pt5gg|Crown Zenith Galarian Gallery|CRZ|Sword & Shield;sve|Scarlet & Violet Energies|SVE|Scarlet & Violet;sv1|Scarlet & Violet|SVI|Scarlet & Violet;sv2|Paldea Evolved|PAL|Scarlet & Violet;sv3|Obsidian Flames|OBF|Scarlet & Violet;sv3pt5|151|MEW|Scarlet & Violet;sv4|Paradox Rift|PAR|Scarlet & Violet;sv4pt5|Paldean Fates|PAF|Scarlet & Violet;sv5|Temporal Forces|TEF|Scarlet & Violet;sv6|Twilight Masquerade|TWM|Scarlet & Violet;sv6pt5|Shrouded Fable|SFA|Scarlet & Violet;sv7|Stellar Crown|SCR|Scarlet & Violet;sv8|Surging Sparks|SSP|Scarlet & Violet;sv8pt5|Prismatic Evolutions|PRE|Scarlet & Violet;sv9|Journey Together|JTG|Scarlet & Violet;sv10|Destined Rivals|DRI|Scarlet & Violet;zsv10pt5|Black Bolt|BLK|Scarlet & Violet;rsv10pt5|White Flare|WHT|Scarlet & Violet;me1|Mega Evolution|MEG|Mega Evolution;me2|Phantasmal Flames|PFL|Mega Evolution;me2pt5|Ascended Heroes|ASC|Mega Evolution;me3|Perfect Order|POR|Mega Evolution;me4|Chaos Rising|CRI|Mega Evolution;me5|Pitch Black|PBL|Mega Evolution;me55|30th Celebration|30C|Mega Evolution;me55c|30th Celebration: Classic Collection|30C|Mega Evolution"
+  ).split(';').map(r => { const [id, name, ptcgoCode, series] = r.split('|'); return { id, name, ptcgoCode, series }; });   // live data from the API wins when it loads
   const CODE_ALIAS = { 'SVP':'svp', 'PR-SV':'svp', 'SWSHP':'swshp', 'PR-SW':'swshp', 'SMP':'smp', 'PR-SM':'smp', 'XYP':'xyp', 'PR-XY':'xyp', 'BWP':'bwp', 'PR-BLW':'bwp', 'SVE':'sve', 'CEL':'cel25', 'PGO':'pgo' };
   const NAME_ALIAS = { 'baseset':'base1', 'sm':'sm1', 'shinyvault':'sma', 'hiddenfatesshinyvault':'sma', 'celebrations25thanniversary':'cel25' };
   const sets = { byId:{}, byCode:{}, byName:{} };
@@ -507,13 +497,27 @@
   // ---------------------------------------------------------------- Pokémon TCG API (queued, rate-limit aware)
   const opts = Object.assign({ hires:true, key:'' }, lsGet(LS.opts) || {});
   const queue = [];
-  let active = 0, blockedUntil = 0, lastTrouble = 0;
-  function api(path, timeout) {
-    return new Promise((resolve, reject) => { queue.push({ path, timeout:timeout || 15000, resolve, reject }); pump(); });
+  let active = 0, blockedUntil = 0, lastTrouble = 0, netDown = false;
+  function api(path, timeout, idx) {
+    return new Promise((resolve, reject) => { queue.push({ path, timeout:timeout || 15000, idx, resolve, reject }); pump(); });
+  }
+  // Lower runs first: the visible card, then the ones behind it, then wishlist rows.
+  // Infinity means every card the request was for has been passed or maybe'd, so it is dropped.
+  function rank(job) {
+    if (!job.idx || !S) return -1;
+    let best = Infinity;
+    job.idx.forEach(i => {
+      const d = S.dec[i], r = d === undefined ? (cur >= 0 && i >= cur ? i - cur : 5e5) : d === 'y' ? 1e6 + i : Infinity;
+      if (r < best) best = r;
+    });
+    return best;
   }
   function pump() {
     while (active < 3 && queue.length) {
-      const job = queue.shift();
+      let bi = 0, br = Infinity;
+      for (let k = 0; k < queue.length; k++) { const r = rank(queue[k]); if (r < br) { br = r; bi = k; } }
+      const job = queue.splice(bi, 1)[0];
+      if (br === Infinity) { job.reject(new Error('stale')); continue; }
       active++;
       runJob(job).then(() => { active--; pump(); });
     }
@@ -526,22 +530,35 @@
       try {
         const headers = opts.key ? { 'X-Api-Key':opts.key } : {};
         const res = await fetch(API + job.path, { headers, signal:ctl.signal });
-        if ((res.status === 429 || res.status >= 500) && attempt < 3) { blockedUntil = Date.now() + 1500 * 2 ** attempt; continue; }
+        if ((res.status === 429 && attempt < 5) || (res.status >= 500 && attempt < 2)) {
+          const ra = parseFloat(res.headers.get('Retry-After'));
+          blockedUntil = Math.max(blockedUntil, Date.now() + (ra > 0 ? ra * 1000 : 1500 * 2 ** attempt));
+          continue;
+        }
+        if (res.status === 400 || res.status === 404) { job.resolve({ data:[] }); return; }   // a name the API can't parse is a miss, not an outage
+        if ((res.status === 401 || res.status === 403) && opts.key) throw new Error('key');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         job.resolve(await res.json());
-        $('csStNet').hidden = true;
+        if (netDown) { netDown = false; $('csStNet').hidden = true; recover(); }
       } catch (e) {
-        noteTrouble();
+        noteTrouble(e && e.message === 'key' ? 'The Pok\u00e9mon TCG API rejected your API key. Clear it under Options (New list\u2026).' : '');
         job.reject(e);
       } finally { clearTimeout(timer); }
       return;
     }
   }
-  function noteTrouble() {
+  function noteTrouble(msg) {
+    netDown = true;
     $('csStNet').hidden = false;
     if (Date.now() - lastTrouble < 30000) return;
     lastTrouble = Date.now();
-    setMsg('Card lookups are failing right now. Images may still load; names always show.');
+    setMsg(msg || 'Card lookups are failing right now. Images may still load; names always show.');
+  }
+  // The API answered again after failing: retry whatever came up empty while it was down.
+  function recover() {
+    items.forEach(it => { it._wlTry = false; });
+    [topEl, underEl].forEach(el => { if (el && el._base === null) paint(el, +el.dataset.i); });
+    clearTimeout(wlTimer); wlTimer = setTimeout(renderWishlist, 300);
   }
 
   function loadSets() {
@@ -553,14 +570,25 @@
       return (setsReady = Promise.resolve());
     }
     indexSets(FALLBACK_SETS);
-    setsReady = fetchSets().then(() => { setsFinal = true; });
+    setsReady = fetchSets().then(ok => { setsFinal = true; if (!ok) setTimeout(retrySets, 20000); });
     return setsReady;
   }
   function fetchSets() {
     return api('sets?pageSize=250&select=id,name,series,ptcgoCode', 10000).then(j => {
       const list = (j.data || []).map(s => ({ id:s.id, name:s.name, series:s.series || '', ptcgoCode:s.ptcgoCode || '' }));
-      if (list.length > 50) { indexSets(list); lsSet(LS.sets, { ts:Date.now(), list }); }
-    }).catch(() => {});
+      if (list.length <= 50) return false;
+      indexSets(list); lsSet(LS.sets, { ts:Date.now(), list });
+      return true;
+    }).catch(() => false);
+  }
+  // The live set list failed at startup: keep trying, then re-read every line against it.
+  function retrySets() {
+    fetchSets().then(ok => {
+      if (!ok) { setTimeout(retrySets, 60000); return; }
+      items.forEach(it => it.alts.forEach(a => { delete a.d; delete a._r; }));
+      [topEl, underEl].forEach(el => { if (el) paint(el, +el.dataset.i); });
+      if (S) updateAll();
+    });
   }
 
   // ---------------------------------------------------------------- card cache + lookups
@@ -571,13 +599,22 @@
     for (const k in c.cards || {}) if (c.cards[k] && c.cards[k].t > cutoff) cache.cards[k] = c.cards[k];
     for (const k in c.q || {}) if (c.q[k] && c.q[k].t > cutoff) cache.q[k] = c.q[k];
   })();
-  let cacheTimer = 0;
+  let cacheTimer = 0, cacheBroken = false;
+  function cacheSnapshot(limit) {               // the newest cards, plus only the searches whose cards all made the cut
+    const keys = Object.keys(cache.cards);
+    if (keys.length <= limit) return cache;
+    const keep = new Set(keys.sort((x, y) => cache.cards[y].t - cache.cards[x].t).slice(0, limit)), cards = {}, q = {};
+    keep.forEach(k => { cards[k] = cache.cards[k]; });
+    for (const k in cache.q) if (cache.q[k].ids.every(id => keep.has(String(id).toLowerCase()))) q[k] = cache.q[k];
+    return { cards, q };
+  }
   function saveCacheSoon() {
     clearTimeout(cacheTimer);
+    if (cacheBroken) return;
     cacheTimer = setTimeout(() => {
-      const keys = Object.keys(cache.cards);
-      if (keys.length > 4000) keys.sort((x, y) => cache.cards[x].t - cache.cards[y].t).slice(0, keys.length - 3000).forEach(k => delete cache.cards[k]);
-      if (!lsSet(LS.cache, cache)) { cache.q = {}; Object.keys(cache.cards).slice(0, keys.length >> 1).forEach(k => delete cache.cards[k]); lsSet(LS.cache, cache); }
+      for (const limit of [3000, 800, 200]) if (lsSet(LS.cache, cacheSnapshot(limit))) return;
+      cacheBroken = true;                       // storage is full: stop writing the cache, keep it in memory
+      try { localStorage.removeItem(LS.cache); } catch (e) {}
     }, 1000);
   }
   function compact(c) {
@@ -591,16 +628,20 @@
   }
   const putCard = c => { cache.cards[String(c.id).toLowerCase()] = c; saveCacheSoon(); return c; };
   const cardById = id => id ? cache.cards[String(id).toLowerCase()] || null : null;
-  const nameOk = (c, d) => { const x = normName(c.n), y = normName(d.searchName); return !y || x.includes(y) || y.includes(x) || x.slice(0, 5) === y.slice(0, 5); };
+  // Is the card at a derived id really the card on the line? "Basic Fire Energy" = "Fire Energy", "Mewtwo EX" = "Mewtwo-EX".
+  const nameOk = (c, d) => {
+    const x = normName(c.n), y = normName(d.searchName);
+    return !y || x === y || x === 'basic' + y || y === 'basic' + x || (y.startsWith(x) && /^\d+$/.test(y.slice(x.length)));
+  };
   const qKey = d => [d.searchName, d.setId, d.num].join('|').toLowerCase();
 
   // Exact printings are fetched 30 at a time by id, ahead of where you are in the stack.
   const pending = new Map(), missing = new Set();
-  function fetchIds(ids) {
+  function fetchIds(ids, idx) {
     ids = ids.filter(id => { const k = id.toLowerCase(); return !cache.cards[k] && !pending.has(k) && !missing.has(k); });
     if (!ids.length) return;
     const q = ids.map(id => 'id:"' + id + '"').join(' OR ');
-    const p = api('cards?pageSize=250&select=' + SELECT + '&q=' + encodeURIComponent(q))
+    const p = api('cards?pageSize=250&select=' + SELECT + '&q=' + encodeURIComponent(q), 0, idx)
       .then(j => { (j.data || []).forEach(c => putCard(compact(c))); ids.forEach(id => { if (!cardById(id)) missing.add(id.toLowerCase()); }); })
       .catch(() => {})
       .then(() => ids.forEach(id => pending.delete(id.toLowerCase())));
@@ -608,35 +649,41 @@
   }
   function prefetch(from) {
     loadSets().then(() => {
-      const todo = [];
+      const todo = [], idx = [];
       let urgent = false;
       for (let i = Math.max(0, from), n = 0; i < items.length && n < 40; i++) {
         if (S.dec[i] !== undefined) continue;
         n++;
         items[i].alts.forEach(a => {
           const d = derive(a), k = d.id.toLowerCase();
-          if (d.id && !cache.cards[k] && !pending.has(k) && !missing.has(k)) { todo.push(d.id); if (n <= 4) urgent = true; }
+          if (d.id && !cache.cards[k] && !pending.has(k) && !missing.has(k)) { todo.push(d.id); idx.push(i); if (n <= 4) urgent = true; }
         });
       }
       if (!urgent && todo.length < 20) return;
-      for (let k = 0; k < todo.length; k += 30) fetchIds(todo.slice(k, k + 30));
+      for (let k = 0; k < todo.length; k += 30) fetchIds(todo.slice(k, k + 30), idx.slice(k, k + 30));
     });
   }
 
   // Resolve one printing to { card, mode, ids }. mode: exact | set | any | approx | none.
   // Resolves to null only when the API can't be reached, so it gets retried later.
+  const needed = i => !!S && (S.dec[i] === undefined || S.dec[i] === 'y');
   function resolveAlt(a) {
     if (a._r) return a._r;
     const p = (async () => {
-      await loadSets();
-      const d = derive(a);
-      if (d.id) {
-        const k = d.id.toLowerCase();
-        if (!cache.cards[k] && !missing.has(k)) { fetchIds([d.id]); await pending.get(k); }
-        const c = cache.cards[k];
-        if (c && nameOk(c, d)) return { card:c, mode:'exact', ids:[c.id] };
+      for (let tries = 0; tries < 3; tries++) {
+        await loadSets();
+        const d = derive(a);
+        if (d.id) {
+          const k = d.id.toLowerCase();
+          if (!cache.cards[k] && !missing.has(k)) { fetchIds([d.id], [a._i]); await pending.get(k); }
+          const c = cache.cards[k];
+          if (c && nameOk(c, d)) return { card:c, mode:'exact', ids:[c.id] };
+        }
+        const r = await search(d, a._i);
+        if (!r || r.mode !== 'stale') return r;
+        if (!needed(a._i)) return null;          // dropped because it was swiped past; if it comes back it asks again
       }
-      return search(d);
+      return null;
     })();
     a._r = p;
     p.then(r => { if (!r) delete a._r; });
@@ -644,11 +691,11 @@
   }
   const fromQ = h => { const ids = h.ids.filter(cardById); return { card:ids.length ? cardById(ids[0]) : null, mode:ids.length ? h.mode : 'none', ids }; };
   const searching = new Map();
-  function search(d) {
-    const qk = qKey(d);
-    if (cache.q[qk]) return Promise.resolve(fromQ(cache.q[qk]));
+  function search(d, i) {
+    const qk = qKey(d), h = cache.q[qk];
+    if (h && (!h.ids.length || h.ids.some(cardById))) return Promise.resolve(fromQ(h));
     if (searching.has(qk)) return searching.get(qk);
-    const run = q => api('cards?pageSize=120&orderBy=-set.releaseDate&select=' + SELECT + '&q=' + encodeURIComponent(q)).then(j => (j.data || []).map(compact));
+    const run = q => api('cards?pageSize=120&orderBy=-set.releaseDate&select=' + SELECT + '&q=' + encodeURIComponent(q), 0, i == null ? undefined : [i]).then(j => (j.data || []).map(compact));
     const done = (list, mode) => { list.forEach(putCard); cache.q[qk] = { ids:list.map(c => c.id), mode, t:Date.now() }; saveCacheSoon(); return fromQ(cache.q[qk]); };
     const numHit = c => numKey(c.no) === numKey(d.num);
     const p = (async () => {
@@ -663,10 +710,10 @@
         }
         list = await run(nm);
         if (!list.length && words.length > 1 && words.every(w => /^[a-z0-9é]+$/i.test(w))) list = await run('name:' + words.join('*'));
-        if (d.num) { const hit = list.filter(numHit); if (hit.length) return done(hit.slice(0, 24), 'exact'); }
+        if (d.num) { const hit = list.filter(numHit); if (hit.length) return done(hit.slice(0, 24), d.setId ? 'approx' : 'exact'); }   // right number, other set
         if (list.length) return done(list.slice(0, 24), d.setId || d.num ? 'approx' : 'any');
         return done([], 'none');
-      } catch (e) { return null; }
+      } catch (e) { return e && e.message === 'stale' ? { card:null, mode:'stale', ids:[] } : null; }
     })();
     searching.set(qk, p);
     p.then(() => searching.delete(qk));
@@ -679,7 +726,8 @@
   function tcgdex(d) {
     const k = qKey(d);
     if (tdCache.has(k)) return tdCache.get(k);
-    const p = fetch(TCGDEX + 'cards?name=eq:' + encodeURIComponent(d.searchName))
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 7000);
+    const p = fetch(TCGDEX + 'cards?name=eq:' + encodeURIComponent(d.searchName), { signal:ctl.signal })
       .then(r => r.ok ? r.json() : [])
       .then(list => {
         list = (Array.isArray(list) ? list : []).filter(c => c && c.image);
@@ -689,7 +737,8 @@
         if (!best) return null;
         return { card:{ id:'tcgdex-' + best.id, n:best.name, no:best.localId, s:'', si:'', r:'', a:'', sm:best.image + '/low.webp', lg:best.image + '/high.webp', u:'', p:{} }, mode:same.length ? 'exact' : 'any', ids:[] };
       })
-      .catch(() => null);
+      .catch(() => null)
+      .then(r => { clearTimeout(timer); if (!r) tdCache.delete(k); return r; });
     tdCache.set(k, p);
     return p;
   }
@@ -707,9 +756,18 @@
     const f = foil ? e.filter(([k]) => /holo|foil/i.test(k)) : [];
     return Math.min(...(f.length ? f : e).map(x => x[1]));
   }
+  function altPrice(a, foil) {
+    const d = derive(a), c = cardById(d.id);
+    if (c && nameOk(c, d)) return cheapest(c, foil);
+    const h = cache.q[qKey(d)];
+    if (!h || !h.ids.length) return null;
+    let best = null;
+    (h.mode === 'any' || h.mode === 'set' ? h.ids : h.ids.slice(0, 1)).forEach(id => { const v = cheapest(cardById(id), foil); if (v != null && (best == null || v < best)) best = v; });
+    return best;
+  }
   function linePrice(it) {
     let best = null;
-    it.alts.forEach(a => { const v = cheapest(cardFor(a), it.foil); if (v != null && (best == null || v < best)) best = v; });
+    it.alts.forEach(a => { const v = altPrice(a, it.foil); if (v != null && (best == null || v < best)) best = v; });
     return best == null ? null : best * it.qty;
   }
   const VARIANT = { normal:'Normal', holofoil:'Holofoil', reverseHolofoil:'Reverse holo', '1stEditionHolofoil':'1st Ed. holo', '1stEditionNormal':'1st Edition', unlimitedHolofoil:'Unlimited holo', unlimited:'Unlimited' };
@@ -719,22 +777,43 @@
   let view = { i:-1, alt:0, pick:null };
   const deck = $('csDeck'), lb = $('csLightbox');
 
+  const fp = t => { let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return t.length + ':' + h; };
+  const normText = t => String(t || '').replace(/\r\n?/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+  let saveWarned = false;
+  function storageWarning(msg) {
+    $('csStSave').hidden = false;
+    if (saveWarned) return;
+    saveWarned = true;
+    toast(msg || 'This browser won\'t store any more progress. Save your wishlist before you close the tab.');
+  }
   function save() {
-    if (!S) return;
-    lsSet(LS.session, { dec:S.dec, hist:S.hist, second:S.second, saved:S.saved, changed:S.changed, len:items.length });
+    if (!S || S.noPersist) return;
+    const data = { fp:S.fp, dec:S.dec, hist:S.hist, second:S.second, savedSig:S.savedSig, len:items.length };
+    if (lsSet(LS.session, data)) return;
+    cacheBroken = true;                         // make room: the card cache can always be fetched again
+    try { localStorage.removeItem(LS.cache); } catch (e) {}
+    if (!lsSet(LS.session, data)) storageWarning();
   }
   function counts() { const c = { y:0, n:0, m:0 }; for (const k in S.dec) c[S.dec[k]]++; return c; }
   function nextIndex(from) { for (let i = from || 0; i < items.length; i++) if (S.dec[i] === undefined) return i; return -1; }
-  const hasUnsaved = () => S && counts().y > 0 && S.changed > S.saved;
+  const wishSig = () => Object.keys(S.dec).filter(k => S.dec[k] === 'y').sort((x, y) => x - y).join(',');
+  const hasUnsaved = () => !!S && counts().y > 0 && wishSig() !== S.savedSig;
 
   function startList(text, file) {
     const parsed = parseList(text);
     if (!parsed.length) { toast('No cards found in that list'); setMsg('No card lines found. Check the format: one card per line, like "1 Charizard ex (Obsidian Flames) 223".'); return false; }
-    if (S && S.text === text) { showSwiper(); return true; }          // same list: pick up where you left off
-    if (hasUnsaved() && !confirm('Start a new list? Your current wishlist has ' + counts().y + ' card' + (counts().y === 1 ? '' : 's') + ' you haven\'t saved yet.')) return false;
-    S = { text, file:file || 'Pasted list', dec:{}, hist:[], second:{}, saved:0, changed:0 };
+    if (S && normText(S.text) === normText(text)) { showSwiper(); return true; }   // same list: pick up where you left off
+    const n = S ? Object.keys(S.dec).length : 0;
+    if (n && !confirm('Start a new list? This replaces your progress on ' + S.file + ' (' + n + ' of ' + items.length + ' swiped' +
+        (hasUnsaved() ? ', with ' + counts().y + ' want' + (counts().y === 1 ? '' : 's') + ' you haven\'t saved' : '') + ').')) return false;
+    S = { text, fp:fp(text), file:file || 'Pasted list', dec:{}, hist:[], second:{}, savedSig:'' };
     items = parsed;
-    if (!lsSet(LS.text, { text, file:S.file })) toast('This list is too big to remember between visits. Save your wishlist before you leave.');
+    wlRows.clear();
+    if (!lsSet(LS.text, { text, file:S.file })) {
+      try { localStorage.removeItem(LS.text); localStorage.removeItem(LS.session); } catch (e) {}
+      S.noPersist = true;                       // never leave the old list's text beside this list's swipes
+      storageWarning('This list is too big to remember between visits. Save your wishlist before you close the tab.');
+    }
     save();
     showSwiper();
     setMsg('Loaded ' + items.length + ' card' + (items.length === 1 ? '' : 's') + ' from ' + S.file);
@@ -748,6 +827,7 @@
     started = true;
     loadSets();
     rebuild();
+    if (window.innerHeight < 600) $('csStage').scrollIntoView({ block:'start' }); else window.scrollTo(0, 0);
   }
   function showLoader() {
     $('csSwiper').hidden = true; $('csLoader').hidden = false;
@@ -806,10 +886,15 @@
       const first = show(known ? known.sm : guess && guess.sm, 1);
       let r = await resolveAlt(a);
       if (el._tok !== tok) return;
-      if (!r || !r.card) { const t = await tcgdex(d); if (el._tok !== tok) return; if (t) r = Object.assign({}, t, { ids:r ? r.ids : [] }); }
       el._base = r;
-      const card = el._card = picked || (r && r.card) || null;
+      el._card = picked || (r && r.card) || null;
       if (el === topEl) renderInfo();
+      if (!r || !r.card) {
+        const t = await tcgdex(d);
+        if (el._tok !== tok) return;
+        if (t) { el._base = r = Object.assign({}, t, { ids:r ? r.ids : [] }); el._card = picked || t.card; if (el === topEl) renderInfo(); }
+      }
+      const card = el._card;
       const okGuess = await first;
       if (el._tok !== tok) return;
       if (card) {
@@ -842,7 +927,10 @@
       return;
     }
     $('csDone').hidden = true;
-    if (underEl && +underEl.dataset.i === i) { topEl = underEl; underEl = null; topEl.classList.remove('under'); }
+    if (underEl && +underEl.dataset.i === i) {
+      topEl = underEl; underEl = null; topEl.classList.remove('under');
+      if (topEl._base === null) paint(topEl, i);  // its lookup failed while it waited behind: try again now it's showing
+    }
     else { if (underEl) { underEl.remove(); underEl = null; } topEl = makeCard(i); deck.appendChild(topEl); }
     attachDrag(topEl);
     if (enter) enterAnim(topEl, enter);
@@ -862,7 +950,6 @@
     S.hist.push({ i, prev:S.dec[i] === undefined ? null : S.dec[i] });
     if (S.hist.length > 10000) S.hist.splice(0, S.hist.length - 10000);
     S.dec[i] = kind;
-    S.changed = Date.now();
     save();
     topEl = null;
     fling(el, kind);
@@ -875,9 +962,8 @@
     if (!S) return;
     const h = S.hist.pop();
     if (!h) { toast('Nothing to undo'); return; }
-    S.changed = Date.now();
     if (h.review) {
-      h.review.forEach(i => { if (S.dec[i] === undefined) S.dec[i] = 'm'; delete S.second[i]; });
+      h.review.forEach(i => { if (S.dec[i] === undefined) S.dec[i] = 'm'; if (!(h.prev2 || []).includes(i)) delete S.second[i]; });
       save(); rebuild(); setMsg('Maybe pile put back');
       return;
     }
@@ -893,7 +979,6 @@
     if (S.dec[i] !== 'y') return;
     S.hist.push({ i, prev:'y' });
     S.dec[i] = 'n';
-    S.changed = Date.now();
     save(); updateAll();
     toast('Removed ' + items[i].alts[0].name + '. Undo puts it back.');
   }
@@ -901,9 +986,9 @@
   function reviewMaybes() {
     const idx = Object.keys(S.dec).filter(k => S.dec[k] === 'm').map(Number);
     if (!idx.length) return;
+    const prev2 = idx.filter(i => S.second[i]);     // already on a second look: undo must keep their badge
     idx.forEach(i => { delete S.dec[i]; S.second[i] = 1; });
-    S.hist.push({ review:idx });
-    S.changed = Date.now();
+    S.hist.push({ review:idx, prev2 });
     save(); rebuild();
     setMsg('Second look at ' + idx.length + ' maybe' + (idx.length === 1 ? '' : 's'));
   }
@@ -942,6 +1027,7 @@
     };
     const down = e => {
       if (e.button) return;
+      if (!e.isPrimary) { if (pid !== null) { pid = null; springBack(); } return; }   // a second finger (pinch) cancels the drag
       pid = e.pointerId; try { el.setPointerCapture(pid); } catch (err) {}
       sx = lx = e.clientX; sy = e.clientY; st = lt = performance.now(); moved = false; vx = 0;
       el.style.transition = 'none'; el.classList.add('dragging');
@@ -962,6 +1048,7 @@
       pid = null;
       if (!moved) { springBack(); if (performance.now() - st < 500) openLightbox(); return; }
       const d = el._drag || { x:0, y:0 }, T = Math.min(120, (deck.clientWidth || 300) * 0.33);
+      if (performance.now() - lt > 100) vx = 0;  // held still before letting go: not a flick
       el.classList.remove('dragging');
       if (-d.y > T && -d.y > Math.abs(d.x)) return decide('m');
       if (d.x > T || (d.x > 40 && vx > 0.6)) return decide('y');
@@ -988,6 +1075,7 @@
     $('csUndo').disabled = !S.hist.length;
     $('csExport').disabled = $('csCopy').disabled = !c.y;
     $('csHint').hidden = !live || S.hist.length > 0;
+    if (!live && items.length) showDone();      // keep the done dialog's counts in step with wishlist edits
   }
 
   function renderProgress() {
@@ -1104,6 +1192,11 @@
     const wl = $('csWl'), yes = [];
     items.forEach((it, i) => { if (S.dec[i] === 'y') yes.push(i); });
     let total = 0, unpriced = 0;
+    if (setsFinal) {                            // fetch missing exact printings 30 at a time, not one request per row
+      const ids = [], idx = [];
+      yes.forEach(i => { const d = derive(items[i].alts[0]); if (d.id && !cardById(d.id) && ids.indexOf(d.id) < 0) { ids.push(d.id); idx.push(i); } });
+      for (let k = 0; k < ids.length; k += 30) fetchIds(ids.slice(k, k + 30), idx.slice(k, k + 30));
+    }
     if (!yes.length) { wl.innerHTML = '<div class="cs-wl-empty">Nothing here yet. Swipe right on a card to add it.</div>'; wlRows.clear(); }
     else {
       const html = yes.slice().reverse().map(i => {
@@ -1113,7 +1206,7 @@
       const src = (c && c.sm) || (g && g.sm);
       const sub = [c ? c.s : a.paren || a.code, (c && c.no) || a.trail ? '#' + ((c && c.no) || a.trail) : '', it.alts.length > 1 ? 'any of ' + it.alts.length : '', price != null ? money(price) : ''].filter(Boolean).join(' \u00b7 ');
       return '<div class="cs-wl-row" data-i="' + i + '">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy">' : '<span class="noimg"></span>') +
-        '<div class="txt"><div class="nm">' + esc(it.qty + '\u00d7 ' + ((c && c.n) || a.name)) + '</div><div class="sub">' + esc(sub) + '</div></div>' +
+        '<button type="button" class="txt" title="Show this card"><span class="nm">' + esc(it.qty + '\u00d7 ' + ((c && c.n) || a.name)) + '</span><span class="sub">' + esc(sub) + '</span></button>' +
         '<button class="x" data-x="' + i + '" title="Take off the wishlist" aria-label="Remove ' + esc(a.name) + '">\u2716</button></div>';
       });
       const keep = new Map(), frag = document.createDocumentFragment(), tmp = document.createElement('div');
@@ -1159,13 +1252,13 @@
     a.href = url; a.download = 'wishlist-deckbuy-' + today() + '.txt';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    S.saved = Date.now(); save();
+    S.savedSig = wishSig(); save();
     toast('Saved ' + a.download);
   }
   function copyText() {
     if (!S || !counts().y) return;
     const text = buildExport();
-    const ok = () => { S.saved = Date.now(); save(); toast('Wishlist copied. Paste it into deckbuy.'); };
+    const ok = () => { S.savedSig = wishSig(); save(); toast('Wishlist copied. Paste it into deckbuy.'); };
     const fallback = () => {
       const ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
@@ -1178,7 +1271,7 @@
   }
 
   // ---------------------------------------------------------------- lightbox, status, toast
-  let lbTok = 0;
+  let lbTok = 0, lbAt = 0;
   function openLightbox(card) {
     if (!card) {
       if (!topEl) return;
@@ -1188,11 +1281,13 @@
     }
     if (!card || !(card.sm || card.lg)) { toast('No image for this card yet'); return; }
     const tok = ++lbTok, im = $('csLbImg');
+    im.onerror = () => { if (tok === lbTok) { closeLightbox(); toast('No image for this card yet'); } };
     im.src = card.sm || card.lg;
     im.alt = card.n || '';
     if (card.lg && card.lg !== im.src) { const pre = new Image(); pre.onload = () => { if (tok === lbTok && !lb.hidden) im.src = card.lg; }; pre.src = card.lg; }
     $('csLbCap').textContent = [card.n, card.s, card.no && '#' + card.no].filter(Boolean).join(' \u00b7 ') + '   (click or Esc to close)';
     lb.hidden = false;
+    lbAt = performance.now();
   }
   function closeLightbox() { lb.hidden = true; lbTok++; }
   function setMsg(t) { $('csStMsg').textContent = t; }
@@ -1224,18 +1319,33 @@
     const n = parseList(t);
     el.textContent = n.length + ' card line' + (n.length === 1 ? '' : 's') + ' found';
   }
+  function decodeText(b) {                      // UTF-8, UTF-16 with a BOM, or a Windows "ANSI" (1252) file; null for binary
+    if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(b);
+    if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
+    if (b.indexOf(0) !== -1) return null;
+    try { return new TextDecoder('utf-8', { fatal:true }).decode(b); } catch (e) { return new TextDecoder('windows-1252').decode(b); }
+  }
   function readFile(f) {
     if (!f) return;
     if (f.size > 8 * 1024 * 1024) { toast('That file is too big for a card list'); return; }
+    if (f.type && !/^text\//.test(f.type) && !/\.(txt|dek|list|csv)$/i.test(f.name)) { toast(f.name + ' isn\'t a text list'); return; }
     const r = new FileReader();
-    r.onload = () => { $('csPaste').value = String(r.result || ''); pasteInfo(); startList($('csPaste').value, f.name); };
+    r.onload = () => {
+      const t = decodeText(new Uint8Array(r.result));
+      if (t == null) { toast(f.name + ' doesn\'t look like a card list'); return; }
+      $('csPaste').value = t; pasteInfo(); startList(t, f.name);
+    };
     r.onerror = () => toast('Couldn\'t read ' + f.name);
-    r.readAsText(f);
+    r.readAsArrayBuffer(f);
   }
 
   $('csPaste').addEventListener('input', () => { clearTimeout(pasteTimer); pasteTimer = setTimeout(pasteInfo, 250); });
   $('csStart').addEventListener('click', () => startList($('csPaste').value, ''));
-  $('csSample').addEventListener('click', () => { $('csPaste').value = SAMPLE; pasteInfo(); });
+  $('csSample').addEventListener('click', () => {
+    const v = $('csPaste').value;
+    if (v.trim() && v !== SAMPLE && !confirm('Replace what\'s in the box with the sample list?')) return;
+    $('csPaste').value = SAMPLE; pasteInfo();
+  });
   $('csOpen').addEventListener('click', () => $('csFile').click());
   $('csFile').addEventListener('change', e => { readFile(e.target.files[0]); e.target.value = ''; });
   $('csNew').addEventListener('click', showLoader);
@@ -1244,19 +1354,31 @@
   $('csDoneSave').addEventListener('click', saveFile);
   $('csCopy').addEventListener('click', copyText);
   $('csReview').addEventListener('click', reviewMaybes);
-  $('csWant').addEventListener('click', () => decide('y'));
-  $('csPass').addEventListener('click', () => decide('n'));
-  $('csMaybe').addEventListener('click', () => decide('m'));
+  let lastBtnAt = 0;
+  const btnDecide = k => () => {                // a double-click on a button decides one card, not two
+    const now = performance.now();
+    if (now - lastBtnAt < 300) return;
+    lastBtnAt = now; decide(k);
+  };
+  $('csWant').addEventListener('click', btnDecide('y'));
+  $('csPass').addEventListener('click', btnDecide('n'));
+  $('csMaybe').addEventListener('click', btnDecide('m'));
   $('csUndo').addEventListener('click', undo);
   $('csZoom').addEventListener('click', () => openLightbox());
-  lb.addEventListener('click', closeLightbox);
+  lb.addEventListener('click', () => { if (performance.now() - lbAt > 350) closeLightbox(); });   // the tap that opened it can't close it
   $('csWl').addEventListener('click', e => {
     const x = e.target.closest('[data-x]');
     if (x) { removeFromWishlist(+x.dataset.x); return; }
     const row = e.target.closest('.cs-wl-row');
     if (!row) return;
     const it = items[+row.dataset.i], a = it.alts[0], c = cardFor(a), g = guessUrls(derive(a));
-    openLightbox(c || (g && { sm:g.sm, lg:g.lg, n:a.name }));
+    const card = c || (g && { sm:g.sm, lg:g.lg, n:a.name });
+    if (card) openLightbox(card); else toast('No image for this card yet');
+  });
+  page.addEventListener('click', e => {         // a mouse click shouldn't leave focus on a button for Space/Enter to press again
+    if (!e.detail) return;
+    const b = e.target.closest('button, a[href]');
+    if (b) b.blur();
   });
   $('csHires').checked = !!opts.hires;
   $('csHires').addEventListener('change', e => { opts.hires = e.target.checked; lsSet(LS.opts, opts); });
@@ -1267,14 +1389,16 @@
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (!lb.hidden) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); closeLightbox(); } return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('button, a[href]')) return;   // let focused buttons and links work
     if ($('csSwiper').hidden || !S) return;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); if (!e.repeat) undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const act = { ArrowRight:() => decide('y'), d:() => decide('y'), ArrowLeft:() => decide('n'), a:() => decide('n'), ArrowUp:() => decide('m'), w:() => decide('m'),
       Backspace:undo, z:undo, ' ':() => openLightbox(), Enter:() => openLightbox(), ArrowDown:cyclePrinting, p:cyclePrinting, t:() => { if (topEl) $('csTcg').click(); } }[k];
     if (!act) return;
     e.preventDefault();
+    if (e.repeat && act !== cyclePrinting) return;   // holding a key shouldn't swipe a run of cards you never saw
     act();
   });
 
@@ -1287,21 +1411,37 @@
   window.addEventListener('drop', e => { if (hasFiles(e)) { e.preventDefault(); veil.classList.remove('show'); } });
 
   // ---------------------------------------------------------------- boot: resume a saved session
-  (function () {
+  function boot() {
     const t = lsGet(LS.text), st = lsGet(LS.session);
-    if (!t || !t.text || !st) return;
+    if (!t || !t.text || !st) return false;
     const parsed = parseList(t.text);
-    if (!parsed.length) return;
+    if (!parsed.length) return false;
     items = parsed;
-    S = { text:t.text, file:t.file || 'Pasted list', dec:{}, hist:[], second:{}, saved:st.saved || 0, changed:st.changed || 0 };
-    if (st.len === parsed.length) { S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; }
-    else toast('Your saved list reads differently now, so it starts fresh.');
+    wlRows.clear();
+    S = { text:t.text, fp:fp(t.text), file:t.file || 'Pasted list', dec:{}, hist:[], second:{}, savedSig:'' };
+    if (st.fp === S.fp && st.len === parsed.length) { S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || ''; }
+    else toast('Your saved swipes don\'t match this list, so it starts fresh.');
     $('csLoader').hidden = true; $('csSwiper').hidden = false;
     $('csNew').hidden = false; $('csBack').hidden = true;
     $('csStFile').textContent = S.file;
-    const n = Object.keys(S.dec).length;
-    setMsg('Welcome back: ' + n + ' of ' + items.length + ' swiped in ' + S.file);
-  })();
+    return true;
+  }
+  if (boot()) setMsg('Welcome back: ' + Object.keys(S.dec).length + ' of ' + items.length + ' swiped in ' + S.file);
+  // Another tab of Card Swiper saved: follow it instead of overwriting it on our next swipe.
+  window.addEventListener('storage', e => {
+    if (e.key !== LS.session && e.key !== LS.text) return;
+    const t = lsGet(LS.text), st = lsGet(LS.session);
+    if (!t || !t.text || !st || st.fp !== fp(t.text)) return;   // the other tab is mid-write
+    if (S && st.fp === S.fp) {
+      S.dec = st.dec || {}; S.hist = st.hist || []; S.second = st.second || {}; S.savedSig = st.savedSig || '';
+      if (started && !$('csSwiper').hidden) rebuild(); else updateAll();
+      setMsg('Synced with your other Card Swiper tab');
+    } else if (boot()) {
+      closeLightbox();
+      if (started) rebuild();
+      setMsg('Your other tab opened ' + S.file + ', so this tab switched to it');
+    }
+  });
   function activate() {
     if (started) return;
     started = true;
