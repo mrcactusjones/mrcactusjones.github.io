@@ -1,0 +1,27 @@
+{
+  "_doc": "Canonical manufacturer names with the spellings seen in Shopify `vendor` strings and in titles. 'aliases' are used for both; 'vendor_aliases' only for the vendor field (they would be unsafe in a title, e.g. 'innova champion' would swallow the Champion plastic). Matching ignores case, punctuation and spacing. Resolve order is vendor first, then title.",
+  "manufacturers": [
+    {"name": "Innova", "aliases": ["innova discs", "innova disc golf", "innova champion discs"], "vendor_aliases": ["innova champion"]},
+    {"name": "Discraft", "aliases": ["discraft inc", "discraft discs", "discraft disc golf"]},
+    {"name": "Dynamic Discs", "aliases": ["dynamic disc", "dynamic disc golf"]},
+    {"name": "Latitude 64", "aliases": ["lat 64", "latitude 64 golf discs"], "vendor_aliases": ["latitude"]},
+    {"name": "Westside Discs", "aliases": ["westside", "westside disc", "westside golf discs"]},
+    {"name": "Discmania", "aliases": ["discmania discs", "discmania golf"]},
+    {"name": "MVP", "aliases": ["mvp disc sports", "mvp discs", "mvp disc"]},
+    {"name": "Axiom", "aliases": ["axiom discs", "axiom disc"]},
+    {"name": "Streamline", "aliases": ["streamline discs", "streamline disc"]},
+    {"name": "Prodigy", "aliases": ["prodigy disc", "prodigy discs", "prodigy disc golf"]},
+    {"name": "Gateway", "aliases": ["gateway disc sports", "gateway discs", "gateway disc golf"]},
+    {"name": "Kastaplast", "aliases": ["kastaplast discs"]},
+    {"name": "Lone Star Disc", "aliases": ["lone star", "lone star discs", "lone star disc golf"]},
+    {"name": "Legacy Discs", "aliases": ["legacy", "legacy disc", "legacy golf discs"]},
+    {"name": "Millennium", "aliases": ["millennium golf discs", "millennium discs", "millennium disc golf"]},
+    {"name": "Thought Space Athletics", "aliases": ["thought space", "tsa"]},
+    {"name": "Infinite Discs", "aliases": ["infinite", "infinite disc", "infinite disc golf"]},
+    {"name": "Clash Discs", "aliases": ["clash", "clash disc"]},
+    {"name": "RPM Discs", "aliases": ["rpm", "rpm disc", "rpm disc golf"]},
+    {"name": "Wham-O", "aliases": ["wham o"]},
+    {"name": "Viking Discs", "aliases": ["viking", "viking disc"]},
+    {"name": "Doomsday Discs", "aliases": ["doomsday", "doomsday disc"]}
+  ]
+}

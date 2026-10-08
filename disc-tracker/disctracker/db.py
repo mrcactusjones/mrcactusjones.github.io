@@ -134,16 +134,18 @@ def record_products(conn: sqlite3.Connection, store_id: str, observed_on: str,
                 listing_id = int(row["id"])
                 # Title/vendor/type/tags changes invalidate the parse.
                 conn.execute(
-                    "UPDATE listings SET handle=?, vendor=?, product_type=?, url=?, last_seen=?, gone=0, "
-                    "parse_version = CASE WHEN title=? AND tags=? THEN parse_version ELSE 0 END, "
-                    "title=?, tags=? WHERE id=?",
-                    (p.handle, p.vendor, p.product_type, p.url, observed_on,
-                     p.title, tags, p.title, tags, listing_id),
+                    "UPDATE listings SET handle=?, url=?, last_seen=?, gone=0, "
+                    "parse_version = CASE WHEN title=? AND tags=? AND vendor IS ? AND product_type IS ? "
+                    "THEN parse_version ELSE 0 END, vendor=?, product_type=?, title=?, tags=? WHERE id=?",
+                    (p.handle, p.url, observed_on, p.title, tags, p.vendor, p.product_type,
+                     p.vendor, p.product_type, p.title, tags, listing_id),
                 )
             seen_listing_ids.add(listing_id)
 
             for v in p.variants:
-                weight = weight_parser(v.title) if weight_parser else None
+                # Variant title first ("175g"); single-variant used discs carry the weight in the
+                # product title. Shopify's `grams` is shipping weight, so it is deliberately unused.
+                weight = (weight_parser(v.title) or weight_parser(p.title)) if weight_parser else None
                 vrow = conn.execute(
                     "SELECT id, price_cents, compare_at_cents, available, gone FROM variants "
                     "WHERE listing_id=? AND variant_id=?", (listing_id, v.variant_id),
@@ -220,3 +222,16 @@ def save_parse(conn: sqlite3.Connection, listing_id: int, parsed: ParsedListing,
          parsed.disc_type, json.dumps(parsed.flags), parsed.confidence, disc_key(parsed),
          listing_id),
     )
+
+
+def last_ok_count(conn: sqlite3.Connection, store_id: str) -> int | None:
+    """Product count of the store's most recent successful run, or None."""
+    row = conn.execute(
+        "SELECT n_products FROM runs WHERE store_id=? AND status='ok' ORDER BY id DESC LIMIT 1",
+        (store_id,),
+    ).fetchone()
+    return None if row is None else int(row["n_products"])
+
+
+def known_store_ids(conn: sqlite3.Connection) -> list[str]:
+    return [r["id"] for r in conn.execute("SELECT id FROM stores ORDER BY id")]

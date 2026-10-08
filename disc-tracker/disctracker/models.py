@@ -68,5 +68,9 @@ def disc_key(p: ParsedListing) -> str | None:
 
 
 def key_slug(key: str) -> str:
-    """URL/file-safe slug for a disc key, unique per key."""
+    """URL/file-safe slug for a disc key.
+
+    Distinct keys can in theory collide (the same word in different fields); the
+    exporter disambiguates those with a numeric suffix.
+    """
     return slugify(" ".join(x for x in key.split("|") if x))

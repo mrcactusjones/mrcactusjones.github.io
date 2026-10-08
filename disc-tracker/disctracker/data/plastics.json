@@ -1,0 +1,219 @@
+{
+  "_doc": "Plastic lines per manufacturer (canonical name + aliases). The longest match in the title wins, so 'Lucid Air' beats 'Lucid'. 'generic' applies to every manufacturer. Glow is an edition (editions.json), not a plastic, unless the maker sells it as its own line (Moonshine, Total Eclipse); those lines carry \"glow\": true, so a redundant 'Glow' in the title is not also read as an edition. A maker's own plastic always beats a generic one (\"Star ... Premium Plastic\" is a Star).",
+  "generic": [
+    {"name": "Premium", "aliases": ["Premium Plastic"]},
+    {"name": "Recycled", "aliases": ["Recycled Plastic"]}
+  ],
+  "manufacturers": {
+    "Innova": [
+      {"name": "DX", "aliases": []},
+      {"name": "Pro", "aliases": []},
+      {"name": "KC Pro", "aliases": ["KC"]},
+      {"name": "R-Pro", "aliases": []},
+      {"name": "Champion", "aliases": ["Champ"]},
+      {"name": "Star", "aliases": []},
+      {"name": "GStar", "aliases": []},
+      {"name": "Blizzard", "aliases": ["Blizzard Champion", "Champion Blizzard"]},
+      {"name": "XT", "aliases": []},
+      {"name": "Nexus", "aliases": []},
+      {"name": "Metal Flake Champion", "aliases": ["Champion Metal Flake", "Metal Flake"]},
+      {"name": "Luster Champion", "aliases": ["Champion Luster", "Luster"]},
+      {"name": "Halo Star", "aliases": ["Star Halo", "Halo"]},
+      {"name": "Echo Star", "aliases": ["Star Echo", "Echo"]},
+      {"name": "Proto Glow", "aliases": ["Proto Glow Champion", "Champion Proto Glow", "Proto Glow Star"], "glow": true},
+      {"name": "Color Glow Champion", "aliases": ["Color Glow", "Champion Color Glow"], "glow": true}
+    ],
+    "Discraft": [
+      {"name": "ESP", "aliases": []},
+      {"name": "Z", "aliases": ["Z Line"]},
+      {"name": "Big Z", "aliases": []},
+      {"name": "Elite Z", "aliases": []},
+      {"name": "Z Lite", "aliases": ["Z Light"]},
+      {"name": "Metallic Z", "aliases": ["Z Metallic"]},
+      {"name": "Titanium", "aliases": ["Ti"]},
+      {"name": "Jawbreaker", "aliases": ["Jawbreaker Z", "Z Jawbreaker"]},
+      {"name": "Cryztal", "aliases": ["Crystal"]},
+      {"name": "Pro-D", "aliases": []},
+      {"name": "ColorShift", "aliases": []},
+      {"name": "Crazy Tuff", "aliases": []},
+      {"name": "Fly-Dye", "aliases": []}
+    ],
+    "Dynamic Discs": [
+      {"name": "Lucid", "aliases": []},
+      {"name": "Lucid Air", "aliases": []},
+      {"name": "Lucid Ice", "aliases": []},
+      {"name": "Lucid-X", "aliases": []},
+      {"name": "Fuzion", "aliases": []},
+      {"name": "Fuzion-X", "aliases": []},
+      {"name": "Classic", "aliases": []},
+      {"name": "Classic Blend", "aliases": []},
+      {"name": "Classic Soft", "aliases": []},
+      {"name": "Classic Supreme", "aliases": []},
+      {"name": "Prime", "aliases": []},
+      {"name": "Prime Burst", "aliases": []},
+      {"name": "BioFuzion", "aliases": []},
+      {"name": "Moonshine", "aliases": ["Lucid Moonshine", "Moonshine Lucid"], "glow": true},
+      {"name": "Hybrid", "aliases": []}
+    ],
+    "Latitude 64": [
+      {"name": "Opto", "aliases": ["Opto Line"]},
+      {"name": "Opto Air", "aliases": []},
+      {"name": "Opto Ice", "aliases": []},
+      {"name": "Gold", "aliases": ["Gold Line"]},
+      {"name": "Retro", "aliases": ["Retro Line"]},
+      {"name": "Zero", "aliases": ["Zero Line"]},
+      {"name": "Zero Soft", "aliases": []},
+      {"name": "Zero Medium", "aliases": []},
+      {"name": "Zero Hard", "aliases": []},
+      {"name": "Grip", "aliases": ["Grip Line"]}
+    ],
+    "Westside Discs": [
+      {"name": "Tournament", "aliases": []},
+      {"name": "VIP", "aliases": []},
+      {"name": "VIP Air", "aliases": []},
+      {"name": "VIP Ice", "aliases": []},
+      {"name": "BT", "aliases": []},
+      {"name": "BT Hard", "aliases": []},
+      {"name": "BT Medium", "aliases": []},
+      {"name": "BT Soft", "aliases": []},
+      {"name": "Origio", "aliases": []},
+      {"name": "Origio Burst", "aliases": []}
+    ],
+    "Discmania": [
+      {"name": "C-Line", "aliases": []},
+      {"name": "S-Line", "aliases": []},
+      {"name": "P-Line", "aliases": []},
+      {"name": "D-Line", "aliases": []},
+      {"name": "Neo", "aliases": []},
+      {"name": "Lux", "aliases": []},
+      {"name": "Exo", "aliases": []},
+      {"name": "Exo Hard", "aliases": []},
+      {"name": "Exo Soft", "aliases": []},
+      {"name": "Geo", "aliases": []},
+      {"name": "Active", "aliases": []},
+      {"name": "Active Premium", "aliases": []},
+      {"name": "Swirly S-Line", "aliases": ["S-Line Swirly"]},
+      {"name": "Metal Flake C-Line", "aliases": ["C-Line Metal Flake"]}
+    ],
+    "MVP": [
+      {"name": "Neutron", "aliases": []},
+      {"name": "Proton", "aliases": []},
+      {"name": "Electron", "aliases": []},
+      {"name": "Electron Firm", "aliases": []},
+      {"name": "Electron Medium", "aliases": []},
+      {"name": "Electron Soft", "aliases": []},
+      {"name": "Neutron Soft", "aliases": []},
+      {"name": "Proton Soft", "aliases": []},
+      {"name": "Fission", "aliases": []},
+      {"name": "Plasma", "aliases": []},
+      {"name": "Eclipse", "aliases": [], "glow": true},
+      {"name": "Total Eclipse", "aliases": [], "glow": true},
+      {"name": "Cosmic Neutron", "aliases": []},
+      {"name": "Cosmic Electron", "aliases": []},
+      {"name": "Gyro", "aliases": []},
+      {"name": "Prism Proton", "aliases": []},
+      {"name": "R2 Neutron", "aliases": []}
+    ],
+    "Axiom": [
+      {"name": "Neutron", "aliases": []},
+      {"name": "Proton", "aliases": []},
+      {"name": "Electron", "aliases": []},
+      {"name": "Electron Firm", "aliases": []},
+      {"name": "Electron Medium", "aliases": []},
+      {"name": "Electron Soft", "aliases": []},
+      {"name": "Neutron Soft", "aliases": []},
+      {"name": "Proton Soft", "aliases": []},
+      {"name": "Fission", "aliases": []},
+      {"name": "Plasma", "aliases": []},
+      {"name": "Eclipse", "aliases": [], "glow": true},
+      {"name": "Total Eclipse", "aliases": [], "glow": true},
+      {"name": "Cosmic Neutron", "aliases": []},
+      {"name": "Cosmic Electron", "aliases": []},
+      {"name": "Gyro", "aliases": []},
+      {"name": "Prism Proton", "aliases": []},
+      {"name": "R2 Neutron", "aliases": []}
+    ],
+    "Streamline": [
+      {"name": "Neutron", "aliases": []},
+      {"name": "Proton", "aliases": []},
+      {"name": "Electron", "aliases": []},
+      {"name": "Electron Firm", "aliases": []},
+      {"name": "Electron Medium", "aliases": []},
+      {"name": "Electron Soft", "aliases": []},
+      {"name": "Neutron Soft", "aliases": []},
+      {"name": "Proton Soft", "aliases": []},
+      {"name": "Fission", "aliases": []},
+      {"name": "Plasma", "aliases": []},
+      {"name": "Eclipse", "aliases": [], "glow": true},
+      {"name": "Total Eclipse", "aliases": [], "glow": true},
+      {"name": "Cosmic Neutron", "aliases": []},
+      {"name": "Cosmic Electron", "aliases": []},
+      {"name": "Gyro", "aliases": []},
+      {"name": "Prism Proton", "aliases": []},
+      {"name": "R2 Neutron", "aliases": []}
+    ],
+    "Prodigy": [
+      {"name": "750", "aliases": []},
+      {"name": "750G", "aliases": []},
+      {"name": "500", "aliases": []},
+      {"name": "500G", "aliases": []},
+      {"name": "400", "aliases": []},
+      {"name": "400G", "aliases": []},
+      {"name": "350G", "aliases": []},
+      {"name": "300", "aliases": []},
+      {"name": "200", "aliases": []},
+      {"name": "Air", "aliases": []},
+      {"name": "Spectrum", "aliases": []},
+      {"name": "Air Spectrum", "aliases": []},
+      {"name": "DuraFlex", "aliases": []}
+    ],
+    "Kastaplast": [
+      {"name": "K1", "aliases": []},
+      {"name": "K1 Soft", "aliases": []},
+      {"name": "K2", "aliases": []},
+      {"name": "K3", "aliases": []}
+    ],
+    "Gateway": [
+      {"name": "Super Stupid Soft", "aliases": ["SSS", "Stupid Soft"]},
+      {"name": "Super Soft", "aliases": ["SS"]},
+      {"name": "Eraser", "aliases": []},
+      {"name": "Evolution", "aliases": []}
+    ],
+    "Lone Star Disc": [
+      {"name": "Alpha", "aliases": []},
+      {"name": "Bravo", "aliases": []},
+      {"name": "Victor", "aliases": []},
+      {"name": "Delta", "aliases": []}
+    ],
+    "Legacy Discs": [
+      {"name": "Icon", "aliases": []},
+      {"name": "Pinnacle", "aliases": []},
+      {"name": "Excel", "aliases": []}
+    ],
+    "Millennium": [
+      {"name": "Quantum", "aliases": []},
+      {"name": "Sirius", "aliases": []},
+      {"name": "Omega", "aliases": []}
+    ],
+    "Thought Space Athletics": [
+      {"name": "Aura", "aliases": []},
+      {"name": "Ethos", "aliases": []}
+    ],
+    "Infinite Discs": [
+      {"name": "S-Blend", "aliases": []},
+      {"name": "I-Blend", "aliases": []},
+      {"name": "C-Blend", "aliases": []},
+      {"name": "G-Blend", "aliases": []}
+    ],
+    "Clash Discs": [
+      {"name": "Steady", "aliases": []},
+      {"name": "Softy", "aliases": []},
+      {"name": "Hardy", "aliases": []}
+    ],
+    "RPM Discs": [
+      {"name": "Atomic", "aliases": []},
+      {"name": "Cosmic", "aliases": []},
+      {"name": "Strata", "aliases": []}
+    ]
+  }
+}

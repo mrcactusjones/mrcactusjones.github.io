@@ -1,0 +1,17 @@
+{
+  "_doc": "Controlled edition vocabulary, in priority order (when a title carries several, the first one listed wins; the identity of a disc has exactly one edition). 'player_marker' editions are the ones a player's name sits next to (Tour / Team / Signature). prototype and misprint also raise the prototype / stamped_error flags. Deliberately absent: 'proto' (clashes with Innova's Proto Glow plastic) and a bare 'limited'.",
+  "editions": [
+    {"name": "tour series", "aliases": [], "player_marker": true},
+    {"name": "team series", "aliases": [], "player_marker": true},
+    {"name": "signature series", "aliases": ["signature", "signature edition", "sig series"], "player_marker": true},
+    {"name": "first run", "aliases": ["1st run"]},
+    {"name": "second run", "aliases": ["2nd run"]},
+    {"name": "prototype", "aliases": ["prototypes"]},
+    {"name": "factory second", "aliases": ["factory seconds", "factory 2nd"]},
+    {"name": "misprint", "aliases": ["mis print", "misstamp", "mis stamp", "stamp error", "error stamp", "wrong stamp", "double stamp"]},
+    {"name": "limited edition", "aliases": ["limited run", "ltd edition"]},
+    {"name": "special edition", "aliases": []},
+    {"name": "anniversary edition", "aliases": ["anniversary"]},
+    {"name": "glow", "aliases": ["glo", "glow in the dark", "gitd"]}
+  ]
+}

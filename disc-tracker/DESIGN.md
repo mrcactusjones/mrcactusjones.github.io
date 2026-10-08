@@ -184,3 +184,41 @@ process exits 0 if at least one store succeeded, 1 if every enabled store failed
   Shopify-shaped JSON in `tests/fixtures/`.
 * Be a good citizen: delay between requests, robots.txt, honest User-Agent.
 * Untrusted input: never `eval`, never HTML-inject scraped strings.
+
+## 9. Implementation notes (where the code is stricter than, or adds to, the contract)
+
+**Scraper (`shopify.py`)** - robots.txt is evaluated with an own RFC 9309 matcher (longest
+match wins, `*` and `$`, BOM-safe) against both the bare path and the query-bearing URL for
+every page, because `urllib.robotparser` behaves differently across Python versions. A
+`Crawl-delay` can only raise our delay. `base_url` must be a plain http(s) origin. A redirect
+that drops `limit`/`page` raises `StoreError` (it would otherwise return a short default page
+as "complete"). Malformed products (missing id/handle/price) raise instead of being skipped.
+Product URLs use the percent-encoded handle. 408/429/5xx are retried; a `Retry-After` over
+120 s fails the store.
+
+**Safety nets in `cli.py`** - a scrape is refused (run recorded as `error`, nothing written)
+if it returns zero products or fewer than half of the previous successful run's count
+(previous >= 20). Stores that are no longer enabled in `stores.json` have their listings marked
+gone on the next full scrape. `parse` and `export` refuse to run against a missing database.
+
+**Parser (`parser.py`)** - fuzzy fallback uses `rapidfuzz.fuzz.ratio`, not WRatio, so a
+mold can never match inside a longer word. `matched` is stricter than the contract: ambiguous
+cases (brand mismatch, two molds in a title, mold + unknown variant token such as `GT`/`SS`)
+become `review`. Multi-disc/non-regulation words (`set`, `pack`, `combo`, `bundle`, `mini`,
+`mystery`) make a listing `ignored`. Edition vocabulary is in `data/editions.json` (lowercase,
+the site title-cases it). The seed mold list is ~220 entries written from memory and is not
+verified against any reference; ten manufacturers have plastics but no molds yet.
+
+**Weights** - `variants.weight_g` comes from the variant title, then the product title.
+Shopify's `grams` field is shipping weight and is not used.
+
+**Exporter (`export.py`)** - a per-condition block is `null` only when no live priced listing of
+that condition exists; if listings exist but none are in stock the block is present with
+`stores_in_stock: 0` and the last listed prices. Median is over in-stock variants. Series are
+dense (one point per scrape date), roughly 35 MB per 1,250 discs per year, so revisit before
+the history gets large. `index.json` is written before stale history files are deleted. Series
+reflect the *current* parse, so re-parsing rewrites past chart points.
+
+**Site** - Chart.js is injected lazily from a pinned cdnjs URL (no SRI hash yet); if it fails to
+load, the page falls back to the data table. Browser checks in `tests/test_site.py` skip when
+node/playwright-core/Chromium are missing (as in CI).

@@ -1,0 +1,104 @@
+{
+  "products": [
+    {
+      "id": 6789012345671,
+      "title": "Innova Star Destroyer 175g Ricky Wysocki Tour Series 2015 OOP 9/10",
+      "handle": "innova-star-destroyer-175g-ricky-wysocki-tour-series-2015-oop-9-10",
+      "body_html": "<p>Rare &amp; <b>beat in</b> Destroyer.</p>",
+      "published_at": "2026-09-30T08:15:00-05:00",
+      "created_at": "2026-09-30T08:10:00-05:00",
+      "updated_at": "2026-10-07T12:00:00-05:00",
+      "vendor": "Innova",
+      "product_type": "Distance Driver",
+      "tags": ["Distance Driver", "Innova", "OOP", "Tour Series", "Used"],
+      "variants": [
+        {
+          "id": 39000000000001,
+          "title": "175g",
+          "option1": "175g",
+          "sku": "INN-DST-175-A",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.99",
+          "grams": 175,
+          "compare_at_price": "29.99",
+          "position": 1,
+          "product_id": 6789012345671,
+          "created_at": "2026-09-30T08:10:00-05:00",
+          "updated_at": "2026-10-07T12:00:00-05:00"
+        },
+        {
+          "id": 39000000000002,
+          "title": "173g",
+          "option1": "173g",
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "24.99",
+          "grams": 0,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 6789012345671,
+          "created_at": "2026-09-30T08:10:00-05:00",
+          "updated_at": "2026-10-07T12:00:00-05:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31000000000001,
+          "position": 1,
+          "src": "https://cdn.shopify.com/s/files/1/0000/0000/products/destroyer.jpg?v=1",
+          "width": 1000,
+          "height": 1000,
+          "variant_ids": []
+        }
+      ],
+      "options": [{"name": "Weight", "position": 1, "values": ["175g", "173g"]}]
+    },
+    {
+      "id": 6789012345672,
+      "title": "Discraft ESP Buzzz - 177g+",
+      "handle": "discraft-esp-buzzz-177g",
+      "body_html": null,
+      "vendor": "Discraft",
+      "product_type": "Midrange",
+      "tags": "Discraft, ESP, Midrange,  Buzzz ,",
+      "variants": [
+        {
+          "id": 39000000000003,
+          "title": "Default Title",
+          "sku": "DIS-BZZ-ESP",
+          "available": true,
+          "price": "17.99",
+          "grams": 177,
+          "compare_at_price": "0.00"
+        }
+      ],
+      "images": [],
+      "options": [{"name": "Title", "position": 1, "values": ["Default Title"]}]
+    },
+    {
+      "id": 6789012345673,
+      "title": "Latitude 64 Opto Ráven – 173g",
+      "handle": "latitude-64-opto-raven-173g",
+      "vendor": "Latitude 64",
+      "product_type": "",
+      "tags": [],
+      "variants": [
+        {
+          "id": 39000000000004,
+          "title": "Default Title",
+          "sku": null,
+          "available": false,
+          "price": "19.50",
+          "grams": 173,
+          "compare_at_price": null
+        }
+      ]
+    }
+  ]
+}

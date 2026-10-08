@@ -26,12 +26,28 @@ def load_stores(path: Path, only: str | None = None) -> list[dict]:
     return stores
 
 
+def _open_existing(path: Path):
+    """Open a database that must already exist (a typo must not create an empty one)."""
+    if not Path(path).is_file():
+        raise SystemExit(f"database not found: {path} (run `scrape` first)")
+    return db.connect(path)
+
+
+# A scrape that returns far fewer products than last time is almost certainly a broken
+# fetch (a proxy capping the page size, a maintenance page), not a real delisting.
+MAX_DROP = 0.5
+MIN_PREVIOUS_FOR_DROP_CHECK = 20
+
+
 def cmd_check_stores(args) -> int:
     from . import shopify
 
     bad = 0
     for s in load_stores(args.stores):
-        res = shopify.check_store(s)
+        try:
+            res = shopify.check_store(s)
+        except Exception as exc:
+            res = {"ok": False, "detail": f"unexpected error: {exc}"}
         print(f"{'OK  ' if res['ok'] else 'FAIL'} {s['id']}: {res['detail']}")
         bad += 0 if res["ok"] else 1
     return 1 if bad else 0
@@ -43,6 +59,14 @@ def cmd_scrape(args) -> int:
     stores = load_stores(args.stores, args.store)
     conn = db.connect(args.db)
     ok = 0
+    if not args.store:
+        # Stores removed/disabled in stores.json would otherwise stay "in stock" forever.
+        today = _now().strftime("%Y-%m-%d")
+        enabled = {s["id"] for s in stores}
+        for sid in db.known_store_ids(conn):
+            if sid not in enabled:
+                db.record_products(conn, sid, today, [])
+                print(f"retired {sid}: no longer enabled, listings marked gone")
     for s in stores:
         db.upsert_store(conn, s)
         now = _now()
@@ -51,6 +75,12 @@ def cmd_scrape(args) -> int:
             products = shopify.fetch_store(s, delay=args.delay)
             if not products:  # an empty catalogue would mark every listing gone
                 raise shopify.StoreError("store returned zero products; refusing to record")
+            prev = db.last_ok_count(conn, s["id"])
+            if (prev is not None and prev >= MIN_PREVIOUS_FOR_DROP_CHECK
+                    and len(products) < prev * (1 - MAX_DROP)):
+                raise shopify.StoreError(
+                    f"product count fell from {prev} to {len(products)}; refusing to record "
+                    "(looks like an incomplete fetch)")
             stats = db.record_products(conn, s["id"], now.strftime("%Y-%m-%d"), products,
                                        weight_parser=parser.parse_weight)
             db.finish_run(conn, run_id, _now().isoformat(timespec="seconds"), "ok", len(products))
@@ -65,23 +95,27 @@ def cmd_scrape(args) -> int:
 def cmd_parse(args) -> int:
     from . import parser
 
-    conn = db.connect(args.db)
+    conn = _open_existing(args.db) if args.cmd == "parse" else db.connect(args.db)
     rows = db.listings_needing_parse(conn, parser.PARSER_VERSION, force=args.all)
     counts: dict[str, int] = {}
     with conn:
         for r in rows:
-            p = parser.parse_listing(r["title"], r["vendor"] or "", r["product_type"] or "",
-                                     json.loads(r["tags"] or "[]"))
+            try:
+                p = parser.parse_listing(r["title"], r["vendor"] or "", r["product_type"] or "",
+                                         json.loads(r["tags"] or "[]"))
+            except Exception as exc:  # one bad title must not block the rest
+                print(f"parse failed for listing {r['id']}: {exc}", file=sys.stderr)
+                continue
             db.save_parse(conn, r["id"], p, parser.PARSER_VERSION)
             counts[p.status] = counts.get(p.status, 0) + 1
-    print(f"parsed {len(rows)} listings: {counts}")
+    print(f"parsed {sum(counts.values())}/{len(rows)} listings: {counts}")
     return 0
 
 
 def cmd_export(args) -> int:
     from . import export
 
-    conn = db.connect(args.db)
+    conn = _open_existing(args.db) if args.cmd == "export" else db.connect(args.db)
     stats = export.export_site(conn, args.out, _now().strftime("%Y-%m-%d"))
     print(f"exported: {stats}")
     return 0
