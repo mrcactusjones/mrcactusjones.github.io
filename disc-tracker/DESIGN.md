@@ -1,0 +1,186 @@
+# Disc Tracker - design contract
+
+A PriceCharting-style price tracker for disc golf discs. Retail stores that run
+Shopify are scraped daily from the public `/products.json` endpoint, each
+listing is identified (manufacturer / mold / plastic / edition), prices are
+stored change-only in SQLite, and a static dashboard renders price history.
+
+Python 3.12+, deps: `httpx`, `rapidfuzz` (dev: `pytest`). No other runtime deps.
+Run everything as `python -m disctracker <command>` from `disc-tracker/`.
+
+## 1. Layout
+
+```
+disc-tracker/
+  stores.json                 store list (id, name, base_url, currency, enabled, collection?)
+  data/discs.db               SQLite, committed to git
+  disctracker/
+    models.py                 RawProduct, RawVariant, ParsedListing, disc_key, key_slug   (DONE)
+    db.py                     schema + record_products/save_parse                          (DONE)
+    shopify.py                fetch + check store                                           (section 3)
+    parser.py                 title -> ParsedListing                                        (section 4)
+    data/molds.json           mold seed list, data/plastics.json, data/manufacturers.json   (section 4)
+    export.py                 DB -> static JSON for the site                                (section 5)
+    cli.py / __main__.py      commands                                                      (DONE)
+  site/                       static dashboard (index.html, app.js, style.css) + site/data/ (generated)
+  tests/                      pytest, offline only (fixtures under tests/fixtures/)
+../.github/workflows/disc-tracker.yml   daily cron: scrape -> parse -> export -> commit
+```
+
+## 2. Data model
+
+See `db.py` for the schema. Key facts:
+* money is integer cents in the DB; the JSON exports use dollars (number, 2 dp).
+* `observations` are change-only per variant. To know the state of a variant on
+  date D: take its latest observation with `observed_on <= D`; if none, the
+  variant did not exist yet; if that row has `gone=1`, the variant was delisted.
+* A "scrape date" is any `runs.observed_on` with `status='ok'` for that store.
+  Daily series must only use dates where the store's run was `ok`, and must
+  only count a store on dates it has an ok run (do not forward-fill across a
+  store outage).
+* Disc identity = `disc_key` = `manufacturer|mold|plastic|edition|player`,
+  lowercase, 5 fields always (empties kept). `key_slug` makes it file-safe.
+* `listings.condition` is `new` or `used`; every price series is split by it.
+* `status`: `matched` (in the disc index), `review` (low confidence - counted in
+  stats, not shown as discs), `ignored` (bags, baskets, apparel, ...), `unparsed`.
+
+## 3. shopify.py (public API)
+
+```python
+def fetch_store(store: dict, client: httpx.Client | None = None, delay: float = 1.0,
+                max_pages: int = 100, respect_robots: bool = True) -> list[RawProduct]
+def check_store(store: dict, client: httpx.Client | None = None) -> dict
+    # {"ok": bool, "detail": str, "sample_count": int}
+class StoreError(Exception)
+```
+* GET `{base_url}/products.json?limit=250&page=N` (or
+  `{base_url}/collections/{collection}/products.json` when `store["collection"]`).
+  Stop when a page returns fewer than 250 products or an empty list.
+* Prices are decimal strings ("19.99") -> integer cents without float error.
+  `compare_at_price` may be null/"0.00" -> None. `available` is a bool on each variant.
+* Identify politely: User-Agent `disc-tracker/1.0 (+https://github.com/mrcactusjones/mrcactusjones.github.io)`,
+  `delay` seconds between pages, honour `Retry-After` on 429, retry 5xx/timeouts
+  with exponential backoff (max 3 retries), 30s timeout.
+* Check `{base_url}/robots.txt` once per store; if `/products.json` is disallowed
+  for our UA (or `*`), raise `StoreError`. A missing/unreadable robots.txt means allowed.
+* Any failure that would make the result incomplete (a page fails after retries,
+  invalid JSON, duplicate page loop, max_pages hit while still full) MUST raise
+  `StoreError` - never return a partial list, because `record_products` treats the
+  list as complete and marks everything else gone.
+* Product `url` = `{base_url}/products/{handle}`. Tags may be a list or a
+  comma-separated string - normalise to a list of stripped strings.
+
+## 4. parser.py (public API)
+
+```python
+PARSER_VERSION: int          # bump whenever rules/data change; CLI re-parses stale rows
+def parse_listing(title, vendor="", product_type="", tags=()) -> ParsedListing
+def parse_weight(text: str) -> int | None   # "173g" -> 173; "170-175g" -> None
+```
+* `parse_weight`: single weight "173g"/"173 g" -> 173; a range "170-175g" -> None
+  (ranges are not a weight); implausible values (outside 100-200) -> None.
+* Titles are noisy: `"Innova Star Destroyer 175g Ricky Wysocki Tour Series 2015 OOP 9/10"`,
+  `"Champion Roc3"`, `"[Used] DX Leopard3 - 168g"`, `"Latitude 64 Opto River"`.
+* Resolve manufacturer from `vendor` first, then title text, via
+  `data/manufacturers.json` (canonical name + aliases).
+* Resolve mold with exact normalised match first, then `rapidfuzz` (WRatio or
+  token ratio) against the manufacturer's molds, falling back to all molds when
+  manufacturer is unknown. Remember short/ambiguous mold names (Fuse, Wraith,
+  Roc, Aviar...) - require word-boundary matches, never substring-of-word.
+  Handle spelling variants ("Roc 3" == "Roc3", "Buzzz" == "Buzzz").
+* Plastic from `data/plastics.json` (per manufacturer, with aliases, e.g.
+  Innova "Star", "G-Star"/"GStar", "Champion", "DX", "Pro", "KC Pro";
+  Discraft "ESP", "Z", "Jawbreaker", "Titanium", "Big Z"...). Longest match wins.
+* Edition from a controlled vocabulary: `tour series`, `team series`, `first run`,
+  `signature series`, `limited edition`, `prototype`, `factory second`, `glow`
+  (only when it is a distinct edition), `misprint`, `ghost`... author a sensible
+  list in `data/` and document it. `player` = name following/preceding Tour/Team/Signature
+  markers when present (title-case, strip weights/years). `year` = 4-digit 1990-2035.
+* Condition: `used` if title/tags/product_type contain used/pre-owned/second-hand/
+  "beat in"/ "sleepy"/ a "N/10" grade; grade parsed from "9/10" or "grade 8".
+  Otherwise `new`.
+* Flags (list of strings): `oop`, `ink`, `dyed`, `signed`, `prototype`, `stamped_error`.
+* `ignored`: product types/tags/titles for bags, baskets, towels, apparel, hats,
+  shirts, backpacks, stickers, gift cards, mini markers, accessories, `Basket`.
+* Confidence 0..1. `matched` needs a mold match score >= 0.85 AND a resolved
+  manufacturer. Otherwise `review` if a mold-ish candidate exists, else `unparsed`.
+* Must be deterministic and pure (no network, no I/O after import-time data load).
+
+## 5. export.py (public API)
+
+```python
+def export_site(conn, out_dir: Path, today: str) -> dict   # returns stats dict
+```
+Writes (UTF-8, `json.dump(..., separators=(",", ":"), sort_keys=True)`):
+
+`out_dir/index.json`
+```json
+{"generated_at": "2026-10-08", "currency": "USD",
+ "stores": [{"id": "...", "name": "...", "base_url": "...", "last_ok": "2026-10-08"|null}],
+ "stats": {"listings": 0, "matched": 0, "review": 0, "ignored": 0, "unparsed": 0, "discs": 0, "stores": 0},
+ "discs": [{"key": "innova|destroyer|star||", "slug": "innova-destroyer-star",
+            "manufacturer": "Innova", "mold": "Destroyer", "plastic": "Star", "edition": "", "player": "",
+            "disc_type": "Distance Driver",
+            "new":  {"min": 17.99, "median": 18.49, "stores_in_stock": 3, "stores_listing": 4,
+                     "change_7d": -0.02, "change_30d": null} | null,
+            "used": {...same shape...} | null,
+            "last_seen": "2026-10-08"}]}
+```
+Display names (manufacturer/mold/plastic) come from the most common casing in
+`listings`. Only `status='matched'`, not-gone listings with at least one
+in-stock variant count toward `min`/`median`/`stores_in_stock`;
+`stores_listing` counts stores with a non-gone listing. A disc with no live
+listings but with history is still exported (`new`/`used` may be null; prices
+use the last known data in `history`). `change_Nd` = fractional change of the
+daily `min` price vs the nearest series point at or before `today - N days`
+(null if the series does not reach back that far). Discs sorted by
+`manufacturer, mold, plastic`.
+
+`out_dir/history/<slug>.json`
+```json
+{"key": "...", "slug": "...", "manufacturer": "...", "mold": "...", "plastic": "...",
+ "edition": "", "player": "", "disc_type": "",
+ "series": {"new": [{"date": "2026-10-01", "min": 17.99, "median": 18.49, "stores_in_stock": 3}],
+            "used": []},
+ "listings": [{"store": "Dynamic Discs", "store_id": "dynamic-discs", "title": "...", "url": "...",
+               "condition": "new", "weight_g": 175, "price": 17.99, "compare_at": null,
+               "available": true, "last_seen": "2026-10-08"}]}
+```
+`series` is one point per scrape date (dates where any store had an ok run),
+computed per date from forward-filled variant state, counting only in-stock,
+non-gone variants of matched listings; a date with no in-stock variant is
+omitted (no zero points). `listings` = live (not gone) variants, cheapest first.
+Slug collisions between distinct keys are impossible by construction
+(`key_slug`) but guard anyway by appending `-2`.
+
+The exporter first deletes stale `history/*.json` files that no longer
+correspond to an exported disc.
+
+## 6. site/ (static dashboard)
+
+Plain HTML/CSS/JS, no build step, served by GitHub Pages at
+`/disc-tracker/site/` (relative URLs only; `fetch("data/index.json")`).
+Chart.js loaded from a pinned CDN URL (cdnjs, `chart.js@4.4.x` is fine).
+* Home: search box (fuzzy-ish: all tokens must appear), filters (manufacturer,
+  disc type, condition new/used, in-stock only), sortable table/grid of discs
+  with min price, store count, 7d/30d change badges (green down / red up).
+* Disc page: `#/disc/<slug>` hash route; line chart of min and median over time
+  (new vs used toggle), table of current listings with links to the store, stats.
+* Header shows `generated_at` and the matched/review counts; an honest
+  "no data yet" empty state when `index.json` has zero discs.
+* Responsive down to 360px, dark/light via `prefers-color-scheme`, keyboard
+  accessible, no inline event handlers, all dynamic text inserted with
+  `textContent` (never `innerHTML` with scraped strings - titles are untrusted).
+
+## 7. CLI (cli.py, done)
+
+`check-stores`, `scrape [--store ID]`, `parse [--all]`, `export`, `run` (scrape+parse+export),
+global `--db`, `--stores`, `--out`. A store failure never aborts the other stores; the
+process exits 0 if at least one store succeeded, 1 if every enabled store failed.
+
+## 8. Ground rules
+
+* Offline tests only: no test may touch the network. Fixtures are hand-written
+  Shopify-shaped JSON in `tests/fixtures/`.
+* Be a good citizen: delay between requests, robots.txt, honest User-Agent.
+* Untrusted input: never `eval`, never HTML-inject scraped strings.

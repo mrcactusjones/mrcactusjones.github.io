@@ -1,0 +1,7 @@
+{
+  "_note": "UNVERIFIED seed list. Run `python -m disctracker check-stores` from a machine with normal internet access to confirm each store exposes /products.json, then delete the ones that fail. `collection` optionally restricts a store to one collection handle (e.g. only discs, no bags/apparel).",
+  "stores": [
+    {"id": "dynamic-discs", "name": "Dynamic Discs", "base_url": "https://www.dynamicdiscs.com", "currency": "USD", "enabled": true},
+    {"id": "gotta-go-gotta-throw", "name": "Gotta Go Gotta Throw", "base_url": "https://gottagogottathrow.com", "currency": "USD", "enabled": true}
+  ]
+}
