@@ -47,6 +47,10 @@ jobs:
           cache-dependency-path: disc-tracker/requirements.txt
       - run: pip install -r requirements.txt
       - name: Scrape, parse, export
+        env:
+          # Optional: free keys from developer.ebay.com. Without them eBay is skipped.
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
         run: python -m disctracker run
       - name: Commit data
         working-directory: .

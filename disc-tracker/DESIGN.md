@@ -222,3 +222,118 @@ reflect the *current* parse, so re-parsing rewrites past chart points.
 **Site** - Chart.js is injected lazily from a pinned cdnjs URL (no SRI hash yet); if it fails to
 load, the page falls back to the data table. Browser checks in `tests/test_site.py` skip when
 node/playwright-core/Chromium are missing (as in CI).
+
+## 10. eBay (marketplace source) - binding contract for the eBay work
+
+eBay is a second kind of source: `stores.kind = 'marketplace'` (retail Shopify stores are
+`'retail'`). It is collected with the official **Browse API** (active, fixed-price listings
+= asking prices). Browse API cannot return sold prices; the `sales` table is the hook for that.
+
+### 10.1 Data model (DONE in `db.py`, do not change)
+* One eBay item = one `listings` row (`store_id='ebay'`, `product_id` = legacy item id) with
+  one `variants` row (`variant_id` = same id, `available=1`). Price = item price only (shipping
+  excluded). Listings gain `ends_at` (ISO string or "") and `last_query` (query key that last returned it).
+* `db.record_products(..., complete=False)` for eBay: a search only sees a slice, so absence is
+  NOT disappearance. After a query ran to completion call
+  `db.record_query_run(...)` then `db.expire_missing(conn, 'ebay', query_key, observed_on)`.
+* `expire_missing` marks listings last returned by that query and unseen today as gone, and, if
+  they vanished before `ends_at`, records a `sales` row (`source='inferred_disappeared'`,
+  `confidence='low'`, price = last listed price, `sold_on` = last_seen). Sellers also delist items
+  without a sale, so this is an upper-bound signal and must always be labelled "inferred".
+  Relisting cancels the inferred sale. `db.record_sale(..., source='marketplace_insights',
+  confidence='confirmed')` is the hook for real sold data if eBay ever approves Marketplace
+  Insights; no client for it exists yet.
+* `RawProduct` has `ends_at` and `query_key` for this.
+
+### 10.2 `ebay.py` (public API)
+```python
+EBAY_STORE = {"id": "ebay", "name": "eBay", "base_url": "https://www.ebay.com",
+              "currency": "USD", "kind": "marketplace"}
+class EbayError(Exception)
+class EbayAuthError(EbayError)    # missing/rejected credentials -> abort, record nothing
+class EbayQuotaError(EbayError)   # rate/daily limit hit -> stop the run gracefully, keep what we have
+
+def load_credentials(env=None) -> tuple[str, str] | None
+    # EBAY_CLIENT_ID / EBAY_CLIENT_SECRET from env (default os.environ); empty/whitespace = missing -> None.
+def build_queries(molds=None, plastics=None) -> list[tuple[str, str]]
+    # [(query_key, query_text)] one per (mold, plastic of that mold's manufacturer) from
+    # disctracker/data/molds.json + plastics.json (a mold of a manufacturer with no plastics gets
+    # only the generic plastics list; never an empty plastic). query_text = "<plastic> <mold> <manufacturer>"
+    # (eBay ANDs the words). query_key = "manufacturer|mold|plastic" lowercased, unique, stable.
+    # Deterministic order. Plastic strings that are a single character or purely numeric still
+    # go through (e.g. "Z", "400").
+class EbayClient:
+    def __init__(self, client_id, client_secret, http: httpx.Client | None = None, *,
+                 marketplace_id="EBAY_US", category_ids=("184356",), base_url="https://api.ebay.com",
+                 sleeper=time.sleep)
+    def search(self, query: str, query_key: str, max_calls: int) -> SearchResult
+@dataclass
+class SearchResult: items: list[RawProduct]; total: int; complete: bool; calls: int
+def collect(conn, client: EbayClient, observed_on: str, call_budget: int = 3500,
+            queries=None, weight_parser=None, log=print) -> dict
+    # orchestrates one run: upsert EBAY_STORE, start/finish a `runs` row, order queries with
+    # db.order_queries, for each: search -> db.record_products(complete=False) ->
+    # db.record_query_run -> (if complete) db.expire_missing. Stops when the call budget is
+    # spent ("budget"), on EbayQuotaError ("quota"), or when queries are exhausted ("done").
+    # EbayAuthError propagates BEFORE anything is recorded. A single failing query is logged
+    # and skipped. Returns {"queries_run","queries_complete","calls","items_seen","new_listings",
+    # "gone","inferred_sales","skipped_currency","stopped"}.
+```
+Browse API facts to implement (verify against these, do not invent others):
+* Token: `POST {base}/identity/v1/oauth2/token`, header `Authorization: Basic base64(id:secret)`,
+  form `grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope`; response
+  `access_token`, `expires_in` (seconds). Cache until ~60 s before expiry; on a 401 from search
+  refresh once, then raise `EbayAuthError`. 400/401 from the token endpoint -> `EbayAuthError`.
+* Search: `GET {base}/buy/browse/v1/item_summary/search` with headers
+  `Authorization: Bearer <token>`, `X-EBAY-C-MARKETPLACE-ID: EBAY_US`; params `q`, `category_ids`,
+  `limit=200`, `offset`, `filter=buyingOptions:{FIXED_PRICE}` (no auctions: their price is a bid,
+  not an asking price), `fieldgroups=MATCHING_ITEMS`? (omit unless needed). Response:
+  `total`, `limit`, `offset`, `next`, `itemSummaries[]` (absent when 0 results). Each summary has
+  `itemId` ("v1|<legacyId>|<variationId or 0>"), `title`, `price{value,currency}`, `condition`,
+  `conditionId`, `itemWebUrl`, `itemEndDate`, `buyingOptions[]`, `seller{username}`.
+  The API will not page past offset+limit > 10,000.
+* `complete` = every one of `total` items was fetched (total <= 10,000, no call budget cutoff, no
+  page error). Only complete queries may expire listings.
+* Mapping: `product_id` = int legacy id (variation ids: keep one item per legacy id, use the
+  variation id as `variant_id` only if you can do so without duplicating the listing; otherwise skip
+  with a counter). `url` = `itemWebUrl` stripped to scheme+host+path (drop tracking query params, only
+  http/https). `title` as is. `vendor` = "". `product_type` = condition text. `tags` includes exactly
+  one of `condition:new` (conditionId 1000 or 1500) / `condition:used` (any other known condition;
+  omit the tag if condition is unknown). `price_cents` via Decimal (no float). Items whose currency
+  is not the store currency are skipped and counted.
+* Politeness/safety: honour `Retry-After`; 429 (after one retry) -> `EbayQuotaError`; 5xx/timeouts
+  retried with backoff (max 3) then that query fails; never log or put credentials/tokens in
+  exception text; credentials come only from the environment, never from files or the DB.
+* Daily limit: Browse API's default is 5,000 calls/day; `call_budget` default 3,500 leaves headroom.
+  ~2,900 queries exist so a full rotation takes about a day; `db.order_queries` makes the next
+  run resume with the stalest queries first.
+
+### 10.3 CLI (cli.py, DONE)
+`scrape-ebay [--budget N]`; `run` also runs eBay when credentials are set (skips it with a
+message otherwise).
+
+### 10.4 Export / site additions (additive to sections 5 and 6)
+* `index.json` `stores[]` and history `listings[]` gain `"kind"` (`"retail"|"marketplace"`; listings
+  call it `store_kind`).
+* `index.json` `discs[]` gain `"sales_30d": {"confirmed": {"count": n, "median": 19.5} | null,
+  "inferred": {"count": n, "median": 19.5} | null}` (sale date within 30 days of `today`).
+  `stats` gains `"sales_confirmed"` and `"sales_inferred"` totals.
+* history file gains `"sales": [{"date": "2026-10-01", "price": 19.5, "condition": "used",
+  "source": "inferred_disappeared"|"marketplace_insights", "confidence": "low"|"confirmed",
+  "store": "eBay", "url": "..."}]` (newest first, at most 100, for listings whose current parse
+  has this disc_key) and, ONLY when the disc has marketplace listings with data,
+  `"series_by_kind": {"retail": {"new": [...], "used": [...]}, "marketplace": {"new": [...], "used": [...]}}`
+  using the same point shape as `series` (the existing `series` stays the all-stores aggregate).
+* Site: a "marketplace" badge on marketplace listings; an All / Retail / Marketplace switch on the
+  chart when `series_by_kind` exists; a "Recent sales" table whose inferred rows are labelled
+  "Likely sold (inferred, low confidence - the seller may have delisted it)", never presented as
+  confirmed sales; a home-page filter to include/exclude marketplace prices.
+* A disc whose only live price is from eBay is still a disc; asking prices from a marketplace
+  are not comparable to retail MSRP, so the UI must make the source obvious.
+
+### 10.5 Parser additions
+eBay titles are seller-written keyword soup ("NEW Innova Star Destroyer 175g Disc Golf Driver
+Max Distance!!"). Lots, pairs and bundles ("lot of 3", "3x", "(2) discs", "set of", "bundle",
+"pick your disc", "mystery") must never become a single-disc price (-> `ignored`, or `review`
+when unsure). `condition:new` / `condition:used` tags are honoured (used wins when either the
+tag or the title says used; "unthrown"/"never thrown"/"NIB" mean new). Bump `PARSER_VERSION`.

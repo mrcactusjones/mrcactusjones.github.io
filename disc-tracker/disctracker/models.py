@@ -29,6 +29,9 @@ class RawProduct:
     tags: list[str] = field(default_factory=list)
     url: str = ""
     variants: list[RawVariant] = field(default_factory=list)
+    # Marketplace (eBay) extras; retail scrapers leave these empty.
+    ends_at: str = ""  # ISO listing end time, if the marketplace gives one
+    query_key: str = ""  # search query that returned this item (for disappearance tracking)
 
 
 @dataclass

@@ -92,6 +92,28 @@ def cmd_scrape(args) -> int:
     return 0 if ok else 1
 
 
+def cmd_scrape_ebay(args) -> int:
+    import os
+
+    from . import ebay, parser
+
+    creds = ebay.load_credentials(os.environ)
+    if creds is None:
+        print("eBay skipped: set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET (free keys at developer.ebay.com)",
+              file=sys.stderr)
+        return 0 if args.cmd == "run" else 1
+    conn = db.connect(args.db)
+    client = ebay.EbayClient(*creds)
+    try:
+        stats = ebay.collect(conn, client, _now().strftime("%Y-%m-%d"), call_budget=args.budget,
+                             weight_parser=parser.parse_weight)
+    except ebay.EbayAuthError as exc:
+        print(f"FAIL ebay: {exc}", file=sys.stderr)
+        return 1
+    print(f"ok   ebay: {stats}")
+    return 0
+
+
 def cmd_parse(args) -> int:
     from . import parser
 
@@ -123,6 +145,16 @@ def cmd_export(args) -> int:
 
 def cmd_run(args) -> int:
     rc = cmd_scrape(args)
+    if not args.store:
+        import os
+
+        from . import ebay
+
+        if ebay.load_credentials(os.environ):
+            if cmd_scrape_ebay(args) == 0:
+                rc = 0  # the run only fails if every configured source failed
+        else:
+            print("eBay skipped: EBAY_CLIENT_ID / EBAY_CLIENT_SECRET not set", file=sys.stderr)
     cmd_parse(args)
     cmd_export(args)
     return rc
@@ -140,7 +172,11 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--store")
         sp.add_argument("--delay", type=float, default=1.0)
         sp.add_argument("--all", action="store_true", help="(run) re-parse every listing")
+        sp.add_argument("--budget", type=int, default=3500, help="(run) max eBay API calls")
         sp.set_defaults(fn=fn)
+    sp = sub.add_parser("scrape-ebay")
+    sp.add_argument("--budget", type=int, default=3500, help="max eBay API calls this run")
+    sp.set_defaults(fn=cmd_scrape_ebay)
     sp = sub.add_parser("parse")
     sp.add_argument("--all", action="store_true")
     sp.set_defaults(fn=cmd_parse)
