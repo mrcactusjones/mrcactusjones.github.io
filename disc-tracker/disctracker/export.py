@@ -26,11 +26,28 @@ Semantics worth knowing:
   so a long scraped name can never exceed the filesystem's file name limit.
 * Stale history files are deleted only after the new index.json is in place, so a
   failed export never leaves the published index pointing at deleted files.
+
+Marketplace (eBay) additions, DESIGN.md section 10.4, all additive:
+* A store has a `kind` (`retail` | `marketplace`); history listings carry it as `store_kind`.
+  A marketplace is one "store" for the series rules: it counts on a date only if its own run was
+  `ok`, and its listings are forward-filled across days its searches did not see them.
+* `series` stays the all-stores aggregate. Only a disc that has marketplace data also gets
+  `series_by_kind` (history) and `retail` (index; the `new`/`used` blocks computed from the retail
+  stores alone, which the home page needs to hide marketplace prices; a block, not a flag, because
+  min/median/change cannot be derived from the blended ones).
+* Sales come from the `sales` table, for listings whose *current* parse is this disc. A sale is
+  `confirmed` only if the DB says so (confidence `confirmed` from a sold-data source); everything else
+  - above all `inferred_disappeared` - is exported with confidence `low`, because a listing that
+  vanished may simply have been delisted. A confirmed sale supersedes an inferred one of the same
+  listing (it is the same event). Placeholder prices (<= 0) and unparseable dates are skipped.
+  `sales_30d` covers sale dates from `today - 30 days` to `today` inclusive; `count` is the number of
+  sales (rows), `median` the median price in dollars. `stats.sales_*` count every sale row in the DB.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from bisect import bisect_right
 from collections import Counter
@@ -43,7 +60,11 @@ from urllib.parse import urlsplit
 from .models import key_slug
 
 CONDITIONS = ("new", "used")
+KINDS = ("retail", "marketplace")
 CHANGE_DAYS = (7, 30)
+SALES_DAYS = 30  # window of the index `sales_30d`
+MAX_SALES = 100  # history `sales` rows per disc
+INFERRED_SOURCE = "inferred_disappeared"
 MAX_SLUG = 100  # chars; history/<slug>.json.tmp must stay far below the 255 byte file name limit
 
 
@@ -77,6 +98,14 @@ class _Variant(NamedTuple):
     last_seen: str
 
 
+class _Sale(NamedTuple):
+    listing: _Listing
+    sold_on: str  # YYYY-MM-DD
+    price_cents: int
+    source: str
+    confirmed: bool
+
+
 class _Disc:
     __slots__ = ("key", "listings", "variants")
 
@@ -91,9 +120,10 @@ class _Disc:
 _MATCHED = "l.status = 'matched' AND l.disc_key IS NOT NULL AND l.disc_key != ''"
 
 
-def _load_stores(conn: sqlite3.Connection) -> list[tuple[str, str, str, str]]:
-    rows = [(r[0], r[1], r[2], r[3] or "USD")
-            for r in conn.execute("SELECT id, name, base_url, currency FROM stores")]
+def _load_stores(conn: sqlite3.Connection) -> list[tuple[str, str, str, str, str]]:
+    """(id, name, base_url, currency, kind) sorted by name; an unknown kind counts as retail."""
+    rows = [(r[0], r[1], r[2], r[3] or "USD", "marketplace" if r[4] == "marketplace" else "retail")
+            for r in conn.execute("SELECT id, name, base_url, currency, kind FROM stores")]
     rows.sort(key=lambda r: (r[1].casefold(), r[0]))
     return rows
 
@@ -143,6 +173,59 @@ def _load_observations(conn: sqlite3.Connection) -> dict[int, list[tuple[str, in
     return obs
 
 
+_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _is_confirmed(source: str | None, confidence: str | None) -> bool:
+    """Only a sold-data source that the DB marks `confirmed` is a confirmed sale. An inferred
+    (disappeared) listing can never be one, whatever its confidence column says."""
+    return confidence == "confirmed" and source != INFERRED_SOURCE
+
+
+def _sale_day(value: str) -> str | None:
+    """YYYY-MM-DD of a stored sale date (a datetime is cut to its day); None when malformed."""
+    day = value[:10]
+    if not _DAY.fullmatch(day):
+        return None
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        return None
+    return day
+
+
+def _load_sales(conn: sqlite3.Connection) -> list[tuple[int, str, int, str, bool]]:
+    """(listing_id, sold_on, price_cents, source, confirmed) for every sale row."""
+    return [(r[0], str(r[1] or ""), r[2], str(r[3] or ""), _is_confirmed(r[3], r[4]))
+            for r in conn.execute(
+                "SELECT listing_id, sold_on, price_cents, source, confidence FROM sales ORDER BY id")]
+
+
+def _sale_totals(rows: Sequence[tuple[int, str, int, str, bool]]) -> tuple[int, int]:
+    """(confirmed, inferred) over all sale rows; an inferred sale of a listing that also has a
+    confirmed one is the same event and counts once."""
+    confirmed_ids = {r[0] for r in rows if r[4]}
+    return (sum(1 for r in rows if r[4]),
+            sum(1 for r in rows if not r[4] and r[0] not in confirmed_ids))
+
+
+def _disc_sales(rows: Sequence[tuple[int, str, int, str, bool]],
+                listings: dict[int, _Listing]) -> dict[str, list[_Sale]]:
+    """disc key -> its sales: matched listings only, dated, priced, inferred ones superseded
+    by a confirmed sale of the same listing dropped."""
+    confirmed_ids = {r[0] for r in rows if r[4]}
+    out: dict[str, list[_Sale]] = {}
+    for listing_id, sold_on, price, source, confirmed in rows:
+        lst = listings.get(listing_id)
+        day = _sale_day(sold_on)
+        if lst is None or day is None or not _priced(price):
+            continue
+        if not confirmed and listing_id in confirmed_ids:
+            continue
+        out.setdefault(lst.key, []).append(_Sale(lst, day, price, source, confirmed))
+    return out
+
+
 # --------------------------------------------------------------------------- math
 
 def _min_median(prices: Sequence[int]) -> tuple[int, int]:
@@ -162,10 +245,16 @@ def _priced(cents: int | None) -> bool:
 
 
 def _http_url(url: str | None) -> str | None:
-    """`url` if it is an absolute http(s) URL without credentials, else None (scraped data is untrusted)."""
+    """`url` if it is an absolute http(s) URL without credentials, else None (scraped data is untrusted).
+
+    A backslash, whitespace or a control character anywhere in it also refuses the URL: browsers read
+    `https://evil.example\\www.ebay.com/x` as host `evil.example` (and drop tabs/newlines), while urllib
+    sees another host, so such a string would pass the checks here and open somewhere else."""
     if not url:
         return None
     url = url.strip()
+    if "\\" in url or any(c.isspace() or not c.isprintable() for c in url):
+        return None
     try:
         parts = urlsplit(url)
     except ValueError:
@@ -195,14 +284,21 @@ def _display(values) -> str:
 
 
 class _SeriesBuilder:
-    """Daily min/median/store-count series per (disc, condition)."""
+    """Daily min/median/store-count series per (disc, condition[, store kind])."""
 
     def __init__(self, ok_dates: dict[str, list[str]],
-                 obs: dict[int, list[tuple[str, int | None, bool]]]) -> None:
+                 obs: dict[int, list[tuple[str, int | None, bool]]],
+                 kinds: dict[str, str] | None = None) -> None:
         self._ok_dates = ok_dates
         self._ok_sets = {s: frozenset(d) for s, d in ok_dates.items()}
         self._obs = obs
+        self._kinds = kinds or {}  # store id -> retail | marketplace
         self._axes: dict[tuple[str, ...], list[str]] = {}
+
+    def has_kind(self, disc: _Disc, kind: str) -> bool:
+        """True if some variant of the disc belongs to a store of this kind and has observations."""
+        return any(v.pk in self._obs and self._kinds.get(v.listing.store_id, "retail") == kind
+                   for v in disc.variants)
 
     def _axis(self, stores: tuple[str, ...]) -> list[str]:
         axis = self._axes.get(stores)
@@ -214,11 +310,15 @@ class _SeriesBuilder:
             self._axes[stores] = axis
         return axis
 
-    def build(self, disc: _Disc, condition: str) -> list[tuple[str, int, int, int]]:
+    def build(self, disc: _Disc, condition: str,
+              kind: str | None = None) -> list[tuple[str, int, int, int]]:
         """[(date, min_cents, median_cents, stores_in_stock)], one point per scrape date
-        on which at least one counted variant is in stock."""
+        on which at least one counted variant is in stock. `kind` restricts the series to the
+        stores of that kind (None = all stores); the date rules do not change, so a store outage
+        day is skipped for a marketplace exactly as for a retail store."""
         var_obs = [(v.listing.store_id, self._obs[v.pk]) for v in disc.variants
-                   if v.listing.condition == condition and v.pk in self._obs]
+                   if v.listing.condition == condition and v.pk in self._obs
+                   and (kind is None or self._kinds.get(v.listing.store_id, "retail") == kind)]
         if not var_obs:
             return []
         stores = tuple(sorted({s for s, _ in var_obs}))
@@ -231,7 +331,10 @@ class _SeriesBuilder:
         ok = [self._ok_sets.get(s, frozenset()) for s in stores]
         multi = len(stores) > 1
 
-        cur: list[int | None] = [None] * len(var_obs)  # in-stock price, None when not counted
+        # In-stock price of every variant that counts right now. Only these are visited when a day's point is
+        # recomputed: a marketplace accumulates a gone variant for every listing it ever saw, and walking all
+        # of them on every changed day made the export cost (variants ever seen) x (scrape dates).
+        cur: dict[int, int] = {}
         out: list[tuple[str, int, int, int]] = []
         ev, nev = 0, len(events)
         active: tuple[bool, ...] | None = None
@@ -241,7 +344,9 @@ class _SeriesBuilder:
             while ev < nev and events[ev][0] <= d:
                 _, i, price = events[ev]
                 ev += 1
-                if cur[i] != price:
+                if price is None:
+                    dirty = cur.pop(i, None) is not None or dirty
+                elif cur.get(i) != price:
                     cur[i] = price
                     dirty = True
             if multi:  # the set of stores with an ok run today can change without any observation
@@ -252,8 +357,9 @@ class _SeriesBuilder:
             if dirty:
                 prices: list[int] = []
                 seen: set[int] = set()
-                for price, s in zip(cur, vstore):
-                    if price is not None and (active is None or active[s]):
+                for i, price in cur.items():
+                    s = vstore[i]
+                    if active is None or active[s]:
                         prices.append(price)
                         seen.add(s)
                 if prices:
@@ -269,11 +375,14 @@ class _SeriesBuilder:
 
 # --------------------------------------------------------------------------- assembly
 
-def _live_variants(disc: _Disc) -> dict[str, list[_Variant]]:
-    """Priced, non-gone variants of non-gone listings, split by condition."""
+def _live_variants(disc: _Disc, kind: str | None = None,
+                   kinds: dict[str, str] | None = None) -> dict[str, list[_Variant]]:
+    """Priced, non-gone variants of non-gone listings, split by condition (and, with `kind`, by
+    the kind of store they are sold at)."""
     live: dict[str, list[_Variant]] = {c: [] for c in CONDITIONS}
     for v in disc.variants:
-        if not v.gone and not v.listing.gone and _priced(v.price_cents):
+        if not v.gone and not v.listing.gone and _priced(v.price_cents) and (
+                kind is None or (kinds or {}).get(v.listing.store_id, "retail") == kind):
             live[v.listing.condition].append(v)
     return live
 
@@ -315,20 +424,29 @@ def _assign_slugs(keys: Sequence[str]) -> dict[str, str]:
     return slugs
 
 
-def _history_listings(disc: _Disc, store_names: dict[str, str],
-                      base_urls: dict[str, str]) -> list[dict]:
+def _listing_url(lst: _Listing, kinds: dict[str, str], base_urls: dict[str, str]) -> str | None:
+    """The listing's own http(s) URL; a retail listing without a usable one falls back to the
+    store's /products/<handle> page, a marketplace listing has no such page (None)."""
+    url = _http_url(lst.url)
+    if url or not lst.handle or kinds.get(lst.store_id, "retail") == "marketplace":
+        return url
+    return _http_url(f"{base_urls.get(lst.store_id, '')}/products/{lst.handle}")
+
+
+def _history_listings(disc: _Disc, store_names: dict[str, str], base_urls: dict[str, str],
+                      kinds: dict[str, str]) -> list[dict]:
     rows = []
     for v in disc.variants:
         if v.gone or v.listing.gone or not _priced(v.price_cents):
             continue
         lst = v.listing
-        url = _http_url(lst.url) or (
-            _http_url(f"{base_urls.get(lst.store_id, '')}/products/{lst.handle}") if lst.handle else None)
+        url = _listing_url(lst, kinds, base_urls)
         sort_key = (v.price_cents, not v.available,
                     lst.store_id, lst.title, v.weight_g or 0, url or "", v.variant_id)
         rows.append((sort_key, {
             "store": store_names.get(lst.store_id, lst.store_id),
             "store_id": lst.store_id,
+            "store_kind": kinds.get(lst.store_id, "retail"),
             "title": lst.title,
             "url": url,
             "condition": lst.condition,
@@ -340,6 +458,46 @@ def _history_listings(disc: _Disc, store_names: dict[str, str],
         }))
     rows.sort(key=itemgetter(0))
     return [r[1] for r in rows]
+
+
+def _sales_30d(sales: Sequence[_Sale], today: date) -> dict:
+    """{"confirmed": {"count", "median"} | None, "inferred": {...} | None} for sales dated
+    from `today - 30 days` to `today` inclusive (a median in dollars, a half cent rounds up)."""
+    lo, hi = (today - timedelta(days=SALES_DAYS)).isoformat(), today.isoformat()
+    prices: dict[bool, list[int]] = {True: [], False: []}
+    for s in sales:
+        if lo <= s.sold_on <= hi:
+            prices[s.confirmed].append(s.price_cents)
+
+    def summary(cents: list[int]) -> dict | None:
+        if not cents:
+            return None
+        cents.sort()
+        return {"count": len(cents), "median": _dollars(_min_median(cents)[1])}
+
+    return {"confirmed": summary(prices[True]), "inferred": summary(prices[False])}
+
+
+def _history_sales(sales: Sequence[_Sale], store_names: dict[str, str], kinds: dict[str, str],
+                   base_urls: dict[str, str]) -> list[dict]:
+    """Newest first (a confirmed sale before an inferred one on the same day), at most MAX_SALES.
+    An unconfirmed sale always carries confidence `low`: the page words it as inferred."""
+    ordered = sorted(sales, reverse=True, key=lambda s: (
+        s.sold_on, s.confirmed, s.price_cents, s.listing.store_id, s.listing.id, s.source))
+    return [{
+        "date": s.sold_on,
+        "price": _dollars(s.price_cents),
+        "condition": s.listing.condition,
+        "source": s.source,
+        "confidence": "confirmed" if s.confirmed else "low",
+        "store": store_names.get(s.listing.store_id, s.listing.store_id),
+        "url": _listing_url(s.listing, kinds, base_urls),
+    } for s in ordered[:MAX_SALES]]
+
+
+def _points(series: Sequence[tuple[str, int, int, int]]) -> list[dict]:
+    return [{"date": d, "min": lo / 100, "median": med / 100, "stores_in_stock": n}
+            for d, lo, med, n in series]
 
 
 def _dumps(obj) -> str:
@@ -379,9 +537,12 @@ def export_site(conn: sqlite3.Connection, out_dir: Path, today: str) -> dict:
     stores = _load_stores(conn)
     store_names = {s[0]: s[1] for s in stores}
     base_urls = {s[0]: s[2] for s in stores}
+    kinds = {s[0]: s[4] for s in stores}
     ok_dates = _load_ok_dates(conn)
     discs = _load_discs(conn)
-    builder = _SeriesBuilder(ok_dates, _load_observations(conn))
+    builder = _SeriesBuilder(ok_dates, _load_observations(conn), kinds)
+    sale_rows = _load_sales(conn)
+    disc_sales = _disc_sales(sale_rows, {l.id: l for d in discs.values() for l in d.listings})
 
     # Phase A: decide which discs are exported (live listing or any history).
     export_keys: list[str] = []
@@ -416,19 +577,31 @@ def export_site(conn: sqlite3.Connection, out_dir: Path, today: str) -> dict:
             "disc_type": _display(l.disc_type for l in disc.listings if l.disc_type),
         }
         slug = slugs[key]
+        sales = disc_sales.get(key, [])
         history = {
             "key": key, "slug": slug, **ident,
-            "series": {c: [{"date": d, "min": lo / 100, "median": med / 100, "stores_in_stock": n}
-                           for d, lo, med, n in series[c]] for c in CONDITIONS},
-            "listings": _history_listings(disc, store_names, base_urls),
+            "series": {c: _points(series[c]) for c in CONDITIONS},
+            "listings": _history_listings(disc, store_names, base_urls, kinds),
+            "sales": _history_sales(sales, store_names, kinds, base_urls),
         }
-        _write_atomic(hist_dir / f"{slug}.json", _dumps(history))
-        entries.append({
+        entry = {
             "key": key, "slug": slug, **ident,
             "new": _block(live["new"], series["new"], today_d),
             "used": _block(live["used"], series["used"], today_d),
+            "sales_30d": _sales_30d(sales, today_d),
             "last_seen": max(l.last_seen for l in disc.listings),
-        })
+        }
+        if builder.has_kind(disc, "marketplace"):
+            by_kind = {k: {c: builder.build(disc, c, k) for c in CONDITIONS} for k in KINDS}
+            live_mp = _live_variants(disc, "marketplace", kinds)
+            if any(by_kind["marketplace"].values()) or any(live_mp.values()):
+                live_retail = _live_variants(disc, "retail", kinds)
+                history["series_by_kind"] = {k: {c: _points(by_kind[k][c]) for c in CONDITIONS}
+                                             for k in KINDS}
+                entry["retail"] = {c: _block(live_retail[c], by_kind["retail"][c], today_d)
+                                   for c in CONDITIONS}
+        _write_atomic(hist_dir / f"{slug}.json", _dumps(history))
+        entries.append(entry)
 
     entries.sort(key=lambda e: tuple(x.casefold() for x in (
         e["manufacturer"], e["mold"], e["plastic"], e["edition"], e["player"])) + (
@@ -444,12 +617,13 @@ def export_site(conn: sqlite3.Connection, out_dir: Path, today: str) -> dict:
         "discs": len(entries),
         "stores": len(stores),
     }
+    stats["sales_confirmed"], stats["sales_inferred"] = _sale_totals(sale_rows)
     currencies = Counter(s[3] for s in stores)
     currency = min(currencies, key=lambda c: (-currencies[c], c)) if currencies else "USD"
     index = {
         "generated_at": today,
         "currency": currency,
-        "stores": [{"id": s[0], "name": s[1], "base_url": s[2],
+        "stores": [{"id": s[0], "name": s[1], "base_url": s[2], "kind": s[4],
                     "last_ok": ok_dates[s[0]][-1] if s[0] in ok_dates else None} for s in stores],
         "stats": stats,
         "discs": entries,

@@ -77,7 +77,9 @@ def test_committed_data_is_an_empty_state_in_the_exporter_shape():
     index = json.loads((SITE / "data" / "index.json").read_text(encoding="utf-8"))
     assert set(index) == {"generated_at", "currency", "stores", "stats", "discs"}
     assert index["discs"] == [] and index["stores"] == []
-    assert set(index["stats"]) == {"listings", "matched", "review", "ignored", "unparsed", "discs", "stores"}
+    # written by an older exporter until the next scheduled run: the sales totals are optional here
+    base = {"listings", "matched", "review", "ignored", "unparsed", "discs", "stores"}
+    assert base <= set(index["stats"]) <= base | {"sales_confirmed", "sales_inferred"}
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", index["generated_at"])
 
 
@@ -95,15 +97,33 @@ def test_slug_pattern_accepts_every_slug_the_exporter_makes():
     assert not re.fullmatch(pattern, "../../etc/passwd") and not re.fullmatch(pattern, "a b") and not re.fullmatch(pattern, "")
 
 
+def test_inferred_sales_wording_is_the_contract_text():
+    # DESIGN.md 10.4: an inferred row reads exactly like this and a confirmed one never shares it
+    assert 'const INFERRED_LABEL = "Likely sold (inferred, low confidence - the seller may have delisted it)";' in APP
+    assert 'const CONFIRMED_LABEL = "Sold (confirmed)";' in APP
+    # a sale is confirmed only when the data says so, and a "disappeared" source can never be one
+    assert 'confirmed: x.confidence === "confirmed" && x.source !== INFERRED_SOURCE' in APP
+    assert len(re.findall(r"\bINFERRED_LABEL\b", code_only(APP))) == 2   # the definition and its one use
+
+
 # --------------------------------------------------------------------------- sample data contract
 
-INDEX_KEYS = {"key", "slug", "manufacturer", "mold", "plastic", "edition", "player", "disc_type", "new", "used", "last_seen"}
+INDEX_KEYS = {"key", "slug", "manufacturer", "mold", "plastic", "edition", "player", "disc_type", "new", "used",
+              "sales_30d", "last_seen"}
+INDEX_KEYS_WITH_MARKETPLACE = INDEX_KEYS | {"retail"}  # `retail`: the blocks of the retail stores alone (see export.py)
 BLOCK_KEYS = {"min", "median", "stores_in_stock", "stores_listing", "change_7d", "change_30d"}
-HISTORY_KEYS = {"key", "slug", "manufacturer", "mold", "plastic", "edition", "player", "disc_type", "series", "listings"}
+HISTORY_KEYS = {"key", "slug", "manufacturer", "mold", "plastic", "edition", "player", "disc_type", "series",
+                "listings", "sales"}
+HISTORY_KEYS_WITH_MARKETPLACE = HISTORY_KEYS | {"series_by_kind"}
 POINT_KEYS = {"date", "min", "median", "stores_in_stock"}
-LISTING_KEYS = {"store", "store_id", "title", "url", "condition", "weight_g", "price", "compare_at", "available", "last_seen"}
-STORE_KEYS = {"id", "name", "base_url", "last_ok"}
+LISTING_KEYS = {"store", "store_id", "store_kind", "title", "url", "condition", "weight_g", "price", "compare_at",
+                "available", "last_seen"}
+SALE_KEYS = {"date", "price", "condition", "source", "confidence", "store", "url"}
+STORE_KEYS = {"id", "name", "base_url", "kind", "last_ok"}
+STATS_KEYS = {"listings", "matched", "review", "ignored", "unparsed", "discs", "stores", "sales_confirmed",
+              "sales_inferred"}
 TOP_KEYS = {"generated_at", "currency", "stores", "stats", "discs"}
+SALES_DAYS = 30
 
 
 def sample_index() -> dict:
@@ -116,21 +136,31 @@ def sample_history(slug: str) -> dict:
 
 def test_sample_data_has_the_design_shape():
     index = sample_index()
-    assert set(index) == TOP_KEYS
+    assert set(index) == TOP_KEYS and set(index["stats"]) == STATS_KEYS
     assert all(set(s) == STORE_KEYS for s in index["stores"])
     files = {p.stem for p in (SAMPLE / "history").glob("*.json")}
     assert files == {d["slug"] for d in index["discs"]}
     for d in index["discs"]:
-        assert set(d) == INDEX_KEYS, d["slug"]
+        h = sample_history(d["slug"])
+        marketplace = "series_by_kind" in h
+        assert set(d) == (INDEX_KEYS_WITH_MARKETPLACE if marketplace else INDEX_KEYS), d["slug"]
+        assert set(h) == (HISTORY_KEYS_WITH_MARKETPLACE if marketplace else HISTORY_KEYS), d["slug"]
         for c in ("new", "used"):
             assert d[c] is None or set(d[c]) == BLOCK_KEYS, (d["slug"], c)
-        h = sample_history(d["slug"])
-        assert set(h) == HISTORY_KEYS and set(h["series"]) == {"new", "used"}
+            if marketplace:
+                assert d["retail"][c] is None or set(d["retail"][c]) == BLOCK_KEYS, (d["slug"], c)
+        assert set(h["series"]) == {"new", "used"}
         for field in ("key", "slug", "manufacturer", "mold", "plastic", "edition", "player", "disc_type"):
             assert h[field] == d[field], (d["slug"], field)
         for c in ("new", "used"):
             assert all(set(p) == POINT_KEYS for p in h["series"][c])
         assert all(set(x) == LISTING_KEYS for x in h["listings"])
+        assert all(set(x) == SALE_KEYS for x in h["sales"])
+        if marketplace:
+            assert set(h["series_by_kind"]) == {"retail", "marketplace"}
+            for kind in h["series_by_kind"].values():
+                assert set(kind) == {"new", "used"}
+                assert all(set(p) == POINT_KEYS for c in kind for p in kind[c])
 
 
 def test_sample_data_is_internally_consistent():
@@ -169,6 +199,90 @@ def test_sample_data_is_internally_consistent():
     assert any(d["new"] and not d["used"] for d in index["discs"]) and any(d["used"] and not d["new"] for d in index["discs"])
 
 
+def test_sample_marketplace_data_is_consistent():
+    index = sample_index()
+    today = date.fromisoformat(index["generated_at"])
+    kinds = {s["id"]: s["kind"] for s in index["stores"]}
+    assert set(kinds.values()) == {"retail", "marketplace"}
+    names = {s["name"] for s in index["stores"]}
+    confirmed = inferred = 0
+    for d in index["discs"]:
+        h = sample_history(d["slug"])
+        assert all(x["store_kind"] == kinds[x["store_id"]] for x in h["listings"]), d["slug"]
+        sales = h["sales"]
+        assert len(sales) <= 100 and [x["date"] for x in sales] == sorted((x["date"] for x in sales), reverse=True)
+        for x in sales:
+            assert x["store"] in names and x["price"] > 0 and x["condition"] in ("new", "used")
+            if x["confidence"] == "confirmed":
+                assert x["source"] != "inferred_disappeared"
+            else:  # the one thing the page must be able to rely on: an unconfirmed sale says `low`
+                assert x["confidence"] == "low"
+        confirmed += sum(x["confidence"] == "confirmed" for x in sales)
+        inferred += sum(x["confidence"] != "confirmed" for x in sales)
+        # sales_30d is derived from the sales rows: sale dates from today - 30 days to today
+        window = [x for x in sales if today - timedelta(days=SALES_DAYS) <= date.fromisoformat(x["date"]) <= today]
+        for label, rows in (("confirmed", [x for x in window if x["confidence"] == "confirmed"]),
+                            ("inferred", [x for x in window if x["confidence"] != "confirmed"])):
+            got = d["sales_30d"][label]
+            if not rows:
+                assert got is None, (d["slug"], label)
+                continue
+            prices = sorted(round(x["price"] * 100) for x in rows)
+            mid = len(prices) // 2
+            median = prices[mid] if len(prices) % 2 else (prices[mid - 1] + prices[mid] + 1) // 2
+            assert got == {"count": len(rows), "median": median / 100}, (d["slug"], label)
+        if "series_by_kind" not in h:
+            assert not any(x["store_kind"] == "marketplace" for x in h["listings"]) and not sales
+            continue
+        by = h["series_by_kind"]
+        for c in ("new", "used"):
+            # blended point = the two kinds together: same minimum, store counts add up
+            r = {p["date"]: p for p in by["retail"][c]}
+            m = {p["date"]: p for p in by["marketplace"][c]}
+            for p in h["series"][c]:
+                parts = [q[p["date"]] for q in (r, m) if p["date"] in q]
+                assert parts, (d["slug"], c, p["date"])
+                if len(parts) == 2:  # (a single kind is the blended point itself)
+                    assert p["min"] == min(q["min"] for q in parts), (d["slug"], c, p["date"])
+                    assert p["stores_in_stock"] == sum(q["stores_in_stock"] for q in parts)
+                else:
+                    assert p == parts[0], (d["slug"], c, p["date"])
+            assert {p["date"] for p in h["series"][c]} == set(r) | set(m)
+            # the retail block is the retail listings alone
+            retail = [x for x in h["listings"] if x["condition"] == c and x["store_kind"] == "retail"]
+            block = d["retail"][c]
+            assert bool(block) == bool(retail), (d["slug"], c)
+            if block:
+                in_stock = [x for x in retail if x["available"]]
+                assert block["min"] == min(x["price"] for x in (in_stock or retail))
+                assert block["stores_in_stock"] == len({x["store_id"] for x in in_stock})
+    assert (confirmed, inferred) == (index["stats"]["sales_confirmed"], index["stats"]["sales_inferred"])
+
+
+def test_sample_covers_the_marketplace_cases_the_browser_checks_rely_on():
+    index = sample_index()
+    discs = {d["slug"]: d for d in index["discs"]}
+    hist = {slug: sample_history(slug) for slug in discs}
+    mixed = [s for s, h in hist.items() if "series_by_kind" in h]
+    assert len(mixed) >= 4
+    all_sales = [(s, x) for s, h in hist.items() for x in h["sales"]]
+    assert any(x["confidence"] == "confirmed" for _, x in all_sales), "a confirmed sale"
+    assert any("<" in x["store"] and x["confidence"] == "low" for _, x in all_sales), "a hostile store name in a sales row"
+    assert any(x["url"] is None for _, x in all_sales), "a sale without a usable URL"
+    today = date.fromisoformat(index["generated_at"])
+    assert any(today - date.fromisoformat(x["date"]) > timedelta(days=SALES_DAYS) for _, x in all_sales), "an old sale"
+    only_ebay = [s for s in mixed if not any(x["store_kind"] == "retail" for x in hist[s]["listings"])
+                 and not hist[s]["series_by_kind"]["retail"]["new"] and not hist[s]["series_by_kind"]["retail"]["used"]]
+    assert any(hist[s]["sales"] and all(x["confidence"] == "low" for x in hist[s]["sales"]) for s in only_ebay), \
+        "an eBay-only disc whose sales are all inferred"
+    assert any(not hist[s]["sales"] for s in mixed), "a marketplace disc without sales"
+    assert any(discs[s]["new"] is None and discs[s]["used"] is None and hist[s]["sales"] for s in mixed), \
+        "a marketplace disc that is gone but has a sale"
+    assert any(d["retail"]["new"] is None and d["retail"]["used"] is None for d in discs.values() if "retail" in d)
+    assert any(d["new"] and d["retail"] and d["retail"]["new"] and d["new"]["min"] < d["retail"]["new"]["min"]
+               for d in discs.values() if "retail" in d), "a disc whose lowest price is a marketplace price"
+
+
 # --------------------------------------------------------------------------- real exporter output
 
 def _prod(pid: int, title: str, price: int, available: bool = True) -> RawProduct:
@@ -182,6 +296,9 @@ PARSES = {  # product id -> what the parser would say (the parser's lower-case e
     3: dict(mold="Roc3", plastic="Champion", disc_type="Midrange", condition="used"),
     4: dict(mold="Destroyer", plastic="Star", disc_type="Distance Driver", edition="tour series", player="Ricky Wysocki"),
     5: dict(status="review", mold="Rare", plastic=""),
+    # eBay items (legacy item ids): a cheap Destroyer that vanished (an inferred sale), an eBay-only Wraith
+    9001: dict(mold="Destroyer", plastic="Star", disc_type="Distance Driver"),
+    9002: dict(mold="Wraith", plastic="Star", disc_type="Distance Driver"),
 }
 
 
@@ -204,6 +321,22 @@ def exported(tmp_path_factory) -> Path:
             run = db.start_run(conn, sid, on, on + "T06:00:00+00:00")
             db.record_products(conn, sid, on, items)
             db.finish_run(conn, run, on + "T06:05:00+00:00", "ok", len(items), None)
+    db.upsert_store(conn, {"id": "ebay", "name": "eBay", "base_url": "https://www.ebay.com", "currency": "USD",
+                           "kind": "marketplace"})
+    for n in range(20, -1, -1):
+        on = (date.fromisoformat(TODAY) - timedelta(days=n)).isoformat()
+        items = []
+        for pid, cents, first, last in ((9001, 1499, 20, 8), (9002, 2100, 12, 0)):
+            if last <= n <= first:
+                items.append(RawProduct(pid, "", f"NEW Innova Star {PARSES[pid]['mold']} 175g Max Distance!!",
+                                        product_type="New", tags=["condition:new"], url=f"https://www.ebay.com/itm/{pid}",
+                                        variants=[RawVariant(pid, "", price_cents=cents, available=True)],
+                                        ends_at="2030-01-01T00:00:00.000Z", query_key="innova|destroyer|star"))
+        run = db.start_run(conn, "ebay", on, on + "T05:00:00+00:00")
+        db.record_products(conn, "ebay", on, items, complete=False)
+        db.record_query_run(conn, "innova|destroyer|star", "star destroyer innova", on, True, len(items))
+        db.expire_missing(conn, "ebay", "innova|destroyer|star", on)  # 9001 vanishes on day 7: an inferred sale
+        db.finish_run(conn, run, on + "T05:05:00+00:00", "ok", len(items), None)
     for (lid, pid) in conn.execute("SELECT id, product_id FROM listings").fetchall():
         spec = {"status": "matched", "manufacturer": "Innova", "condition": "new", "confidence": 0.9, **PARSES[pid]}
         db.save_parse(conn, lid, ParsedListing(**spec), 1)
@@ -217,17 +350,22 @@ def exported(tmp_path_factory) -> Path:
 def test_exporter_output_has_the_shape_the_sample_documents(exported):
     index = json.loads((exported / "index.json").read_text(encoding="utf-8"))
     assert set(index) == TOP_KEYS and all(set(s) == STORE_KEYS for s in index["stores"])
-    assert {d["mold"] for d in index["discs"]} == {"Destroyer", "Aviar", "Roc3"}
+    assert set(index["stats"]) == STATS_KEYS
+    assert {s["id"]: s["kind"] for s in index["stores"]} == {"alpha": "retail", "beta": "retail", "ebay": "marketplace"}
+    assert {d["mold"] for d in index["discs"]} == {"Destroyer", "Aviar", "Roc3", "Wraith"}
     delisted = [d for d in index["discs"] if d["new"] is None and d["used"] is None]
     assert [d["mold"] for d in delisted] == ["Aviar"], "the exporter keeps a fully delisted disc as an index entry"
+    assert (index["stats"]["sales_confirmed"], index["stats"]["sales_inferred"]) == (0, 1)
     for d in index["discs"]:
-        assert set(d) == INDEX_KEYS
+        h = json.loads((exported / "history" / f"{d['slug']}.json").read_text(encoding="utf-8"))
+        marketplace = d["mold"] in ("Destroyer", "Wraith") and not d["edition"]
+        assert (set(d), set(h)) == ((INDEX_KEYS_WITH_MARKETPLACE, HISTORY_KEYS_WITH_MARKETPLACE) if marketplace
+                                    else (INDEX_KEYS, HISTORY_KEYS)), d["slug"]
         for c in ("new", "used"):
             assert d[c] is None or set(d[c]) == BLOCK_KEYS
-        h = json.loads((exported / "history" / f"{d['slug']}.json").read_text(encoding="utf-8"))
-        assert set(h) == HISTORY_KEYS
         assert all(set(p) == POINT_KEYS for c in h["series"] for p in h["series"][c])
         assert all(set(x) == LISTING_KEYS for x in h["listings"])
+        assert all(set(x) == SALE_KEYS for x in h["sales"])
     assert any(d["edition"] == "tour series" for d in index["discs"]), "editions come out lower case"
 
 
@@ -249,4 +387,4 @@ def browser_results(exported, tmp_path_factory):
 
 def test_browser_checks(browser_results):
     failed = [f"{r['name']}\n    {r['detail']}" for r in browser_results if not r["ok"]]
-    assert len(browser_results) >= 12 and not failed, "\n".join(failed)
+    assert len(browser_results) >= 20 and not failed, "\n".join(failed)

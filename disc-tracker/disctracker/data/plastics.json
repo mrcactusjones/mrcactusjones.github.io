@@ -1,5 +1,5 @@
 {
-  "_doc": "Plastic lines per manufacturer (canonical name + aliases). The longest match in the title wins, so 'Lucid Air' beats 'Lucid'. 'generic' applies to every manufacturer. Glow is an edition (editions.json), not a plastic, unless the maker sells it as its own line (Moonshine, Total Eclipse); those lines carry \"glow\": true, so a redundant 'Glow' in the title is not also read as an edition. A maker's own plastic always beats a generic one (\"Star ... Premium Plastic\" is a Star).",
+  "_doc": "Plastic lines per manufacturer (canonical name + aliases). The longest match in the title wins, so 'Lucid Air' beats 'Lucid'. 'generic' applies to every manufacturer. Glow is an edition (editions.json), not a plastic, unless the maker sells it as its own line (Moonshine, Total Eclipse); those lines carry \"glow\": true, so a redundant 'Glow' in the title is not also read as an edition. A maker's own plastic always beats a generic one (\"Star ... Premium Plastic\" is a Star). Parser version 3 (eBay) added Discraft ESP FLX and Z FLX (flexible runs of ESP and Z that sell at their own price) and the spelling Pro KC for KC Pro. Parser version 4 added the spellings ESP Flex and Z Flex. A line we list that sits right next to a qualifier word we do not list (Chameleon, Shimmer, Sparkle, Ice, Soft, Hard...) is review, not the plain line (see _PLASTIC_QUALIFIERS in parser.py). Known gaps: plastics seen only on eBay or in out-of-production runs (e.g. Westside VIP-X, Latitude 64 Retro Burst, Dynamic Lucid Chameleon, Discraft Elite X) are not listed; a title naming one of them is review when the unlisted word sits right next to a listed line (Lucid Chameleon, VIP-X) and otherwise keeps the nearest listed plastic.",
   "generic": [
     {"name": "Premium", "aliases": ["Premium Plastic"]},
     {"name": "Recycled", "aliases": ["Recycled Plastic"]}
@@ -8,7 +8,7 @@
     "Innova": [
       {"name": "DX", "aliases": []},
       {"name": "Pro", "aliases": []},
-      {"name": "KC Pro", "aliases": ["KC"]},
+      {"name": "KC Pro", "aliases": ["KC", "Pro KC"]},
       {"name": "R-Pro", "aliases": []},
       {"name": "Champion", "aliases": ["Champ"]},
       {"name": "Star", "aliases": []},
@@ -26,6 +26,8 @@
     "Discraft": [
       {"name": "ESP", "aliases": []},
       {"name": "Z", "aliases": ["Z Line"]},
+      {"name": "ESP FLX", "aliases": ["ESP Flex"]},
+      {"name": "Z FLX", "aliases": ["Z Flex"]},
       {"name": "Big Z", "aliases": []},
       {"name": "Elite Z", "aliases": []},
       {"name": "Z Lite", "aliases": ["Z Light"]},

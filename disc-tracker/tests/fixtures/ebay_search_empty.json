@@ -1,0 +1,6 @@
+{
+  "href": "https://api.ebay.com/buy/browse/v1/item_summary/search?q=z+buzzz+discraft&category_ids=184356&limit=200&offset=0&filter=buyingOptions%3A%7BFIXED_PRICE%7D",
+  "total": 0,
+  "limit": 200,
+  "offset": 0
+}

@@ -1286,6 +1286,112 @@ def test_the_version_was_bumped_for_the_review_fixes():
     assert PARSER_VERSION >= 2
 
 
+# ---------------------------------------------------------------- eBay hardening (DESIGN.md section 10.5)
+# The curated eBay title set, its precision measurement and the generated-title properties live in
+# tests/test_parser_ebay.py; these are the rule-level checks that belong next to the retail ones.
+
+def test_the_version_was_bumped_for_ebay():
+    assert PARSER_VERSION >= 3
+
+
+@pytest.mark.parametrize("title", [
+    "Innova Star Destroyer Lot of 3", "Innova Star Destroyer x2", "Innova Star Destroyer 2x", "(2) Innova Star Destroyer",
+    "Innova Star Destroyer Pair", "Innova Star Destroyer Set of 2", "Innova Star Destroyer 2 Discs",
+    "Innova Star Destroyer Mystery", "Pick Your Disc Innova Star Destroyer", "Assorted Innova Star Destroyer Discs",
+    "Innova Star Destroyer Bundle", "3 Innova Star Destroyer", "Innova Star Destroyer Qty 4",
+])
+def test_lots_pairs_and_bundles_are_never_a_single_disc(title):
+    p = P(title, "Innova")
+    assert p.status == "ignored" and disc_key(p) is None, p
+
+
+@pytest.mark.parametrize("title", [
+    "Innova Star Destroyer Choose Your Weight", "Innova Star Destroyer Random Color", "Innova Star Destroyer Assorted Colors",
+    "Innova Star Aviar X3", "Innova Star Roc 3", "Innova Star Teebird 3 Disc Golf", "Kastaplast K1 Lots",
+    "Innova Star Destroyer Max Distance Driver", "Innova Star Destroyer Qty 1", "Innova Star Destroyer (1)",
+])
+def test_things_that_look_like_a_lot_but_are_not_stay_discs(title):
+    assert P(title, "Innova" if "Kastaplast" not in title else "Kastaplast").status != "ignored", title
+
+
+@pytest.mark.parametrize("title,vendor", [
+    ("Disc Golf Dog Toy Frisbee", ""), ("Disc Golf Trading Card Paul McBeth", ""), ("Disc Golf Basket Chains", ""),
+    ("Innova Discatcher Pro", "Innova"), ("Disc Golf Rule Book", ""), ("Innova Ultra-Star 175g", "Innova"),
+])
+def test_more_marketplace_non_discs_are_ignored(title, vendor):
+    assert P(title, vendor).status == "ignored", title
+
+
+@pytest.mark.parametrize("title,tags,ptype,condition", [
+    ("Innova Star Destroyer", ("condition:used",), "", "used"),
+    ("Innova Star Destroyer", ("condition:new",), "", "new"),
+    ("Pre-Owned Innova Star Destroyer", ("condition:new",), "New", "used"),
+    ("Innova Star Destroyer Unthrown", ("condition:used",), "", "used"),
+    ("Innova Star Destroyer NIB", (), "", "new"),
+    ("Innova Star Destroyer Like New", (), "", "used"),
+    ("Innova Star Destroyer Like New", ("condition:new",), "", "new"),
+])
+def test_ebay_condition_tags_and_titles(title, tags, ptype, condition):
+    assert P(title, "", ptype, tags).condition == condition
+
+
+def test_z_buzzz_and_buzzz_z_are_the_same_disc():
+    a, b = P("Discraft Z Buzzz 177g"), P("Discraft Buzzz Z 177g")
+    assert ident(a) == ident(b) == ("matched", "Discraft", "Buzzz", "Z")
+    assert ident(P("Discraft Buzz Z Line")) == ("matched", "Discraft", "Buzzz", "Z")
+    assert ident(P("Discraft Buzzz")) == ("matched", "Discraft", "Buzzz", "")          # a lone spelling is untouched
+
+
+def test_flight_numbers_do_not_make_a_match_risky():
+    assert ident(P("Discraft Buzzz 5/4/-1/1", "Discraft")) == ("matched", "Discraft", "Buzzz", "")
+    assert ident(P("Innova Aviar 2/3/0/1 DX", "Innova")) == ("matched", "Innova", "Aviar", "DX")
+
+
+def test_plastics_added_for_ebay_resolve():
+    assert P("Discraft ESP FLX Buzzz").plastic == "ESP FLX"
+    assert P("Discraft Z FLX Zone").plastic == "Z FLX"
+    assert P("Discraft ESP Buzzz").plastic == "ESP"        # the shorter line is untouched
+    assert P("Innova Pro KC Aviar").plastic == "KC Pro"
+
+
+def test_two_lines_of_one_maker_in_a_title_are_review_not_a_guess():
+    assert P("Latitude 64 Opto Ballista Gold Stamp").status == "review"
+    assert P("Prodigy 500 Spectrum D2 Max", "Prodigy Disc").status == "matched"   # a numbered line + Spectrum is one plastic
+
+
+def test_a_second_brands_mold_without_its_brand_is_review():
+    assert P("Discraft ESP Buzzz and Wraith").status == "review"
+    assert P("Discraft ESP Buzzz and Innova Wraith").status == "review"
+    assert P("Discraft ESP Buzzz Pure Plastic").status == "matched"      # "Pure" is too short to count as a second disc
+
+
+# ---------------------------------------------------------------- eBay review round (parser version 4)
+# The eBay-specific cases live in tests/test_parser_ebay.py; these pin what the same rules do to a retail
+# title that carries a vendor.
+
+@pytest.mark.parametrize("title,vendor", [
+    ("Z SS Buzzz 175g", "Discraft"), ("Prodigy 400 Max D2", "Prodigy Disc"), ("Opto Pro Ballista 172g", "Latitude 64"),
+    ("Classic Aviar DX", "Innova"), ("Buzzz Z 175g SS", "Discraft"), ("Aviar DX 170g Classic", "Innova"),
+])
+def test_a_sibling_mold_written_apart_is_review_for_a_retail_title_too(title, vendor):
+    assert P(title, vendor).status == "review", title
+
+
+@pytest.mark.parametrize("title,vendor,plastic", [
+    ("Lucid-X Glimmer Maverick", "Dynamic Discs", "Lucid-X"),            # Glimmer is not treated as a qualifier
+    ("Z Buzzz 175g", "Discraft", "Z"), ("Z Zone OS", "Discraft", "Z"),
+    ("Discraft Z Buzzz American Flag Stamp", "", "Z"),
+])
+def test_retail_titles_with_an_ordinary_extra_word_stay_matched(title, vendor, plastic):
+    p = P(title, vendor)
+    assert p.status == "matched" and p.plastic == plastic, p
+
+
+def test_the_new_lot_vocabulary_applies_to_retail_titles_too():
+    for title in ("Innova Star Destroyer Starter Kit", "Innova DX Roadrunner x3", "Two Disc Innova DX Aviar Set"):
+        assert P(title, "Innova").status == "ignored", title
+
+
 # ---------------------------------------------------------------- performance
 
 def test_fifty_thousand_titles_parse_in_seconds():

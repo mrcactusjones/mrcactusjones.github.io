@@ -6,9 +6,10 @@ indexed once at import time; ``parse_listing`` does no I/O.
 A title is read in this order:
   1. decode stray HTML entities, fold accents / odd unicode / dash look-alikes, collapse
      blanks, and split into alphanumeric tokens;
-  2. non-disc products (bags, baskets, apparel, sets, packs, minis...) -> ``ignored``;
-  3. condition, grade and flags; weights, years and grades are located and masked
-     so they can never be mistaken for a plastic or a mold;
+  2. non-disc products (bags, baskets, apparel, cards, dog toys, minis...) and multi-disc
+     listings (sets, packs, lots, pairs, "3x", "pick your disc"...) -> ``ignored``;
+  3. condition, grade and flags; weights, years, grades and flight numbers are located and
+     masked so they can never be mistaken for a plastic, a mold or a quantity;
   4. manufacturer: ``vendor`` first, then brand names found in the title;
   5. edition (and the player named next to a Tour/Team/Signature marker);
   6. mold: exact match on the space-insensitive joined form ("Roc 3" == "Roc3"),
@@ -18,6 +19,15 @@ A title is read in this order:
 The central design rule is that a wrong ``matched`` is worse than a ``review``:
 anything ambiguous, conflicting, only fuzzily matched, or that looks like a
 sibling mold we do not know ("Roc 4", "Zone GT") is demoted to ``review``.
+
+eBay titles (DESIGN.md section 10.5) are seller-written keyword soup. Extra rules keep them safe:
+a lot, pair, bundle or "pick your disc" listing (``_multi_disc``) is never a single-disc price, and the
+condition is read from the title, the eBay condition text and the ``condition:new`` / ``condition:used``
+tag together (``_condition``: used wins over new). Listings that look like one disc but may be another are
+``review``, not ``matched``: a second disc joined by "+" / "&" / "and" (``_joined_stranger``, ``_pick_exact``),
+a longer sibling mold whose parts are apart (``_sibling_apart``: "SS Buzzz", "Buzzz Z SS"), a plastic with a
+qualifier we do not list (``_qualified_plastic``: "Lucid Chameleon"), a listing that only resembles a disc
+("compare to", "knockoff") and a title that talks about bidding.
 """
 from __future__ import annotations
 
@@ -26,6 +36,7 @@ import json
 import os
 import re
 import unicodedata
+from bisect import bisect_left
 from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
@@ -35,7 +46,7 @@ from rapidfuzz import fuzz, process
 
 from .models import ParsedListing
 
-PARSER_VERSION = 2  # bump whenever rules or anything under data/ change
+PARSER_VERSION = 4  # bump whenever rules or anything under data/ change
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 MOLD_TYPES = ("Distance Driver", "Fairway Driver", "Midrange", "Putter", "Approach")
@@ -43,6 +54,9 @@ MOLD_TYPES = ("Distance Driver", "Fairway Driver", "Midrange", "Putter", "Approa
 _FUZZY_MIN_LEN = 5       # shorter strings are too easy to confuse ("Roc" ~ "Rock")
 _FUZZY_REVIEW = 85       # rapidfuzz ratio needed for a mold-ish candidate
 _FUZZY_MATCHED = 90      # ratio needed before a fuzzy hit may be `matched`
+_MIN_TAIL = 4            # shortest mold tail ("classic" of Aviar Classic) judged by a near-miss test
+_TAIL_SCORE = 80         # rapidfuzz ratio of the next word against such a tail
+_FOREIGN_MOLD_MIN_KEY = 5  # a second mold of another brand only counts when its name is this long ("Pure" may be a word)
 _INFER_MIN_KEY = 5       # shortest mold key trusted without a brand or plastic to back it
 _YEAR_MIN, _YEAR_MAX = 1990, 2035
 _MAX_TITLE_CHARS = 2000   # real titles are < 200; this only bounds work on hostile input
@@ -64,6 +78,9 @@ _TRANS = str.maketrans({
 # folds the small and fullwidth hyphens, but not the Unicode hyphen / figure dash / minus.)
 _TRANS.update({ord(c): "-" for c in "\u2010\u2011\u2012\u2015\u2212"})
 _TRANS[0x301C] = "~"
+# Sellers write "3x" with a multiplication sign, which NFKD leaves alone: read it as the word x
+# (padded, so "Innova×Discraft" stays two words and "3×" becomes "3 x")
+_TRANS.update({ord(c): " x " for c in "\u00d7\u2715\u2716\u2a2f"})
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 _WS_RE = re.compile(r"\s+")
 
@@ -141,6 +158,20 @@ def _maximal(hits: list[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
     return sorted(keep)
 
 
+def _trim_plastic_tail(hits: list[tuple[int, int, str]], low: list[str]) -> list[tuple[int, int, str]]:
+    """Give a plastic word back when it only glued two spellings together: "Buzz Z" joins to
+    "buzzz", but it is the Buzz mold in Z plastic. Only when the shorter hit is the same mold."""
+    out = []
+    for i, j, key in hits:
+        if j - i >= 2 and low[j - 1] in _PLASTIC_ALL:
+            short = "".join(low[i:j - 1])
+            if short in _MOLD_IDX and _MOLD_IDX[short] == _MOLD_IDX[key]:
+                out.append((i, j - 1, short))
+                continue
+        out.append((i, j, key))
+    return out
+
+
 def _mask(masked: list[bool], i: int, j: int) -> None:
     for k in range(i, j):
         masked[k] = True
@@ -200,7 +231,7 @@ def parse_weight(text: str) -> int | None:
 
 # A token right after a mold name that signals a *different* mold we may not know
 # ("Zone GT", "Roc 4"); seeing one demotes the match to `review`.
-_VARIANT_SUFFIXES = frozenset("ss os gt sl xl max plus lite v2 v3 v4".split())
+_VARIANT_SUFFIXES = frozenset("ss os gt sl xl max plus lite v2 v3 v4 ii iii iv supersoft".split())
 _VARIANT_LETTERS = frozenset("xz")
 
 # --------------------------------------------------------------------------
@@ -358,6 +389,26 @@ def _build_fuzzy() -> dict[str | None, dict[str, list[str]]]:
 _FUZZY_BUCKETS = _build_fuzzy()
 
 
+def _build_extensions() -> dict[tuple[str, str], tuple[str, ...]]:
+    """(manufacturer, mold key) -> the tails of that maker's longer molds that start with it
+    ("aviar" -> "classic", "driver"), so a near-miss second word ("Aviar Classc") is noticed.
+    Tails under four letters ("3", "x3", "os", "pro") are too short for a near-miss test."""
+    keys: dict[str, set[str]] = {}
+    for key, molds in _MOLD_IDX.items():
+        for m in molds:
+            keys.setdefault(m.mfr, set()).add(key)
+    out: dict[tuple[str, str], tuple[str, ...]] = {}
+    for mfr, ks in keys.items():
+        for k in ks:
+            tails = tuple(sorted({o[len(k):] for o in ks if len(o) >= len(k) + _MIN_TAIL and o.startswith(k)}))
+            if tails:
+                out[(mfr, k)] = tails
+    return out
+
+
+_MOLD_EXTENSIONS = _build_extensions()
+
+
 # --------------------------------------------------------------------------
 # Rules that live in code (documented in DESIGN.md section 4)
 # --------------------------------------------------------------------------
@@ -375,15 +426,25 @@ bundle bundles combo mystery pack packs pk set sets
 cap caps sweater sweaters sweatpants pullover sleeve sleeves wristband wristbands sweatband gaiter gaiters
 glove gloves sunglasses shoe shoes belt belts pin pins banner banners coin coins pen pens pencil pencils
 book books ebook case cases cover covers holder holders rack racks stand stands chalk
+lot pair pairs duo trio dozen doz bulk wholesale haul stash grab surprise multipack
+kit kits twin twins doubles triples quad quads quartet quartets
+necklace necklaces pendant pendants bracelet bracelets earring earrings cufflinks keyring keyrings wallet wallets
+purse coaster coasters pillow pillows clock clocks replica replicas miniature miniatures
+painting paintings artwork sign signs holster holsters pouch pouches lamp lamps
+toy toys pet pets puppy puppies fetch chew k9 canine
+card cards tcg magazine magazines dvd dvds plaque plaques trophy trophies medal medals
+ornament ornaments figurine figurines puzzle puzzles chain chains guidebook
+discatcher discatchers
 """.split())
 # Multi-word phrases, written joined ("gift card" == "giftcard" == "gift-card").
 _IGNORE_PHRASES = frozenset("""
 giftcard giftcards giftcertificate egiftcard starterset beginnerset discset giftset
-lotof packof boxof pairof shippingprotection packageprotection shippinginsurance
-tanktop teepad teesign
+lotof lotsof packof boxof pairof shippingprotection packageprotection shippinginsurance
+tanktop teepad teesign tradingcard ultrastar keyring wallart
 """.split())
 _MULTI_PACK_RE = re.compile(r"\d+pk")  # "3pk"
 _WEIGHT_WORDS = frozenset(("wt", "weight", "weights"))
+_BAG_FILLER = frozenset("a the plastic poly ziploc clear original protective sealed".split())   # "in a plastic bag"
 _IGNORE_PHRASE_IDX = dict.fromkeys(_IGNORE_PHRASES, True)
 _IGNORE_PHRASE_MAXN = 4
 # product_type: any of these words marks a category that is not a disc.
@@ -401,6 +462,13 @@ discgolfbags discgolfbaskets discgolfaccessories discgolfapparel
 _IGNORE_TAG_MAX_TOKENS = 3
 
 
+# Colours seller soup uses beyond the basic ones in _NOISE. Never a mold, a player or a second disc.
+_COLOR_WORDS = frozenset("""
+violet maroon burgundy magenta cyan navy turquoise lavender peach salmon mint coral cream bronze copper camo
+camouflage ivory beige khaki olive indigo lilac amber crimson scarlet blush charcoal slate smoke smokey
+chrome pewter
+""".split())
+
 # Words that are never mold names and never a useful "unknown mold" guess.
 _NOISE = frozenset("""
 a an and the of in on for with by from to at is it or as vs w x z
@@ -415,16 +483,40 @@ free shipping ship ships shipped stock instock sold out sale clearance deal deal
 great good best hot item items box open seller sellers choice low cyber monday friday holiday soon coming just
 released release flight numbers number fast back order orders preorder quantity qty only very find hard made usa
 vary varies varying like
-""".split())
+unthrown thrown never nwot bnib bnwt bnip nip nos mint shape tested authentic official original genuine
+vintage collectible collectable htf lbs grams gram once twice times
+speed glide turn fade stable understable overstable hyzer flip anhyzer beefy lightweight
+hot cold stamps
+""".split()) | _COLOR_WORDS
 _NAME_STOP = _NOISE | frozenset(
-    "tour team signature first second third special anniversary prototype misprint glow glo gitd factory seconds".split())
+    "tour team signature first second third special anniversary prototype misprint glow glo gitd factory seconds "
+    "awesome amazing beautiful gorgeous stunning perfect cool sweet nice pretty fantastic fabulous incredible "
+    "unique custom colorful vibrant bright shiny wonderful lovely super".split())
 
-_NOT_USED_RE = re.compile(r"\b(?:never|not)\s+used\b|\bunused\b")
+_NOT_USED_RE = re.compile(
+    r"\b(?:never|not|hasn'?t|has\s+not|haven'?t|have\s+not)(?:\s+been)?\s+(?:previously\s+)?(?:used|owned|thrown|played)\b"
+    r"|\bunused\b"
+    r"|\bused\s+(?:by|for|to)\b"          # "as used by Ricky Wysocki", "used for disc golf": not a condition
+)
 _USED_RE = re.compile(
-    r"\b(?:used|pre[\s-]*owned|second[\s-]*hand|pre[\s-]*loved|beat[\s-]*in|beat[\s-]*up|well[\s-]*loved|sleepy)\b"
+    r"\b(?:used|pre[\s-]*owned|(?:second|2nd)[\s-]*hand|pre[\s-]*loved|beat[\s-]*in|beat[\s-]*up|well[\s-]*loved|sleepy"
+    r"|previously\s+(?:owned|used|thrown|played|flown))\b"
+)
+# "Like new" is how sellers describe a used disc, but eBay's own condition (or an unthrown/NIB
+# remark) outranks it: only a hard word, a grade or a `condition:used` tag beats those.
+_SOFT_USED_RE = re.compile(
+    r"\b(?:like[\s-]*new|near[\s-]*new|(?:excellent|great|good|very\s+good|fair|decent|nice)\s+(?:condition|shape)"
+    r"|(?:lightly|gently|barely|slightly)\s+(?:thrown|flown|worn)|(?:light|minor|some)\s+wear"
+    r"|flight[\s-]*test(?:ed)?|test[\s-]*(?:thrown|flown|flight)"
+    r"|thrown\s+(?:only\s+)?(?:once|twice|\d+\s*x\b|\d+\s+times|a\s+(?:few|couple)\s+times|a\s+handful))\b"
+)
+_NEW_RE = re.compile(
+    r"\b(?:nib|nwot|nwt|bnib|bnwt|bnip|brand[\s-]*new|un[\s-]*thrown|never(?:\s+been)?[\s-]*(?:thrown|used|played)"
+    r"|not(?:\s+been)?\s+thrown|unused|new\s+(?:in|with|without)\s+(?:box|bag|package|packaging|tags?))\b"
 )
 _GRADE_RES = (
-    re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d)?)\s*/\s*10\b"),
+    # "9/10" but not the start of a date ("9/10/2025")
+    re.compile(r"(?<![\d./])(\d{1,2}(?:\.\d)?)\s*/\s*10\b(?!\s*/\s*\d)"),
     re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d)?)\s*(?:out\s+of|of)\s*10\b"),
     re.compile(r"\bgrade[d]?\s*[:=#]?\s*(\d{1,2}(?:\.\d)?)\b"),
     re.compile(r"\bsleepy(?:\s*scale)?\s*[:=#]?\s*(\d{1,2}(?:\.\d)?)\b"),
@@ -459,11 +551,334 @@ _HARD_WORDS = frozenset(_NAME_STOP | _PLASTIC_WORDS | _EDITION_WORDS | _MFR_WORD
 _FUZZY_SKIP = frozenset(_NOISE | _PLASTIC_WORDS | _EDITION_WORDS | _MFR_WORDS)
 
 
+# --- lots, pairs, bundles (DESIGN.md 10.5): never a single-disc price -----------------------------
+_NUMBER_WORDS = frozenset("two three four five six seven eight nine ten eleven twelve dozen couple several both".split())
+# "assorted", "random"...: a grab bag, unless they only describe ONE disc's colour or weight
+_VAGUE_WORDS = frozenset(
+    "assorted assortment assortments medley random various variety mixed miscellaneous misc multiple multi collection collections".split())
+_ATTR_WORDS = frozenset("""
+color colors colour colours weight weights wt wts stamp stamps plastic plastics dye dyes pattern patterns
+shade shades size sizes colored coloured tone toned tones
+""".split())
+_COUNT_NOUNS = frozenset("pcs pc pieces piece ct count".split())
+_PLURAL_DISCS = frozenset(("discs", "dics", "molds"))
+_STAR_RATING = frozenset("seller sellers rated rating review reviews customer service quality".split())  # "5 Star Seller"
+_COUNT_TOKEN_RE = re.compile(r"(\d{1,2})(?:pcs?|ct|pieces?|packs?)")
+_PAREN_COUNT_RE = re.compile(r"[(\[{]\s*(\d{1,2})\s*[)\]}]")
+# "Paul McBeth 6X Signature Series", "McBeth 6X Luna": a count of world titles, not six discs
+_TITLES_WON_RE = re.compile(r"\b\d{1,2}x\b(?=\s+(?:signature|sig|series|world|champion|champ|edition|claw)\b)|(?<=mcbeth )\d{1,2}x\b")
+_TIMES_VERBS = frozenset("thrown used flown played tested".split())   # "thrown 2x": twice, not two discs
+_MAX_QTY_BACK = 4          # how far "discs" looks back for a count ("5 Innova Star discs")
+_MAX_LEADING_COUNT = 20    # "3 Innova DX Aviar": a title that starts with a small number is a quantity
+_MULTI_PHRASE_RE = re.compile(
+    r"\b(?:pick|choose|select)\s+(?:your\s+|any\s+|a\s+|an\s+|the\s+)?(?:own\s+)?"
+    r"(?:disc|discs|mold|molds|model|models|driver|putter|midrange|fairway|one|two|three|\d{1,2})\b"
+    r"|\b(?:you|u)\s*(?:pick|choose|select)\b|\b(?:pick|choose|select)\s+(?:any|your\s+own|one\s+of)\b"
+    r"|\b(?:your|ur)\s+(?:pick|choice|selection)\b(?!\s+(?:of\s+)?(?:color|colour|weight|wt|plastic|stamp|ink|dye|design))"
+    r"|\bchoice\s+of\s+(?:\d{1,2}|disc|discs|mold|molds|model|models|any)\b"
+    r"|\b(?:buy|get)\s+(?:\d{1,2}(?!\s*%)|one|two|three)\b"
+    r"|\b(?:bonus|extra|free)\s+discs?\b(?!\s+golf)"      # "w/ bonus disc" (but not "Free Disc Golf Shipping")
+    r"|\bbogo\b|\bmix\s*(?:and|&|n|\+)?\s*match\b"
+    r"|(?<![\d.])\d{1,2}\s+for\s+\$?\d"
+)
+# Numbers that belong to a disc description and say nothing about quantity.
+_FLIGHT_RE = re.compile(
+    r"(?<![\w.])(\d{1,2})(?:\.\d)?\s*[/|,-]\s*(\d)(?:\.\d)?\s*[/|,-]\s*(-?\d)(?:\.\d)?\s*[/|,-]\s*(-?\d)(?:\.\d)?(?![\w.])")
+_FLIGHT_LABEL_RE = re.compile(r"\b(?:speed|glide|turn|fade|stability)\s*[:=]?\s*[-+]?\d{1,2}(?:\.\d)?\b|\b\d{1,2}\s*speed\b")
+_COLOR_PHRASE_RE = re.compile(r"\bhunter\s+green\b")   # a colour, not the Dynamic Discs Hunter
+# "5 Star Seller", "Star Rated", "Top Rated Seller 5 Star": a seller rating, not Innova's Star plastic
+_STAR_RATING_RE = re.compile(
+    r"\b(?:[1-5][\s-]*)?stars?(?=\s+(?:seller|sellers|rated|rating|ratings|review|reviews|feedback|customer|service)\b)"
+    r"|(?<=seller )[1-5][\s-]*stars?\b|(?<=rated )[1-5][\s-]*stars?\b|(?<=rating )[1-5][\s-]*stars?\b")
+_SINGLE_RES = (
+    re.compile(r"[(\[{]\s*1\s*[)\]}]"),                            # "(1)"
+    re.compile(r"\b(?:qty|quantity|count)\s*[:=]?\s*1\b"),
+    re.compile(r"#\s*\d+"),                                          # "#1 seller"
+)
+# "Destroyer Max Distance": a Max that is just marketing, not a "Destroyer Max" sibling mold
+_MAX_PLAIN_AFTER = frozenset("weight weights wt distance dist dis glide power speed stability range".split())
+
+
+# Listing boilerplate that follows a "+" or "&" without naming a second disc.
+_SOUP_WORDS = frozenset("""
+sealed tracking tracked insured insurance warranty guarantee guaranteed handling return returns packaging packaged
+wrapped protected protection extras extra gift receipt invoice label tags tag bonus accessories accessory
+more other others additional available options option choices styles style models model different
+""".split())
+_JOIN_CHARS_RE = re.compile(r"[&+/]")
+_JOIN_WORD_RE = re.compile(r"\b(?:and|plus)\b")
+_MAX_JOIN_GAP = 3   # words allowed between a joiner and the disc it joins to
+_BENIGN = frozenset(_NOISE | _NAME_STOP | _HARD_WORDS | _MOLD_WORDS | _ATTR_WORDS | _VAGUE_WORDS | _NUMBER_WORDS
+                    | _STAR_RATING | _COLOR_WORDS | _SOUP_WORDS | frozenset(_FLAG_PHRASES))
+
+
+# "Compare to Innova Destroyer", "Destroyer knockoff": a listing that names a disc only to say what it
+# resembles is somebody else's product, and must not carry the named disc's price.
+_RESEMBLES_RE = re.compile(
+    r"\b(?:compare[sd]?|comparable|similar|equivalent|alternatives?)\s+(?:to|with|for)\b"
+    r"|\b(?:clones?|copy|copies|dupe|inspired|substitutes?|replacements?)\s+(?:of|by|for)\b|\binstead\s+of\b"
+    r"|\b(?:knock[\s-]?offs?|rip[\s-]?offs?|look[\s-]?alikes?|dupes?|clones?|imitation|unbranded|counterfeit|fake)\b"
+)
+_RESEMBLES_HINTS = ("compar", "similar", "equivalent", "alternative", "clone", "copy", "copies", "dupe", "inspired",
+                    "substitute", "replacement", "instead", "knock", "rip", "look", "imitation", "unbranded",
+                    "counterfeit", "fake")
+
+
+# Bidding language: the price of an auction is a bid, not an asking price. ebay.py already drops AUCTION
+# listings; a title that still talks about bidding is not trusted as a single asking price either.
+_AUCTION_RE = re.compile(r"\bauctions?\b|\bno\s+reserve\b|\breserve\s+price\b|\bbid(?:s|ding|ders?)?\b")
+_AUCTION_HINTS = ("auction", "reserve", "bid")
+
+
+# A cracked, cut or "for parts" disc is a used disc nobody can throw: its price says nothing about the
+# disc and would set the floor of the used price. (eBay's own wording "For parts or not working" and
+# "Damaged" arrive as the product type.) A negation before the word ("not cracked") is a boast, not a flaw.
+_DAMAGED_RE = re.compile(
+    r"(?<!\bnot )(?<!\bno )(?<!\bnever )(?<!\bwithout )(?<!\bnon-)\b(?:broken|cracked|snapped|shattered|damaged)\b"
+    r"|\bcut\s+in\s+half\b|\bfor\s+parts\b|\bparts\s+only\b|\bnot\s+working\b"
+)
+_DAMAGED_HINTS = ("broken", "crack", "snap", "shatter", "damaged", "half", "parts", "not working")
+
+
+# Words that qualify a plastic line ("Lucid Chameleon", "Star Shimmer", "K1 Hard"). A line we list that sits
+# next to one of them, outside its own name, is a variant we do not know: the plain line's price would
+# be the wrong one.
+_PLASTIC_QUALIFIERS = frozenset("""
+burst chameleon shimmer shimmery sparkle sparkly glitter glittery orbit ice icy overmold overmolded rubber
+rubberized flx flex flexible soft medium firm hard metal metallic flake pearl pearlized marble marbled confetti
+galaxy nebula frost frosted holo holographic splatter speckled lite
+""".split())
+# The qualifiers that are never anything else: they also count when they stand behind the mold
+# ("P2 Flex 3", "Judge Chameleon"). The others ("soft", "hard", "ice", "medium", "metal") are ordinary words
+# and only count right next to the plastic.
+_STRONG_QUALIFIERS = frozenset("""
+burst chameleon shimmer shimmery sparkle sparkly glitter glittery orbit overmold overmolded flx flex pearl
+pearlized confetti galaxy nebula holo holographic
+""".split())
+
+
+def _qualified_plastic(doc: "_Doc", masked: list[bool], plastic_span: tuple[int, int],
+                       mold_span: tuple[int, int]) -> bool:
+    """Is the plastic we found directly next to a qualifier word that is not part of its name? Brand,
+    weight, edition and similar tokens between them are stepped over; the mold is not. A strong
+    qualifier is also noticed right behind the mold (the plastic stepped over)."""
+    low, n = doc.low, doc.n
+    for step, k in ((-1, plastic_span[0] - 1), (1, plastic_span[1])):
+        while 0 <= k < n and masked[k]:
+            k += step
+        if 0 <= k < n and not (mold_span[0] <= k < mold_span[1]) and low[k] in _PLASTIC_QUALIFIERS:
+            return True
+    for step, k in ((-1, mold_span[0] - 1), (1, mold_span[1])):
+        while 0 <= k < n and (masked[k] or plastic_span[0] <= k < plastic_span[1]):
+            k += step
+        if 0 <= k < n and low[k] in _STRONG_QUALIFIERS:
+            return True
+    return False
+
+
+_LETTER_TAILS = frozenset("ss os gt sl xl".split())   # tails that are never ordinary words
+
+
+def _sibling_apart(doc: "_Doc", masked: list[bool], mold: "_Mold", span: tuple[int, int],
+                   plastic_span: tuple[int, int] | None) -> bool:
+    """Is the nearest other word on either side of the mold (weights, brands and the plastic stepped over)
+    the tail of a longer mold of the same maker? "SS Buzzz", "Pro Ballista", "Max D2", "Buzzz Z SS",
+    "Aviar 170g Classic" all name Buzzz SS, Ballista Pro, D2 Max, Aviar Classic, which are other discs.
+    A two-letter tail (SS, OS, GT) is also found behind up to three filler words ("Buzzz Midrange OS")."""
+    low, n = doc.low, doc.n
+    for step, k in ((1, span[1]), (-1, span[0] - 1)):
+        skipped = 0
+        while 0 <= k < n:
+            if masked[k] or (plastic_span is not None and plastic_span[0] <= k < plastic_span[1]):
+                k += step
+                continue
+            w = low[k]
+            # ("Disc Golf Driver Innova Aviar": "driver" is listing boilerplate, not Aviar Driver)
+            if w != "driver" and (skipped == 0 or w in _LETTER_TAILS) \
+                    and any(m.mfr == mold.mfr for m in _MOLD_IDX.get(mold.key + w, ())):
+                return True
+            if w in _NOISE and skipped < 3:
+                skipped += 1
+                k += step
+                continue
+            break
+    return False
+
+
+def _joined(doc: "_Doc", first: tuple[int, int], second: tuple[int, int]) -> bool:
+    """Do two token spans (in either order) sit within a few words of each other with a "+", "&", "/",
+    "and" or "plus" between them?"""
+    a, b = sorted((first, second))
+    if b[0] - a[1] > _MAX_JOIN_GAP or a[1] > b[0]:
+        return False
+    gap = doc.lower_text[doc.ends[a[1] - 1]:doc.starts[b[0]]]
+    return _JOIN_CHARS_RE.search(gap) is not None or _JOIN_WORD_RE.search(gap) is not None
+
+
+def _joined_stranger(doc: "_Doc", evidence: list[bool]) -> bool:
+    """"Star Destroyer + Sparrow", "Sparrow & Innova Star Destroyer": a plus, ampersand, slash, "and"
+    or "plus" between a word that is part of the disc we recognised and a word we know nothing about is
+    most likely a second disc whose mold is not in our list, so the listing is not a single disc.
+    ``evidence`` marks the tokens already explained (mold, plastic, brand, edition, weights...)."""
+    low, n = doc.low, doc.n
+
+    def stranger(k: int) -> bool:
+        return (0 <= k < n and not evidence[k] and low[k].isalpha()
+                and 4 <= len(low[k]) <= _MAX_WORD_CHARS and low[k] not in _BENIGN)
+
+    for k in range(n - 1):
+        sep = doc.lower_text[doc.ends[k]:doc.starts[k + 1]]
+        if _JOIN_CHARS_RE.search(sep):
+            left, right = k, k + 1
+        elif low[k + 1] in ("and", "plus") and k + 2 < n and not sep.strip(" ,"):
+            left, right = k, k + 2
+        else:
+            continue
+        if (evidence[left] and stranger(right)) or (stranger(left) and evidence[right]):
+            return True
+    return False
+
+
 # --------------------------------------------------------------------------
 # Detection helpers
 # --------------------------------------------------------------------------
 
-def _ignore_reason(doc: _Doc, product_type: str, tags: list[str]) -> str:
+# (words that must appear in the text for the pattern to be worth running, pattern): most titles
+# contain none of them, and this runs for every listing
+_PRE_MASK_RES = (
+    (("speed", "glide", "turn", "fade", "stability"), _FLIGHT_LABEL_RE),
+    (("hunter",), _COLOR_PHRASE_RE),
+    (("sig", "series", "world", "champ", "edition", "claw", "mcbeth"), _TITLES_WON_RE),
+    (("(", "[", "{"), _SINGLE_RES[0]),
+    (("qty", "quantity", "count"), _SINGLE_RES[1]),
+    (("#",), _SINGLE_RES[2]),
+    (("star",), _STAR_RATING_RE),
+    (("10",), _GRADE_RES[0]),
+    (("10",), _GRADE_RES[1]),
+    (("grade",), _GRADE_RES[2]),
+    (("sleepy",), _GRADE_RES[3]),
+)
+
+
+def _pre_mask(doc: _Doc) -> list[bool]:
+    """Tokens that are numbers of a disc description (flight numbers, grades, "(1)", "#1") and so
+    can never be a quantity, a mold digit or a variant."""
+    masked = [False] * doc.n
+    text = doc.lower_text
+    if sum(text.count(c) for c in "/|,-") >= 3:  # a flight-number list has three separators
+        pos = 0
+        while True:
+            m = _FLIGHT_RE.search(text, pos)
+            if m is None:
+                break
+            speed, glide, turn, fade = (int(g) for g in m.groups())
+            if 1 <= speed <= 15 and 1 <= glide <= 7 and -5 <= turn <= 2 and 0 <= fade <= 5:
+                _mask_chars(doc, masked, m.start(), m.end())
+                pos = m.end()
+            else:
+                pos = m.start() + 1  # "3 6/5/-1/1": the real numbers may start inside a failed match
+    for needles, rx in _PRE_MASK_RES:
+        if any(w in text for w in needles):
+            for m in rx.finditer(text):
+                _mask_chars(doc, masked, m.start(), m.end())
+    return masked
+
+
+def _looks_like_disc(doc: _Doc) -> bool:
+    """Any disc evidence at all: the word "disc(s)", a brand, a mold or a plastic."""
+    low, free = doc.low, [False] * doc.n
+    return ("disc" in low or "discs" in low or bool(_scan(low, free, _TITLE_MFR, _MFR_MAXN))
+            or bool(_scan(low, free, _MOLD_IDX, _MOLD_MAXN)) or bool(_scan(low, free, _PLASTIC_ALL, _PLASTIC_MAXN)))
+
+
+def _multi_disc(doc: _Doc, masked: list[bool]) -> bool:
+    """A lot, pair, bundle or pick-your-disc listing: "3x", "(2)", "x2", "lot", "2 discs", "pick any 3"...
+
+    A number that completes a mold name ("Roc 3", "Aviar X 3", "Latitude 64") is never a quantity.
+    """
+    low, n = doc.low, doc.n
+
+    def count_at(k: int) -> bool:
+        w = low[k]
+        return (w.isdigit() and len(w) <= 2 and int(w) >= 2 and not masked[k]
+                and not (k and (low[k - 1] + w in _MOLD_IDX or low[k - 1] + w in _TITLE_MFR)))
+
+    def count_after(k: int) -> bool:  # "Qty 3", "Quantity of 3", "Count: 3", "Total of 3"
+        j = k + 1
+        if j < n and low[j] == "of":
+            j += 1
+        return j < n and count_at(j)
+
+    if n > 1 and count_at(0) and int(low[0]) <= _MAX_LEADING_COUNT and low[1].isalpha() \
+            and not (low[1] == "star" and low[2:3] and low[2] in _STAR_RATING):
+        return True
+    for k, w in enumerate(low):
+        if masked[k]:
+            continue
+        nxt = low[k + 1] if k + 1 < n else ""
+        prv = low[k - 1] if k else ""
+        if w[-1] == "x" and w[:-1].isdigit() and len(w) <= 3:      # "3x", but "thrown 2x" is a condition
+            if int(w[:-1]) >= 2 and prv not in _TIMES_VERBS:
+                return True
+        elif w[0] == "x" and w[1:].isdigit() and len(w) <= 3:      # "x3", but not "Aviar X3"
+            if int(w[1:]) >= 2 and prv + w not in _MOLD_IDX:
+                return True
+        elif w[:3] == "qty" and w[3:].isdigit() and int(w[3:]) >= 2:   # "Qty4"
+            return True
+        elif w == "total":                                          # "4 Total", "Total of 3", but not "2 Total Eclipse"
+            if nxt != "eclipse" and ((k and count_at(k - 1)) or count_after(k)):
+                return True
+        elif w[0].isdigit() and _COUNT_TOKEN_RE.fullmatch(w):       # "2pc", "10ct"
+            if int(_COUNT_TOKEN_RE.fullmatch(w).group(1)) >= 2:
+                return True
+        elif w == "x":                                              # "2 x", "x 2", but not "Aviar X 3"
+            if nxt and count_at(k + 1) and prv + w + nxt not in _MOLD_IDX:
+                return True
+            if k and count_at(k - 1) and nxt not in ("out", "outs"):
+                return True
+        elif w in ("qty", "quantity"):
+            if count_after(k):
+                return True
+        elif w in _COUNT_NOUNS:                                     # "5 pcs", "Count: 3"
+            if (k and count_at(k - 1)) or (w == "count" and count_after(k)):
+                return True
+        elif w == "number" and nxt == "of":                         # "Number of discs: 3"
+            j = k + 2 + (low[k + 2:k + 3] in (["disc"], ["discs"], ["pieces"], ["pcs"]))
+            if j < n and count_at(j):
+                return True
+        elif w == "disc":                                           # "3 Disc Innova Set", "Two Disc Deal", but "Roc 3 Disc Golf"
+            if k and nxt != "golf" and (count_at(k - 1) or low[k - 1] in _NUMBER_WORDS):
+                return True
+        elif w in _PLURAL_DISCS:                                    # "2 discs", "five Innova discs"
+            if any("".join(low[max(0, k - span):k]) + w in _TITLE_MFR for span in range(1, 5)):
+                continue                                            # "Dynamic Discs", "Latitude 64 Golf Discs"
+            j = k - 1
+            for _ in range(_MAX_QTY_BACK):
+                if j < 0:
+                    break
+                if count_at(j) or low[j] in _NUMBER_WORDS:
+                    return True
+                if not low[j].isalpha():
+                    break
+                j -= 1
+        elif w in _VAGUE_WORDS and nxt not in _ATTR_WORDS and _looks_like_disc(doc):
+            return True
+    for m in _PAREN_COUNT_RE.finditer(doc.text):                    # "(2) Discs"
+        k = bisect_left(doc.starts, m.start(1))
+        if k < n and doc.starts[k] == m.start(1) and count_at(k):
+            return True
+    return _MULTI_PHRASE_RE.search(doc.lower_text) is not None
+
+
+def _in_a_bag(low: list[str], k: int) -> bool:
+    """"new in bag", "in a plastic bag": the disc's packaging, not a disc bag (token k is the "bag")."""
+    j = k - 1
+    while j >= 0 and k - j <= 3 and low[j] in _BAG_FILLER:
+        j -= 1
+    return j >= 0 and low[j] == "in"
+
+
+def _ignore_reason(doc: _Doc, product_type: str, tags: list[str], masked: list[bool]) -> str:
     """Why this is not a disc ("" when it might be one)."""
     pt = _tokens(product_type)
     if _IGNORE_TYPE_WORDS.intersection(pt):
@@ -473,28 +888,79 @@ def _ignore_reason(doc: _Doc, product_type: str, tags: list[str]) -> str:
         if tt and len(tt) <= _IGNORE_TAG_MAX_TOKENS and "".join(tt) in _IGNORE_TAG_EXACT:
             return "tag"
     low = doc.low
-    # "Net Wt. 175g" / "net weight" is a weight, not a practice net
-    words = [w for k, w in enumerate(low) if not (w == "net" and low[k + 1:k + 2] and low[k + 1] in _WEIGHT_WORDS)]
+    # "Net Wt. 175g" / "net weight" is a weight, not a practice net; "new in bag" is how the disc
+    # arrived, not a disc bag
+    words = [w for k, w in enumerate(low) if not (
+        (w == "net" and low[k + 1:k + 2] and low[k + 1] in _WEIGHT_WORDS)
+        or (w in ("bag", "bags") and _in_a_bag(low, k)))]
     if _IGNORE_TITLE_WORDS.intersection(words):
         return "title"
     if _scan(low, [False] * len(low), _IGNORE_PHRASE_IDX, _IGNORE_PHRASE_MAXN):
         return "title"
     if any(_MULTI_PACK_RE.fullmatch(w) for w in low):
         return "title"
+    if _multi_disc(doc, masked):
+        return "title"
     return ""
 
 
+# Cheap substring tests that let _condition skip regexes (it runs for every listing, mostly on
+# titles that say nothing about condition).
+_GRADE_HINTS = ("10", "grade", "sleepy")
+_USED_HINTS = ("used", "owned", "hand", "loved", "beat", "sleepy", "previously")
+_SOFT_HINTS = ("new", "condition", "shape", "thrown", "flown", "worn", "wear", "test", "flight")
+_NEW_HINTS = ("nib", "nwot", "nwt", "bnip", "new", "thrown", "never", "not", "unused")
+
+
+def _has(text: str, hints: tuple[str, ...]) -> bool:
+    return any(h in text for h in hints)
+
+
+# eBay's own condition wording (it arrives as the product type) that means "not new". The
+# `condition:new` / `condition:used` tag comes from eBay's numeric id and outranks this; the text only
+# decides when that tag is missing. "New", "New other", "New with defects" and "Open box" stay new.
+_USED_CONDITION_WORDS = frozenset("refurbished damaged parts acceptable".split())
+_USED_CONDITION_PHRASES = frozenset("good verygood excellent fair poor".split())
+
+
+def _used_condition_text(ptype_l: str) -> bool:
+    toks = _tokens(ptype_l)
+    return bool(toks) and (bool(_USED_CONDITION_WORDS.intersection(toks)) or "".join(toks) in _USED_CONDITION_PHRASES)
+
+
 def _condition(title_l: str, tags_l: list[str], ptype_l: str) -> tuple[str, float | None]:
-    """("new"|"used", grade). A stated N/10 grade implies used."""
-    texts = tuple(t.replace("_", " ") for t in (title_l, *tags_l, ptype_l))  # \b treats "_" as a letter
+    """("new"|"used", grade). Used wins over new:
+
+    1. a ``condition:used`` tag (eBay's own field), a stated N/10 grade, or a word such as
+       used / pre-owned / beat in / sleepy in the title, tags or condition text -> used;
+    2. a soft remark ("like new", "thrown once") -> used, unless the ``condition:new`` tag or
+       an unthrown / NIB / NWOT / brand new remark in the title speaks against it;
+    3. otherwise new (the default, which "unthrown", "NIB" and "brand new" confirm).
+    """
+    title = title_l.replace("_", " ")                    # \b treats "_" as a letter
+    tag_texts = [t.replace("_", " ") for t in tags_l]
+    texts = [t for t in (title, *tag_texts, ptype_l.replace("_", " ")) if t.strip()]
+    flat_tags = [_WS_RE.sub("", t) for t in tag_texts]
+    tag_used, tag_new = "condition:used" in flat_tags, "condition:new" in flat_tags
+    new_words = _has(title, _NEW_HINTS) and _NEW_RE.search(title) is not None
     for text in texts:
-        for rx in _GRADE_RES:
-            m = rx.search(text)
-            if m and 1 <= float(m.group(1)) <= 10:
-                return "used", float(m.group(1))
+        if _has(text, _GRADE_HINTS):
+            for rx in _GRADE_RES:
+                m = rx.search(text)
+                if m and 1 <= float(m.group(1)) <= 10:
+                    # a perfect score next to unthrown / NIB is a description of the disc, not a grade
+                    if float(m.group(1)) == 10 and new_words and not tag_used:
+                        continue
+                    return "used", float(m.group(1))
+    if tag_used:
+        return "used", None
+    if not tag_new and _used_condition_text(ptype_l):
+        return "used", None
     for text in texts:
-        if _USED_RE.search(_NOT_USED_RE.sub(" ", text)):
+        if _has(text, _USED_HINTS) and _USED_RE.search(_NOT_USED_RE.sub(" ", text)):
             return "used", None
+    if not (tag_new or new_words) and any(_has(t, _SOFT_HINTS) and _SOFT_USED_RE.search(t) for t in texts):
+        return "used", None
     return "new", None
 
 
@@ -601,15 +1067,16 @@ def _find_player(doc: _Doc, marker: tuple[int, int], masked: list[bool],
 # Mold resolution
 # --------------------------------------------------------------------------
 
-def _outside_plastics(pairs: list, low: list[str]) -> list:
+def _outside_plastics(pairs: list, low: list[str]) -> tuple[list, bool]:
     """Drop mold hits that are only part of a longer plastic name, if anything else is left.
 
     "Prime Burst Judge": Westside's Burst is just half of Dynamic's plastic, and
-    in "Origio Burst Burst" only the second Burst is the mold.
+    in "Origio Burst Burst" only the second Burst is the mold. The flag says every hit was
+    inside a plastic name ("Origio Burst Swoord"): then the real mold may be something else.
     """
     spans = _scan(low, [False] * len(low), _PLASTIC_ALL, _PLASTIC_MAXN)
     free = [p for p in pairs if not any(a <= p[0] and p[1] <= b and (b - a) > (p[1] - p[0]) for a, b, _ in spans)]
-    return free or pairs
+    return (free, False) if free else (pairs, True)
 
 
 def _narrow(top: list, low: list[str], masked: list[bool]) -> list:
@@ -629,12 +1096,14 @@ def _narrow(top: list, low: list[str], masked: list[bool]) -> list:
     return top
 
 
-def _pick_exact(hits: list[tuple[int, int, str]], vendor_mfr: str | None, title_mfrs: set[str],
+def _pick_exact(doc: _Doc, hits: list[tuple[int, int, str]], vendor_mfr: str | None, title_mfrs: set[str],
                 low: list[str], masked: list[bool]):
     """Choose one (span, mold) among the exact hits.
 
     Returns (start, end, mold, state); state is "ok", "conflict" (the mold does
-    not belong to the manufacturer the listing names) or "ambiguous".
+    not belong to the manufacturer the listing names), "ambiguous", or "inside" (the
+    mold word is only the tail of a plastic name, "Origio Burst": fine unless another
+    word could be the real mold, which the caller checks).
     """
     hinted = bool(vendor_mfr or title_mfrs)
 
@@ -647,16 +1116,28 @@ def _pick_exact(hits: list[tuple[int, int, str]], vendor_mfr: str | None, title_
         # even if the vendor field happens to agree with the mold.
         return 1 if (m.mfr == vendor_mfr and not title_mfrs) else -1
 
-    pairs = _outside_plastics([(i, j, key, m) for i, j, key in hits for m in _MOLD_IDX[key]], low)
+    pairs, inside_plastic = _outside_plastics([(i, j, key, m) for i, j, key in hits for m in _MOLD_IDX[key]], low)
     best = max(consistency(p[3]) for p in pairs)
     top = [p for p in pairs if consistency(p[3]) == best]
     if len({(p[3].mfr, p[3].name) for p in top}) > 1:
-        top = _narrow(top, low, masked)
+        # "Innova Star Destroyer Discraft Zeus": two brands, a mold for each. A plastic that backs
+        # one of them cannot settle which disc this is (a comparison, a lot...).
+        if not (best == 2 and len({p[3].mfr for p in top}) > 1 and len({p[3].name for p in top}) > 1):
+            top = _narrow(top, low, masked)
     top.sort(key=lambda p: (-len(p[2]), p[0]))
     i, j, _key_, mold = top[0]
     if len({(p[3].mfr, p[3].name) for p in top}) > 1:
         return i, j, mold, "ambiguous"
-    return i, j, mold, ("conflict" if best < 0 else "ok")
+    if best > 0 and any((p[0] >= j or p[1] <= i) and consistency(p[3]) < best
+                        and (len(p[2]) >= _FOREIGN_MOLD_MIN_KEY or _joined(doc, (i, j), (p[0], p[1])))
+                        for p in pairs):
+        # "Discraft ESP Buzzz and Wraith": another brand's mold, with no brand named for it, sits in
+        # the title: a second disc (a lot, a comparison), not decoration. A short one ("Pure", "Zone")
+        # only counts when a "+", "&" or "and" joins it to the first disc.
+        return i, j, mold, "ambiguous"
+    if best < 0:
+        return i, j, mold, "conflict"
+    return i, j, mold, ("inside" if inside_plastic else "ok")
 
 
 def _fuzzy_mold(doc: _Doc, masked: list[bool], hint_mfrs: set[str]):
@@ -701,6 +1182,11 @@ def _fuzzy_mold(doc: _Doc, masked: list[bool], hint_mfrs: set[str]):
     if best is None:
         return None
     return best[3], best[4], best[5], best[0] / 100.0, best[6]
+
+
+def _plastics_combine(a: str, b: str) -> bool:
+    """Prodigy writes a numbered line and Spectrum together ("500 Spectrum"): not two lines in conflict."""
+    return (a.endswith("Spectrum") and b[:1].isdigit()) or (b.endswith("Spectrum") and a[:1].isdigit())
 
 
 def _plastic_owners(low: list[str], masked: list[bool]) -> set[str]:
@@ -782,21 +1268,19 @@ def parse_listing(title, vendor="", product_type="", tags=()) -> ParsedListing:
     tag_list = _tag_list(tags)
     doc = _Doc(title)
     low, n = doc.low, doc.n
-    if not n:
-        return ParsedListing(status="unparsed", confidence=0.0)
+    if not n:  # nothing to identify, but a `condition:used` tag is still true
+        condition, grade = _condition("", [_fold(t).lower() for t in tag_list], _fold(product_type).lower())
+        return ParsedListing(status="unparsed", condition=condition, grade=grade, confidence=0.0)
 
     # Not a disc at all.
-    reason = _ignore_reason(doc, product_type, tag_list)
+    masked = _pre_mask(doc)
+    reason = _ignore_reason(doc, product_type, tag_list, masked)
     if reason:
         return ParsedListing(status="ignored", confidence=0.85 if reason == "title" else 0.95)
 
     # Condition, grade, flags, and the numbers that must never be read as names.
     condition, grade = _condition(doc.lower_text, [_fold(t).lower() for t in tag_list], _fold(product_type).lower())
     flags = _flags(low, tag_list)
-    masked = [False] * n
-    for rx in _GRADE_RES:
-        for m in rx.finditer(doc.lower_text):
-            _mask_chars(doc, masked, m.start(), m.end())
     for m in _WEIGHT_RANGE_RE.finditer(doc.text):
         _mask_chars(doc, masked, m.start() if int(m.group(1)) <= int(m.group(2)) else m.start(2), m.end())
     for m in _WEIGHT_UNIT_RE.finditer(doc.text):
@@ -848,9 +1332,9 @@ def parse_listing(title, vendor="", product_type="", tags=()) -> ParsedListing:
     state = "ok"
     fuzzy = False
     extension = False
-    exact = _maximal(_scan(low, masked, _MOLD_IDX, _MOLD_MAXN))
+    exact = _trim_plastic_tail(_maximal(_scan(low, masked, _MOLD_IDX, _MOLD_MAXN)), low)
     if exact:
-        i, j, mold, state = _pick_exact(exact, vendor_mfr, title_mfrs, low, masked)
+        i, j, mold, state = _pick_exact(doc, exact, vendor_mfr, title_mfrs, low, masked)
         span, score = (i, j), 1.0
     else:
         fz = _fuzzy_mold(doc, masked, hints)
@@ -887,11 +1371,18 @@ def parse_listing(title, vendor="", product_type="", tags=()) -> ParsedListing:
     own_plastics = _PLASTIC_OWN.get(manufacturer)
     if own_plastics:  # "Star Destroyer, Premium Plastic": the maker's own line beats a generic word
         phits = [h for h in phits if h[2] in own_plastics] or phits
+    plastic_clash = False
     if phits:
         i, j, k = min(phits, key=lambda h: (-pidx[h[2]].ntok, -len(h[2]), h[0]))
         plastic, plastic_span = pidx[k].name, (i, j)
+        # "Latitude 64 Gold Stamp Opto Ballista": two different lines of the maker in one title
+        # (a colour or a marketing word can spell a plastic), so we cannot say which one the disc is
+        plastic_clash = any((h[0] >= j or h[1] <= i) and pidx[h[2]].name != plastic
+                            and not _plastics_combine(pidx[h[2]].name, plastic) for h in phits)
         if edition == "glow" and pidx[k].glow:
             edition = ""  # "Moonshine Glow", "Eclipse Glow": the plastic already says it
+    if state == "inside":  # "Origio Burst Swoord": the Burst is a plastic's tail and "Swoord" may be the mold
+        state = "ambiguous" if _leftover_candidate(doc, pmask, plastic_span) else "ok"
 
     if mold is None:
         cand = ""
@@ -911,18 +1402,49 @@ def parse_listing(title, vendor="", product_type="", tags=()) -> ParsedListing:
         if (len(mold.key) < _INFER_MIN_KEY and not plastic) or (owners and mold.mfr not in owners):
             mfr_conf = 0.0
     risky = False
-    if not fuzzy:
-        tail = doc.ends[span[1] - 1]
-        if doc.text[tail:tail + 1] == "+":  # "Roc+", "Aviar+": the plus is a different mold, not decoration
-            risky = True
-    if not fuzzy and span[1] < n and not masked[span[1]]:
+    tail = doc.ends[span[1] - 1]
+    if doc.text[tail:tail + 1] == "+":  # "Roc+", "Aviar+": the plus is a different mold, not decoration
+        risky = True
+    if span[1] < n and not masked[span[1]]:
         nxt = low[span[1]]
+        if low[span[1] - 1] == "max" and nxt in _MAX_PLAIN_AFTER:
+            risky = True  # "Prodigy D2 Max Distance": the D2 Max, or a D2 with "max distance"?
+        tails = _MOLD_EXTENSIONS.get((mold.mfr, mold.key))
+        if (fuzzy and mold.key + nxt in _MOLD_IDX) or (
+                tails and _MIN_TAIL <= len(nxt) <= _MAX_WORD_CHARS
+                and process.extractOne(nxt, tails, scorer=fuzz.ratio, score_cutoff=_TAIL_SCORE) is not None):
+            # "Balllista Pro" (the typo'd base mold, or the longer Ballista Pro?) and "Aviar Classc"
+            # (a near miss of "Aviar Classic"): the next word may finish a longer mold
+            risky = True
         in_plastic = plastic_span is not None and plastic_span[0] <= span[1] < plastic_span[1]
         # a lone digit, "X" or "Z" ("Roc 5", "Eagle X", "Kaxe Z") or a size/version word may name a
         # sibling mold we do not know ("w/" and other lone letters are just filler)
         if not in_plastic and (nxt in _VARIANT_SUFFIXES or nxt in _VARIANT_LETTERS or (len(nxt) == 1 and nxt.isdigit())):
             after = low[span[1] + 1] if span[1] + 1 < n else ""
-            risky = risky or not (nxt == "max" and after in ("weight", "weights"))
+            risky = risky or not (nxt == "max" and after in _MAX_PLAIN_AFTER)
+    risky = risky or plastic_clash
+    if not risky and span[1] < n and not masked[span[1]] and low[span[1]] == "style":
+        risky = True    # "Destroyer Style": resembles the mold, is not the mold
+    if not risky:
+        damage_text = f"{doc.lower_text} | {_fold(product_type).lower()}"
+        if any(h in damage_text for h in _DAMAGED_HINTS):
+            risky = _DAMAGED_RE.search(damage_text) is not None
+    if not risky and any(h in doc.lower_text for h in _AUCTION_HINTS):
+        risky = _AUCTION_RE.search(doc.lower_text) is not None
+    if not risky and any(h in doc.lower_text for h in _RESEMBLES_HINTS):
+        risky = _RESEMBLES_RE.search(doc.lower_text) is not None
+    if not risky:
+        risky = _sibling_apart(doc, masked, mold, span, plastic_span)
+    if not risky and plastic_span is not None:
+        risky = _qualified_plastic(doc, masked, plastic_span, span)
+    if not risky:
+        evidence = list(masked)
+        _mask(evidence, *span)
+        if plastic_span is not None:
+            _mask(evidence, *plastic_span)
+        risky = _joined_stranger(doc, evidence)
+    if plastic_span is not None and plastic_span[1] < n and not masked[plastic_span[1]] and low[plastic_span[1]] == "x":
+        risky = True  # "VIP-X", "Opto X": a variant of the plastic we may not know, not the plastic itself
     trusted = (
         mfr_conf > 0 and state == "ok" and not risky
         and not (fuzzy and (inferred or extension or score < _FUZZY_MATCHED / 100))

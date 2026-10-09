@@ -36,6 +36,23 @@ python -m http.server -d . 8000      # open http://localhost:8000/site/
 
 Individual steps: `scrape [--store ID]`, `parse [--all]`, `export`.
 
+## eBay (optional)
+
+eBay is collected through the official Browse API: active fixed-price listings, one search per
+mold and plastic (about 3,300 queries; a full rotation takes a day or more because of the free
+5,000-calls-per-day limit, and each run resumes with the stalest queries).
+
+1. Create a free developer account at developer.ebay.com and make a **Production** keyset.
+2. Add the App ID and Cert ID as **Actions** repository secrets named `EBAY_CLIENT_ID` and
+   `EBAY_CLIENT_SECRET` (Settings > Secrets and variables > Actions - not the Codespaces tab).
+   Locally, export the same two environment variables.
+3. `python -m disctracker scrape-ebay` (or `run`, which includes eBay whenever the keys are set).
+
+These are **asking prices**, shown as "marketplace" in the dashboard. eBay's API does not return
+sold prices; when a fixed-price listing disappears before its end date the tracker records a
+low-confidence "likely sold" entry (the seller may simply have delisted it). Real sold data would
+need eBay's Marketplace Insights API, which requires approval.
+
 ## Adding a store
 
 Add an entry to `stores.json` (`id`, `name`, `base_url`, optional `collection`
@@ -45,9 +62,9 @@ The seed list is **unverified**: run `check-stores` and remove what does not wor
 
 ## Limits worth knowing
 
-* Retail asking prices only. This is not sold-price data; eBay sold listings are
-  the natural next source.
-* Shopify stores only for now. Prices are assumed to be in the store's
+* Asking prices only. Sold prices need eBay's restricted Marketplace Insights API;
+  until then "likely sold" entries are inferred and low confidence.
+* Shopify stores plus eBay (US marketplace). Prices are assumed to be in the store's
   `currency` (default USD).
 * The mold list is a hand-written seed, not complete. New releases will show up as
   `review`/`unparsed` until added to `disctracker/data/molds.json`; bump

@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS listings (
     UNIQUE(store_id, product_id)
 );
 CREATE INDEX IF NOT EXISTS listings_key ON listings(disc_key);
+-- Marketplace API calls spent per UTC day (the free Browse API limit is per day).
+CREATE TABLE IF NOT EXISTS api_calls (day TEXT NOT NULL, source TEXT NOT NULL, calls INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, source));
 CREATE TABLE IF NOT EXISTS variants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     listing_id INTEGER NOT NULL REFERENCES listings(id),
@@ -106,6 +109,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     ):
         if col not in cols(table):
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+    # Created here, not in SCHEMA, because on an old database the column may not exist yet.
+    conn.execute("CREATE INDEX IF NOT EXISTS listings_query ON listings(store_id, last_query)")
     conn.commit()
 
 
@@ -280,8 +285,47 @@ def last_ok_count(conn: sqlite3.Connection, store_id: str) -> int | None:
     return None if row is None else int(row["n_products"])
 
 
-def known_store_ids(conn: sqlite3.Connection) -> list[str]:
-    return [r["id"] for r in conn.execute("SELECT id FROM stores ORDER BY id")]
+def known_store_ids(conn: sqlite3.Connection, kind: str = "retail") -> list[str]:
+    """Ids of stores of one kind. Marketplaces are excluded by default: they are searched, not
+    scraped in full, so "not in stores.json" must never retire them."""
+    return [r["id"] for r in conn.execute("SELECT id FROM stores WHERE kind=? ORDER BY id", (kind,))]
+
+
+def calls_today(conn: sqlite3.Connection, day: str, source: str = "ebay") -> int:
+    row = conn.execute("SELECT calls FROM api_calls WHERE day=? AND source=?", (day, source)).fetchone()
+    return 0 if row is None else int(row["calls"])
+
+
+def add_calls(conn: sqlite3.Connection, day: str, calls: int, source: str = "ebay") -> None:
+    conn.execute(
+        "INSERT INTO api_calls(day, source, calls) VALUES (?,?,?) "
+        "ON CONFLICT(day, source) DO UPDATE SET calls=calls+excluded.calls", (day, source, calls))
+    conn.commit()
+
+
+def expire_stale(conn: sqlite3.Connection, store_id: str, observed_on: str, max_age_days: int) -> int:
+    """Mark marketplace listings gone that no search has returned for max_age_days.
+
+    Backstop for listings that no completed query can retire (for example the last query that
+    returned them is too large to ever complete). No sale is inferred: the reason is unknown."""
+    from datetime import date, timedelta
+
+    cutoff = (date.fromisoformat(observed_on) - timedelta(days=max_age_days)).isoformat()
+    rows = conn.execute(
+        "SELECT id FROM listings WHERE store_id=? AND gone=0 AND last_seen < ?", (store_id, cutoff)
+    ).fetchall()
+    with conn:
+        for r in rows:
+            for v in conn.execute(
+                    "SELECT id, price_cents, compare_at_cents FROM variants WHERE listing_id=? AND gone=0",
+                    (r["id"],)).fetchall():
+                conn.execute("UPDATE variants SET gone=1, available=0 WHERE id=?", (v["id"],))
+                conn.execute(
+                    "INSERT OR REPLACE INTO observations(variant_pk, observed_on, price_cents, "
+                    "compare_at_cents, available, gone) VALUES (?,?,?,?,0,1)",
+                    (v["id"], observed_on, v["price_cents"], v["compare_at_cents"]))
+            conn.execute("UPDATE listings SET gone=1 WHERE id=?", (r["id"],))
+    return len(rows)
 
 
 def order_queries(conn: sqlite3.Connection, queries: list[tuple[str, str]]) -> list[tuple[str, str]]:

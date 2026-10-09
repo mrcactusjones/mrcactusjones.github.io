@@ -92,6 +92,11 @@ def cmd_scrape(args) -> int:
     return 0 if ok else 1
 
 
+# eBay's free Browse API allows 5,000 calls per day; stay below it across all runs of a day.
+EBAY_DAILY_CALL_LIMIT = 4500
+EBAY_STALE_DAYS = 21
+
+
 def cmd_scrape_ebay(args) -> int:
     import os
 
@@ -103,12 +108,25 @@ def cmd_scrape_ebay(args) -> int:
               file=sys.stderr)
         return 0 if args.cmd == "run" else 1
     conn = db.connect(args.db)
+    today = _now().strftime("%Y-%m-%d")
+    budget = min(args.budget, EBAY_DAILY_CALL_LIMIT - db.calls_today(conn, today))
+    if budget <= 0:
+        print(f"eBay skipped: today's call allowance ({EBAY_DAILY_CALL_LIMIT}) is already spent")
+        return 0
     client = ebay.EbayClient(*creds)
     try:
-        stats = ebay.collect(conn, client, _now().strftime("%Y-%m-%d"), call_budget=args.budget,
-                             weight_parser=parser.parse_weight)
+        stats = ebay.collect(conn, client, today, call_budget=budget, weight_parser=parser.parse_weight)
     except ebay.EbayAuthError as exc:
         print(f"FAIL ebay: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        client.close()
+    db.add_calls(conn, today, stats["calls"])
+    retired = db.expire_stale(conn, ebay.EBAY_STORE["id"], today, EBAY_STALE_DAYS)
+    if retired:
+        print(f"eBay: {retired} listings not seen for {EBAY_STALE_DAYS} days marked gone")
+    if stats["queries_run"] == 0 and stats["stopped"] in ("errors", "quota"):
+        print(f"FAIL ebay: no query succeeded ({stats['stopped']})", file=sys.stderr)
         return 1
     print(f"ok   ebay: {stats}")
     return 0

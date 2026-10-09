@@ -149,6 +149,7 @@ def test_query_rotation_orders_never_run_then_stalest():
 def test_migrates_old_database(tmp_path):
     path = tmp_path / "old.db"
     c = db.connect(path)
+    c.execute("DROP INDEX listings_query")  # SQLite cannot drop a column an index uses
     for table, col in (("stores", "kind"), ("listings", "ends_at"), ("listings", "last_query")):
         c.execute(f"ALTER TABLE {table} DROP COLUMN {col}")  # simulate the first release's schema
     c.commit()
@@ -156,3 +157,23 @@ def test_migrates_old_database(tmp_path):
     c = db.connect(path)
     assert "kind" in {r["name"] for r in c.execute("PRAGMA table_info(stores)")}
     assert {"ends_at", "last_query"} <= {r["name"] for r in c.execute("PRAGMA table_info(listings)")}
+
+
+def test_expire_stale_retires_unseen_listings_without_inferring_a_sale():
+    c = ebay_conn()
+    db.record_products(c, "ebay", "2026-01-01", [item(1), item(2)], complete=False)
+    db.record_products(c, "ebay", "2026-01-25", [item(2)], complete=False)
+    assert db.expire_stale(c, "ebay", "2026-01-25", max_age_days=21) == 1
+    assert c.execute("SELECT gone FROM listings WHERE product_id=1").fetchone()[0] == 1
+    assert c.execute("SELECT gone FROM listings WHERE product_id=2").fetchone()[0] == 0
+    assert c.execute("SELECT COUNT(*) FROM sales").fetchone()[0] == 0
+
+
+def test_daily_call_counter_and_store_kinds():
+    c = ebay_conn()
+    db.upsert_store(c, {"id": "shop", "name": "Shop", "base_url": "https://shop.example"})
+    assert db.known_store_ids(c) == ["shop"]  # marketplaces are never retired as "not enabled"
+    assert db.calls_today(c, "2026-01-01") == 0
+    db.add_calls(c, "2026-01-01", 100)
+    db.add_calls(c, "2026-01-01", 50)
+    assert db.calls_today(c, "2026-01-01") == 150 and db.calls_today(c, "2026-01-02") == 0

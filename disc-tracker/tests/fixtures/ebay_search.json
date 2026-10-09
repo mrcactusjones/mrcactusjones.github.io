@@ -1,0 +1,78 @@
+{
+  "href": "https://api.ebay.com/buy/browse/v1/item_summary/search?q=star+destroyer+innova&category_ids=184356&limit=200&offset=0&filter=buyingOptions%3A%7BFIXED_PRICE%7D",
+  "total": 7,
+  "limit": 200,
+  "offset": 0,
+  "itemSummaries": [
+    {
+      "itemId": "v1|110439278622|0",
+      "title": "NEW Innova Star Destroyer 175g Disc Golf Driver Max Distance!!",
+      "price": {"value": "18.99", "currency": "USD"},
+      "condition": "New",
+      "conditionId": "1000",
+      "itemWebUrl": "https://www.ebay.com/itm/110439278622?hash=item19b7a6a39e:g:1l4AAOSw3GJl&amdata=enc%3AAQAJAAAA%2FHn3Z",
+      "itemEndDate": "2026-11-04T18:21:33.000Z",
+      "buyingOptions": ["FIXED_PRICE", "BEST_OFFER"],
+      "seller": {"username": "discgolf_depot", "feedbackPercentage": "99.8", "feedbackScore": 5120}
+    },
+    {
+      "itemId": "v1|225512340987|0",
+      "title": "Innova Champion Destroyer 170g used beat in 6/10",
+      "price": {"value": "12.50", "currency": "USD"},
+      "condition": "Pre-Owned",
+      "conditionId": "3000",
+      "itemWebUrl": "https://www.ebay.com/itm/225512340987?hash=item34694f8c7b:g:abcAAOSw",
+      "itemEndDate": "2026-10-30T09:00:00.000Z",
+      "buyingOptions": ["FIXED_PRICE"],
+      "seller": {"username": "throwin_thunder"}
+    },
+    {
+      "itemId": "v1|334455667788|5001",
+      "title": "Innova Star Destroyer - pick your weight",
+      "price": {"value": "21.00", "currency": "USD"},
+      "condition": "New",
+      "conditionId": "1000",
+      "itemWebUrl": "https://www.ebay.com/itm/334455667788?var=5001&hash=item4ff0",
+      "buyingOptions": ["FIXED_PRICE"],
+      "seller": {"username": "discs4less"}
+    },
+    {
+      "itemId": "v1|334455667788|5002",
+      "title": "Innova Star Destroyer - pick your weight",
+      "price": {"value": "19.49", "currency": "USD"},
+      "condition": "New",
+      "conditionId": "1000",
+      "itemWebUrl": "https://www.ebay.com/itm/334455667788?var=5002&hash=item4ff0",
+      "buyingOptions": ["FIXED_PRICE"],
+      "seller": {"username": "discs4less"}
+    },
+    {
+      "itemId": "v1|445566778899|0",
+      "title": "Innova Star Destroyer 172g",
+      "price": {"value": "22.00", "currency": "EUR"},
+      "condition": "New",
+      "conditionId": "1000",
+      "itemWebUrl": "https://www.ebay.de/itm/445566778899?hash=item",
+      "buyingOptions": ["FIXED_PRICE"],
+      "seller": {"username": "frisbee_haendler"}
+    },
+    {
+      "itemId": "v1|556677889900|0",
+      "title": "Innova Star Destroyer auction no reserve",
+      "price": {"value": "4.99", "currency": "USD"},
+      "condition": "New",
+      "conditionId": "1000",
+      "itemWebUrl": "https://www.ebay.com/itm/556677889900?hash=item",
+      "buyingOptions": ["AUCTION"],
+      "seller": {"username": "auction_guy"}
+    },
+    {
+      "itemId": "v1|667788990011|0",
+      "title": "Innova Star Destroyer 168g",
+      "price": {"value": "9.99", "currency": "USD"},
+      "itemWebUrl": "https://www.ebay.com/itm/667788990011",
+      "buyingOptions": ["FIXED_PRICE"],
+      "seller": {"username": "somebody"}
+    }
+  ]
+}

@@ -16,6 +16,12 @@ const NONE = "__none__";                  // select value for discs without a di
 const CONDS = ["new", "used"];
 const COND_LABEL = { new: "New", used: "Used" };
 const RANGES = [["30", "30d"], ["90", "90d"], ["all", "All"]];
+const KINDS = [["all", "All"], ["retail", "Retail"], ["marketplace", "Marketplace"]];   // chart source switch
+const KIND_NOUN = { all: "all sources", retail: "retail stores", marketplace: "marketplace listings" };
+// A sale the DB cannot confirm is only ever shown with this wording (DESIGN.md 10.4); never as "sold".
+const INFERRED_LABEL = "Likely sold (inferred, low confidence - the seller may have delisted it)";
+const CONFIRMED_LABEL = "Sold (confirmed)";
+const INFERRED_SOURCE = "inferred_disappeared";
 const SORTS = {                           // key -> default direction when first chosen
   name: "asc", type: "asc", min: "asc", median: "asc", stores: "desc", c7: "asc", c30: "asc",
 };
@@ -51,15 +57,22 @@ const str = (v) => (typeof v === "string" ? v : v == null ? "" : String(v));
 const titleCase = (s) => s.replace(/(^|[\s-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
-/** http(s) only, no embedded credentials; anything else (javascript:, data:, //host, junk) is refused. */
+/** http(s) only, no embedded credentials; anything else (javascript:, data:, //host, junk) is refused.
+ *  Browsers read a backslash like a slash and drop tabs and newlines, and open "https:host" as a host, so a string
+ *  with any of those can lead somewhere other than the host it appears to name: it is refused outright. */
 function safeHttpUrl(value) {
   if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!/^https?:\/\/[^\s\\\/?#]/i.test(text) || /[\\\s\x00-\x1f\x7f-\x9f]/.test(text)) return null;
   let u;
-  try { u = new URL(value.trim()); } catch { return null; }
+  try { u = new URL(text); } catch { return null; }
   if (u.protocol !== "http:" && u.protocol !== "https:") return null;
   if (u.username || u.password) return null;
   return u.href;
 }
+
+/** Small outlined tag that marks a price or listing as coming from a marketplace (text, so never colour alone). */
+const mpBadge = () => h("span", { class: "badge badge-mp" }, "Marketplace");
 
 function extLink(url, ...kids) {
   return h("a", { class: "ext", href: url, target: "_blank", rel: "noopener noreferrer" },
@@ -138,9 +151,10 @@ let currentRoute = null;
 let routeToken = 0;
 let activeView = null;
 let chartPromise = null;
+let mpFilter = false;            // true when the data has marketplace prices to include or exclude
 
 function defaultHome() {
-  return { q: "", mfr: "", type: "", cond: "new", stock: false, sort: "name", dir: "asc", shown: PAGE_SIZE };
+  return { q: "", mfr: "", type: "", cond: "new", stock: false, mp: true, sort: "name", dir: "asc", shown: PAGE_SIZE };
 }
 
 function homeParams(s) {
@@ -151,6 +165,7 @@ function homeParams(s) {
   if (s.type) p.set("type", s.type);
   if (s.cond !== d.cond) p.set("c", s.cond);
   if (s.stock) p.set("stock", "1");
+  if (!s.mp) p.set("mp", "0");
   if (s.sort !== d.sort || s.dir !== d.dir) { p.set("sort", s.sort); p.set("dir", s.dir); }
   return p;
 }
@@ -167,6 +182,7 @@ function homeFromParams(p, mfrs, types) {
   if (types.includes(type)) s.type = type;
   if (CONDS.includes(p.get("c"))) s.cond = p.get("c");
   s.stock = p.get("stock") === "1";
+  s.mp = !mpFilter || p.get("mp") !== "0";
   if (Object.hasOwn(SORTS, p.get("sort"))) {
     s.sort = p.get("sort");
     s.dir = p.get("dir") === "desc" ? "desc" : p.get("dir") === "asc" ? "asc" : SORTS[s.sort];
@@ -212,13 +228,17 @@ function prepare(index) {
       change_7d: num(b.change_7d), change_30d: num(b.change_30d),
     };
   };
+  mpFilter = false;
   for (const raw of index.discs) {
     if (!raw || typeof raw !== "object") continue;
     const d = {
       slug: str(raw.slug), manufacturer: str(raw.manufacturer), mold: str(raw.mold), plastic: str(raw.plastic),
       edition: titleCase(str(raw.edition)), player: str(raw.player), disc_type: str(raw.disc_type),
       last_seen: str(raw.last_seen), new: block(raw.new), used: block(raw.used),
+      // Only discs with marketplace data carry `retail`: the same blocks computed from the retail stores alone.
+      retail: raw.retail && typeof raw.retail === "object" ? { new: block(raw.retail.new), used: block(raw.retail.used) } : null,
     };
+    if (d.retail) mpFilter = true;
     d._ok = SLUG_RE.test(d.slug);
     d._live = !!(d.new || d.used);          // false: every store delisted it, only its history remains
     const words = tokenize([d.manufacturer, d.mold, d.plastic, d.edition, d.player].join(" "));
@@ -247,26 +267,48 @@ function rankDiscs() {
   for (const d of discs) d._type = typeRank.get(d.disc_type) ?? -1;      // untyped discs are told apart before ranks are compared
 }
 
-function normHistory(raw) {
-  if (!raw || typeof raw !== "object") throw new Error("unexpected history format");
-  const series = {};
+/** {new: [...], used: [...]} of validated, date-sorted points. */
+function normSeries(src) {
+  const out = {};
   for (const c of CONDS) {
-    const arr = Array.isArray(raw.series && raw.series[c]) ? raw.series[c] : [];
-    series[c] = arr
+    const arr = Array.isArray(src && src[c]) ? src[c] : [];
+    out[c] = arr
       .map((p) => ({ date: str(p && p.date), x: toDay(p && p.date), min: num(p && p.min), median: num(p && p.median), stores: num(p && p.stores_in_stock) }))
       .filter((p) => !Number.isNaN(p.x) && p.min != null && p.median != null)
       .sort((a, b) => a.x - b.x);
   }
+  return out;
+}
+
+function normHistory(raw) {
+  if (!raw || typeof raw !== "object") throw new Error("unexpected history format");
+  const series = normSeries(raw.series);
+  // Present only for discs with marketplace data; older files and retail-only discs have none (no source switch then).
+  const sbk = raw.series_by_kind;
+  const seriesByKind = sbk && typeof sbk === "object" ? { retail: normSeries(sbk.retail), marketplace: normSeries(sbk.marketplace) } : null;
   const listings = (Array.isArray(raw.listings) ? raw.listings : [])
     .filter((l) => l && typeof l === "object")
     .map((l) => ({
       store: str(l.store), title: str(l.title), url: safeHttpUrl(l.url),
+      storeKind: l.store_kind === "marketplace" ? "marketplace" : "retail",
       condition: l.condition === "used" ? "used" : "new",
       weight: num(l.weight_g), price: num(l.price), compareAt: num(l.compare_at),
       available: l.available === true, lastSeen: str(l.last_seen),
     }))
     .sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
-  return { series, listings };
+  const sales = (Array.isArray(raw.sales) ? raw.sales : [])
+    .filter((x) => x && typeof x === "object")
+    .map((x) => ({
+      date: str(x.date), x: toDay(x.date), price: num(x.price),
+      condition: x.condition === "used" ? "used" : "new",
+      // Confirmed only if the data says so in so many words; anything else (unknown value, missing field, an
+      // "inferred_disappeared" source) is treated and worded as an inferred guess.
+      confirmed: x.confidence === "confirmed" && x.source !== INFERRED_SOURCE,
+      store: str(x.store), url: safeHttpUrl(x.url),
+    }))
+    .filter((x) => x.price != null && x.price > 0)
+    .sort((a, b) => (Number.isNaN(b.x) ? -Infinity : b.x) - (Number.isNaN(a.x) ? -Infinity : a.x));   // newest first
+  return { series, seriesByKind, listings, sales };
 }
 
 function loadHistory(slug) {
@@ -344,11 +386,27 @@ function messageView(title, body, ...extra) {
 
 /* ---------------------------------------------------------------- home view */
 
+/** The block shown for a disc: the all-stores one, or, with marketplace prices excluded and the disc having marketplace
+ *  data, the retail-only one the exporter provides (min/median/change cannot be derived from the blended numbers). */
+function blockOf(d, cond, mp) {
+  return mp || !d.retail ? d[cond] : d.retail[cond];
+}
+
+/** True when the lowest in-stock price of a disc comes from a marketplace: no retail store has it in stock, or the
+ *  marketplace is strictly cheaper (ties go to retail). Only knowable for discs with marketplace data. */
+function lowestFromMarketplace(d, cond) {
+  const b = d[cond], r = d.retail && d.retail[cond];
+  if (!d.retail || !b || b.stores_in_stock === 0) return false;
+  return !r || r.stores_in_stock === 0 || b.min < r.min;
+}
+
 function matches(d, s, tokens) {
-  const b = d[s.cond];
+  const b = blockOf(d, s.cond, s.mp);
   // No block for this condition: the disc only exists in the other condition (hide it), or it has no live
   // listing at all (every store delisted it). Those stay findable, because their price history is still there.
-  if (!b && d._live) return false;
+  // With marketplace prices excluded a disc that has marketplace data but no live retail listing counts as
+  // marketplace-only: it has no retail block, `d.retail` is set, so it is hidden here too.
+  if (!b && (s.mp || !d.retail ? d._live : true)) return false;
   if (s.mfr && d.manufacturer !== s.mfr) return false;
   if (s.type && (d.disc_type || NONE) !== s.type) return false;
   if (s.stock && !(b && b.stores_in_stock > 0)) return false;
@@ -378,7 +436,7 @@ function sorter(s) {
   }
   const val = SORT_VALUE[s.sort];
   return (a, b) => {
-    const x = val(a[s.cond]), y = val(b[s.cond]);
+    const x = val(blockOf(a, s.cond, s.mp)), y = val(blockOf(b, s.cond, s.mp));
     if (x == null && y == null) return byName(a, b);
     if (x == null) return 1;                                              // missing values always last
     if (y == null) return -1;
@@ -398,10 +456,10 @@ const HEADERS = [
   ["c30", "30d change", "c-30", true],
 ];
 
-function discRow(d, cond) {
-  const b = d[cond] || NO_BLOCK;
+function discRow(d, cond, mp) {
+  const b = blockOf(d, cond, mp) || NO_BLOCK;
   const href = d._ok ? discHref(d.slug, cond) : null;
-  const delisted = !d[cond];
+  const delisted = !blockOf(d, cond, mp);
   const out = delisted || b.stores_in_stock === 0;
   const sub = [d.manufacturer, d.edition, d.player].filter(Boolean).join(" · ");
   const tr = h("tr", { role: "row", class: out ? "is-out" : null, "data-slug": d._ok ? d.slug : null, "data-href": href });
@@ -411,7 +469,9 @@ function discRow(d, cond) {
       d.plastic ? [" ", h("span", { class: "plastic" }, d.plastic)] : null,
       sub ? h("span", { class: "sub" }, sub) : null),
     h("td", { role: "cell", class: "c-type" }, d.disc_type || h("span", { class: "muted" }, "–")),
-    h("td", { role: "cell", class: "num price c-min", "data-label": "Lowest" }, money(b.min), out && !delisted ? h("span", { class: "note" }, "last known") : null),
+    h("td", { role: "cell", class: "num price c-min", "data-label": "Lowest" }, money(b.min),
+      out && !delisted ? h("span", { class: "note" }, "last known") : null,
+      mp && !out && lowestFromMarketplace(d, cond) ? h("span", { class: "note" }, mpBadge()) : null),
     h("td", { role: "cell", class: "num c-med", "data-label": "Median" }, money(b.median)),
     h("td", { role: "cell", class: "num c-stores", "data-label": "In stock" },
       delisted ? h("span", { class: "oos" }, "No live listings")
@@ -446,6 +506,7 @@ function buildHome() {
   });
   ui.cond.el.classList.add("f-cond");
   ui.stock = h("input", { type: "checkbox", id: "f-stock" });
+  ui.mp = h("input", { type: "checkbox", id: "f-mp" });
   ui.reset = h("button", { type: "button", class: "btn link", hidden: true }, "Reset filters");
   ui.count = h("span", { "aria-live": "polite", role: "status" });
   ui.sortSel = h("select", { id: "f-sort", "aria-label": "Sort by" },
@@ -455,8 +516,10 @@ function buildHome() {
   const form = h("form", { class: "filters", role: "search", "aria-label": "Find a disc" },
     h("div", { class: "field f-search" }, h("label", { class: "lbl", for: "f-q" }, "Search"), ui.q),
     mfr.field, type.field, ui.cond.el,
-    h("div", { class: "field f-stock" }, h("span", { class: "lbl sr" }, "Availability"),
-      h("label", { class: "check" }, ui.stock, "In stock only")));
+    h("div", { class: "field f-checks" + (mpFilter ? " two" : "") }, h("span", { class: "lbl sr" }, "Availability and sources"),
+      h("label", { class: "check" }, ui.stock, "In stock only"),
+      // Only offered when the data has marketplace prices: otherwise there is nothing to include or exclude.
+      mpFilter ? h("label", { class: "check" }, ui.mp, "Include marketplace prices") : null));
   form.addEventListener("submit", (e) => e.preventDefault());
 
   ui.ths = {};
@@ -482,8 +545,9 @@ function buildHome() {
   ui.mfr.addEventListener("change", () => { home.mfr = ui.mfr.value; home.shown = PAGE_SIZE; updateHome(); });
   ui.type.addEventListener("change", () => { home.type = ui.type.value; home.shown = PAGE_SIZE; updateHome(); });
   ui.stock.addEventListener("change", () => { home.stock = ui.stock.checked; home.shown = PAGE_SIZE; updateHome(); });
+  ui.mp.addEventListener("change", () => { home.mp = ui.mp.checked; home.shown = PAGE_SIZE; updateHome(); });
   ui.reset.addEventListener("click", () => {
-    Object.assign(home, { q: "", mfr: "", type: "", cond: "new", stock: false, shown: PAGE_SIZE });
+    Object.assign(home, { q: "", mfr: "", type: "", cond: "new", stock: false, mp: true, shown: PAGE_SIZE });
     updateHome();
     ui.q.focus();
   });
@@ -533,6 +597,7 @@ function updateHome() {
   ui.mfr.value = s.mfr;
   ui.type.value = s.type;
   ui.stock.checked = s.stock;
+  ui.mp.checked = s.mp;
   ui.cond.set(s.cond);
   ui.sortSel.value = s.sort;
   ui.dirBtn.textContent = s.dir === "asc" ? "▲ Ascending" : "▼ Descending";
@@ -547,13 +612,13 @@ function updateHome() {
   const tokens = tokenize(s.q);
   const list = discs.filter((d) => matches(d, s, tokens)).sort(sorter(s));
   const shown = list.slice(0, s.shown);
-  ui.tbody.replaceChildren(...shown.map((d) => discRow(d, s.cond)));
+  ui.tbody.replaceChildren(...shown.map((d) => discRow(d, s.cond, s.mp)));
 
   const total = discs.length;
   let text = list.length === total ? total + (total === 1 ? " disc" : " discs") : list.length + " of " + total + " discs";
   if (list.length > shown.length) text += " · showing the first " + shown.length;
   ui.count.textContent = text;
-  const filtered = !!(s.q || s.mfr || s.type || s.stock || s.cond !== "new");
+  const filtered = !!(s.q || s.mfr || s.type || s.stock || !s.mp || s.cond !== "new");
   ui.reset.hidden = !filtered;
   ui.table.hidden = list.length === 0;
   ui.noMatch.hidden = list.length !== 0;
@@ -705,7 +770,8 @@ function buildDisc(entry, hist, condParam) {
     if (hasData(home.cond)) return home.cond;
     return CONDS.find(hasData) || "new";
   };
-  const view = { cond: pick(), range: "all", hidden: new Set(), chart: null, gen: 0, dead: false, pts: [] };
+  const view = { cond: pick(), range: "all", kind: "all", hidden: new Set(), chart: null, gen: 0, dead: false, pts: [] };
+  const byKind = hist.seriesByKind;                       // null unless the disc has marketplace data
   const todayDay = toDay(data.generated_at);
 
   const title = discTitle(entry);
@@ -716,6 +782,7 @@ function buildDisc(entry, hist, condParam) {
     label: "Condition", options: CONDS.map((c) => [c, COND_LABEL[c]]), value: view.cond,
     onChange: (c) => { view.cond = c; syncUrl(); render(); },
   });
+  condSeg.el.classList.add("f-cond");
   for (const c of CONDS) condSeg.disable(c, !hasData(c), "No " + c + " data for this disc yet");
   const chips = [["Plastic", entry.plastic], ["Edition", entry.edition], ["Player", entry.player], ["Type", entry.disc_type]]
     .filter(([, v]) => v)
@@ -731,9 +798,24 @@ function buildDisc(entry, hist, condParam) {
   const kpis = h("section", { class: "kpis", "aria-label": "Current prices" });
   const chartSub = h("p", { class: "card-sub" });
   const rangeSeg = segmented({
-    label: "Date range", hideLabel: true, small: true, options: RANGES, value: view.range,
+    label: "Date range", hideLabel: !byKind, small: true, options: RANGES, value: view.range,
     onChange: (r) => { view.range = r; renderChart(); },
   });
+  // The source switch only exists for discs with marketplace data. It changes which stores the lines are
+  // computed from, not what the lines mean, so Lowest and Median keep their colours in every view.
+  const kindSeg = byKind ? segmented({
+    label: "Prices from", small: true, options: KINDS, value: view.kind,
+    onChange: (k) => { view.kind = k; renderChart(); },
+  }) : null;
+  rangeSeg.el.classList.add("f-range");
+  if (kindSeg) {
+    kindSeg.el.classList.add("f-kind");
+    for (const [k] of KINDS) {
+      if (k !== "all") kindSeg.disable(k, CONDS.every((c) => byKind[k][c].length === 0), "No " + KIND_NOUN[k] + " price history for this disc");
+    }
+  }
+  const kpiNote = h("p", { class: "kpi-note", hidden: !byKind },
+    "Prices above combine retail stores and marketplace listings. Marketplace prices are individual sellers' asking prices (shipping not included), not retail prices; the chart below can show either on its own.");
   const legend = h("ul", { class: "legend", "aria-label": "Series" });
   const legendBtns = [["Lowest", "key-1"], ["Median", "key-2"]].map(([label, cls], i) => {
     const btn = h("button", { type: "button", "aria-pressed": "true" }, h("span", { class: "key " + cls, "aria-hidden": "true" }), label);
@@ -755,16 +837,18 @@ function buildDisc(entry, hist, condParam) {
   const chartNote = h("p", { class: "chart-hint" });
   const chartHint = h("p", { class: "chart-hint", id: "chart-hint" }, "Hover, tap, or use the left and right arrow keys on the chart to read a day's prices.");
   const dataBody = h("tbody", { role: "rowgroup" });
+  const dataCaption = h("caption", { class: "sr" }, "Daily lowest and median price");
   const dataDetails = h("details", { class: "data" },
     h("summary", null, "View data as a table"),
     h("div", { class: "scroll", tabindex: "0", role: "region", "aria-label": "Price history table" },
       h("table", { class: "plain", role: "table" },
-        h("caption", { class: "sr" }, "Daily lowest and median price"),
+        dataCaption,
         h("thead", { role: "rowgroup" }, h("tr", { role: "row" },
           ["Date", "Lowest", "Median", "Stores in stock"].map((t, i) => h("th", { role: "columnheader", scope: "col", class: i ? "num" : null }, t)))),
         dataBody)));
   const chartCard = h("section", { class: "card chart-card", "aria-labelledby": "chart-title" },
-    h("div", { class: "card-head" }, h("h2", { id: "chart-title" }, "Price history"), rangeSeg.el),
+    h("div", { class: "card-head" }, h("h2", { id: "chart-title" }, "Price history"),
+      h("div", { class: "chart-controls" }, kindSeg ? kindSeg.el : null, rangeSeg.el)),
     chartSub, legend, chartBox, chartMsg, live, chartHint, chartNote, dataDetails);
   const listBody = h("tbody", { role: "rowgroup" });
   const listSub = h("p", { class: "card-sub" });
@@ -774,15 +858,31 @@ function buildDisc(entry, hist, condParam) {
       [["Store", ""], ["Listing", ""], ["Weight", "num"], ["Price", "num"], ["Availability", ""]]
         .map(([t, c]) => h("th", { role: "columnheader", scope: "col", class: c || null }, t)))),
     listBody);
+  const listNote = h("p", { class: "card-sub list-note", hidden: true },
+    "Marketplace listings are individual sellers' asking prices for one specific copy (shipping not included), not retail prices.");
   const listCard = h("section", { class: "card list-card", "aria-labelledby": "list-title" },
-    h("div", { class: "card-head" }, h("h2", { id: "list-title" }, "Current listings")), listSub, h("div", { class: "tablewrap" }, listTable), listEmpty);
+    h("div", { class: "card-head" }, h("h2", { id: "list-title" }, "Current listings")), listSub, h("div", { class: "tablewrap" }, listTable), listEmpty, listNote);
+
+  // Recent sales. Only marketplaces produce them, so the card exists for discs with marketplace data or any recorded sale.
+  const salesBody = h("tbody", { role: "rowgroup" });
+  const salesSub = h("p", { class: "card-sub" });
+  const salesEmpty = h("p", { class: "empty", hidden: true });
+  const salesTable = h("table", { class: "plain stack sales", role: "table", "aria-label": "Recent sales" },
+    h("thead", { role: "rowgroup" }, h("tr", { role: "row" },
+      [["Date", ""], ["Price", "num"], ["Result", ""], ["Store", ""], ["Listing", ""]]
+        .map(([t, c]) => h("th", { role: "columnheader", scope: "col", class: c || null }, t)))),
+    salesBody);
+  const salesCard = h("section", { class: "card list-card sales-card", "aria-labelledby": "sales-title", hidden: !(byKind || hist.sales.length) },
+    h("div", { class: "card-head" }, h("h2", { id: "sales-title" }, "Recent sales")), salesSub,
+    h("div", { class: "tablewrap" }, salesTable), salesEmpty);
 
   const el = h("div", { class: "disc" },
-    h("a", { class: "back", href: homeHash() }, "← All discs"), head, kpis, chartCard, listCard);
+    h("a", { class: "back", href: homeHash() }, "← All discs"), head, kpis, kpiNote, chartCard, listCard, salesCard);
   view.el = el;
 
   // ---- renderers
-  const series = () => hist.series[view.cond];
+  const allSeries = () => hist.series[view.cond];                                  // the tiles: all stores, always
+  const series = () => (byKind && view.kind !== "all" ? byKind[view.kind][view.cond] : allSeries());   // the chart: per the switch
   const cname = () => COND_LABEL[view.cond].toLowerCase();
 
   function tile(label, valueNode, sub, cls) {
@@ -791,14 +891,18 @@ function buildDisc(entry, hist, condParam) {
   }
 
   function renderTiles() {
-    const c = view.cond, blk = entry[c], s = series();
+    const c = view.cond, blk = entry[c], s = allSeries();
     const last = s[s.length - 1];
     const lst = hist.listings.filter((l) => l.condition === c);
     const inStock = lst.filter((l) => l.available && l.price != null);
     let hero;
     if (blk && blk.stores_in_stock > 0) {
       const where = blk.stores_in_stock + " of " + blk.stores_listing + (blk.stores_listing === 1 ? " store" : " stores") + " in stock";
-      hero = tile("Lowest " + cname() + " price now", money(blk.min), inStock[0] ? inStock[0].store + " · " + where : where, "hero");
+      // The source of the headline price must be obvious: a marketplace asking price is not a retail price.
+      // At the same price the retail store is named (the home list does the same), never the marketplace.
+      const cheapest = inStock.find((l) => l.price === inStock[0].price && l.storeKind !== "marketplace") || inStock[0];
+      hero = tile("Lowest " + cname() + " price now", money(blk.min),
+        cheapest ? [cheapest.storeKind === "marketplace" ? [mpBadge(), " "] : null, cheapest.store + " · " + where] : where, "hero");
     } else if (blk) {
       hero = tile("Lowest " + cname() + " price now", money(blk.min), "Out of stock at all " + blk.stores_listing + (blk.stores_listing === 1 ? " store" : " stores") + ". This is the last known price.", "hero");
       hero.querySelector(".val").classList.add("dim");
@@ -858,7 +962,15 @@ function buildDisc(entry, hist, condParam) {
     const pts = rangePoints();
     view.pts = pts;
     rangeSeg.set(view.range);
-    chartSub.textContent = "Daily lowest and median asking price across the tracked stores, " + cname() + " discs.";
+    if (view.kind === "marketplace") {
+      chartSub.textContent = "Daily lowest and median asking price of " + cname() + " discs listed on marketplaces. These are sellers' asking prices, not sold prices.";
+    } else if (view.kind === "retail") {
+      chartSub.textContent = "Daily lowest and median price of " + cname() + " discs across the tracked retail stores only.";
+    } else {
+      chartSub.textContent = "Daily lowest and median asking price across the tracked stores" + (byKind ? " and marketplace listings" : "") + ", " + cname() + " discs.";
+    }
+    const src = byKind ? " (" + KIND_NOUN[view.kind] + ")" : "";
+    dataCaption.textContent = "Daily lowest and median price" + src;
     for (const b of legendBtns) b.parentElement.hidden = pts.length === 0;
     chartNote.textContent = "";
     live.textContent = "";
@@ -868,9 +980,10 @@ function buildDisc(entry, hist, condParam) {
       chartHint.hidden = true;
       dataDetails.hidden = true;
       chartMsg.hidden = false;
+      const from = view.kind === "all" ? "" : " from " + KIND_NOUN[view.kind];
       chartMsg.textContent = all.length
-        ? "No " + cname() + " prices were recorded in this period. Pick a longer range."
-        : "No " + cname() + " price history yet. Points appear after a store has the disc in stock on a scrape day.";
+        ? "No " + cname() + " prices" + from + " were recorded in this period. Pick a longer range."
+        : "No " + cname() + " price history" + from + " yet. Points appear after a " + (view.kind === "marketplace" ? "marketplace" : "store") + " has the disc in stock on a scrape day.";
       return;
     }
     chartMsg.hidden = true;
@@ -884,14 +997,19 @@ function buildDisc(entry, hist, condParam) {
       h("td", { role: "cell", class: "num" }, money(p.median)), h("td", { role: "cell", class: "num" }, p.stores == null ? "–" : p.stores))));
 
     const notes = [];
-    if (pts.some((p, i) => i && p.x - pts[i - 1].x > GAP_DAYS)) notes.push("Breaks in the line mean no store had the disc in stock, or no scrape succeeded, for several days.");
+    if (pts.some((p, i) => i && p.x - pts[i - 1].x > GAP_DAYS)) {
+      notes.push(view.kind === "marketplace"
+        ? "Breaks in the line mean no marketplace listing was live, or no scrape succeeded, for several days."
+        : "Breaks in the line mean no store had the disc in stock, or no scrape succeeded, for several days.");
+    }
     if (pts.every((p) => p.min === p.median)) {
-      notes.push(pts.every((p) => p.stores === 1)
+      // a marketplace counts as one "store" however many listings it has, so "only one store" would be a false claim there
+      notes.push(view.kind !== "marketplace" && pts.every((p) => p.stores === 1)
         ? "Lowest and median are identical here because only one store had it in stock at a time."
         : "Lowest and median are the same on every day shown, so the two lines overlap.");
     }
     chartNote.textContent = notes.join(" ");
-    canvas.setAttribute("aria-label", "Line chart of lowest and median " + cname() + " price from " + fmtDate(pts[0].date) + " to " + fmtDate(pts[pts.length - 1].date) +
+    canvas.setAttribute("aria-label", "Line chart of lowest and median " + cname() + " price" + (byKind ? " from " + KIND_NOUN[view.kind] : "") + " from " + fmtDate(pts[0].date) + " to " + fmtDate(pts[pts.length - 1].date) +
       ". Latest lowest " + money(pts[pts.length - 1].min) + ", median " + money(pts[pts.length - 1].median) + ". The same numbers are in the table below.");
 
     loadChart().then((Chart) => {
@@ -952,32 +1070,69 @@ function buildDisc(entry, hist, condParam) {
     const c = view.cond;
     const lst = hist.listings.filter((l) => l.condition === c);
     const inStock = lst.filter((l) => l.available).length;
+    const market = lst.filter((l) => l.storeKind === "marketplace").length;
     listSub.textContent = lst.length
-      ? lst.length + (lst.length === 1 ? " " : " ") + cname() + " listing" + (lst.length === 1 ? "" : "s") + ", " + inStock + " in stock. Cheapest first."
+      ? lst.length + " " + cname() + " listing" + (lst.length === 1 ? "" : "s") + (market ? " (" + market + " on a marketplace)" : "") + ", " + inStock + " in stock. Cheapest first."
       : "";
+    listNote.hidden = market === 0;
     listTable.hidden = lst.length === 0;
     listEmpty.hidden = lst.length !== 0;
     listEmpty.textContent = "No live " + cname() + " listings right now. The chart shows the last known prices.";
     listBody.replaceChildren(...lst.map((l) => {
       const title = l.url ? extLink(l.url, l.title || "View listing") : (l.title || "(untitled)");
       const showWas = l.compareAt != null && l.price != null && l.compareAt > l.price;
-      return h("tr", { role: "row", class: l.available ? null : "is-out" },
-        h("td", { role: "cell", class: "s-store" }, l.store || "Unknown store"),
+      const market = l.storeKind === "marketplace";
+      return h("tr", { role: "row", class: l.available ? null : "is-out", "data-kind": l.storeKind },
+        h("td", { role: "cell", class: "s-store" }, l.store || "Unknown store", market ? [" ", mpBadge()] : null),
         h("td", { role: "cell", class: "s-title" }, title),
         h("td", { role: "cell", class: "num s-weight" }, l.weight != null ? l.weight + " g" : h("span", { class: "muted" }, "–")),
         h("td", { role: "cell", class: "num price s-price" }, money(l.price),
           showWas ? h("span", { class: "note" }, h("span", { class: "strike" }, h("span", { class: "sr" }, "was "), money(l.compareAt))) : null),
         h("td", { role: "cell", class: "c-status" },
           h("span", { class: "avail " + (l.available ? "in" : "out") },
-            h("span", { class: "dot", "aria-hidden": "true" }, l.available ? "●" : "○"), l.available ? "In stock" : "Out of stock"),
+            h("span", { class: "dot", "aria-hidden": "true" }, l.available ? "●" : "○"),
+            market ? (l.available ? "Listed" : "Unavailable") : (l.available ? "In stock" : "Out of stock")),
           l.lastSeen && toDay(l.lastSeen) < todayDay ? h("span", { class: "note" }, "seen " + fmtShort(l.lastSeen)) : null));
     }));
+  }
+
+  function saleRow(x) {
+    const tag = x.confirmed
+      ? h("span", { class: "sale-tag sale-confirmed" }, h("span", { class: "ico", "aria-hidden": "true" }, "✔"), CONFIRMED_LABEL)
+      : h("span", { class: "sale-tag sale-inferred" }, h("span", { class: "ico", "aria-hidden": "true" }, "?"), INFERRED_LABEL);
+    return h("tr", { role: "row", class: x.confirmed ? "sale-row confirmed" : "sale-row inferred" },
+      h("td", { role: "cell", class: "sale-date" }, fmtDate(x.date)),
+      h("td", { role: "cell", class: "num price sale-price" }, money(x.price),
+        h("span", { class: "note" }, x.confirmed ? "sold price" : "last asking price")),
+      h("td", { role: "cell", class: "sale-what" }, tag),
+      h("td", { role: "cell", class: "sale-store" }, x.store || "Unknown store"),
+      h("td", { role: "cell", class: "sale-link" }, x.url ? extLink(x.url, "View listing") : h("span", { class: "muted" }, "–")));
+  }
+
+  function renderSales() {
+    const c = view.cond;
+    const rows = hist.sales.filter((x) => x.condition === c);
+    const other = hist.sales.length - rows.length;
+    const confirmed = rows.filter((x) => x.confirmed).length;
+    salesTable.hidden = rows.length === 0;
+    salesEmpty.hidden = rows.length !== 0;
+    salesEmpty.textContent = "No sales detected for " + cname() + " discs yet." +
+      (other ? " " + other + (other === 1 ? " sale is" : " sales are") + " listed under " + COND_LABEL[c === "new" ? "used" : "new"] + "." : "");
+    const parts = [];
+    if (rows.length - confirmed) {
+      parts.push("Rows marked “Likely sold” are listings that disappeared before their end date. The seller may simply have delisted the item, so they are guesses, not confirmed sales, and the price is the last asking price.");
+    }
+    if (confirmed) parts.push("Rows marked “Sold” are confirmed sales.");
+    salesSub.textContent = parts.join(" ");
+    salesSub.hidden = parts.length === 0;
+    salesBody.replaceChildren(...rows.map(saleRow));
   }
 
   function render() {
     renderTiles();
     renderChart();
     renderListings();
+    renderSales();
   }
 
   view.redraw = () => { if (!view.dead) renderChart(); };
@@ -1073,11 +1228,13 @@ function renderChrome() {
     if (!ok) status = h("span", { class: "stale" }, "no successful scrape yet");
     else if (ok < str(data.generated_at)) status = h("span", { class: "stale" }, "last scraped " + fmtDate(ok) + " (stale)");
     else status = "scraped " + fmtDate(ok);
-    list.append(h("li", null, url ? extLink(url, name) : name, " · ", status));
+    list.append(h("li", null, url ? extLink(url, name) : name, s.kind === "marketplace" ? [" ", mpBadge()] : null, " · ", status));
   }
+  const hasMarket = stores.some((s) => s.kind === "marketplace");
   foot.replaceChildren(...[
     stores.length ? [h("h2", null, "Sources"), list] : null,
-    h("p", null, "Retail asking prices from public storefronts, not sold prices. Prices and stock may have changed since the last scrape. Change badges compare the daily lowest in-stock price with the nearest earlier scrape.")].flat().filter(Boolean));
+    h("p", null, "Retail asking prices from public storefronts, not sold prices. Prices and stock may have changed since the last scrape. Change badges compare the daily lowest in-stock price with the nearest earlier scrape."),
+    hasMarket ? h("p", null, "Marketplace prices are individual sellers' asking prices for one specific copy, not retail prices, and are marked as such. “Likely sold” entries are inferred from listings that disappeared, so they may be delistings rather than sales.") : null].flat().filter(Boolean));
 }
 
 function showFatal(err) {

@@ -305,7 +305,7 @@ Browse API facts to implement (verify against these, do not invent others):
   retried with backoff (max 3) then that query fails; never log or put credentials/tokens in
   exception text; credentials come only from the environment, never from files or the DB.
 * Daily limit: Browse API's default is 5,000 calls/day; `call_budget` default 3,500 leaves headroom.
-  ~2,900 queries exist so a full rotation takes about a day; `db.order_queries` makes the next
+  ~3,300 queries exist (one per mold x plastic) so a full rotation takes a day or more; `db.order_queries` makes the next
   run resume with the stalest queries first.
 
 ### 10.3 CLI (cli.py, DONE)
@@ -337,3 +337,44 @@ Max Distance!!"). Lots, pairs and bundles ("lot of 3", "3x", "(2) discs", "set o
 "pick your disc", "mystery") must never become a single-disc price (-> `ignored`, or `review`
 when unsure). `condition:new` / `condition:used` tags are honoured (used wins when either the
 tag or the title says used; "unthrown"/"never thrown"/"NIB" mean new). Bump `PARSER_VERSION`.
+
+## 11. eBay implementation notes (what was built beyond sections 10.1-10.5)
+
+**Collector (`ebay.py`)** - `collect()` can also stop with `stopped="errors"` after 10 failed queries
+in a row (a dead eBay would otherwise burn hours in backoff). Failed queries are recorded as
+attempted so they cannot starve the rotation. `EbayError.calls` carries the calls a failing search
+spent. Multi-variation listings become one listing per legacy id (the cheapest variation; the rest
+are counted as skipped). Prices that round to 0 cents, URLs with backslashes or odd hosts, and
+summaries whose format has drifted (most items unreadable) are rejected rather than recorded.
+Credentials never appear in exception text, logs or `runs.error`, including via `__context__`.
+A search whose `total` changes between pages is incomplete; totals above 10,000 are incomplete.
+
+**Safeguards against false "gone" / "sold" data** - a complete query only expires listings if its
+result did not collapse: a drop of more than half (previous >= 20 results), or any empty result
+after a non-empty one, is recorded but not believed until the next run repeats it. A backstop
+(`db.expire_stale`, 21 days) retires listings that no completed query can retire; it infers no sale.
+Marketplace stores are never retired by the "not in stores.json" rule. The CLI keeps a per-day
+call counter (`api_calls`) and caps all eBay calls at 4,500 per UTC day across runs.
+
+**Inferred sales** are an upper bound: a fixed-price listing that disappears before `itemEndDate`
+may simply have been delisted. They are always `confidence='low'`, labelled "Likely sold
+(inferred, low confidence ...)" in the dashboard, never mixed into confirmed sales, and removed
+again if the item reappears. If eBay omits `itemEndDate` or returns a rolling renewal date,
+every disappearance counts as an inferred sale.
+
+**Exporter/site additions** - besides section 10.4, `discs[].retail` holds the retail-only price
+blocks and is present only for discs with marketplace data; the home page uses it for the
+include-marketplace filter. A tie between a retail store and eBay on the lowest price is credited
+to the retail store.
+
+**Parser** (`PARSER_VERSION` bumped; every listing is re-parsed on the next `parse`, so past chart
+points of retail discs can move) - lots, pairs, kits and quantities in many spellings (`3x`, `3x`
+with the multiplication sign, "Two Disc", "Count: 3", "N for $") make a listing `ignored`;
+non-disc items (jewellery, signs, replicas, art, toys) are `ignored`; a second disc in the title
+("& Roc", "+ Sparrow"), a sibling mold written apart ("Z SS Buzzz"), an unlisted plastic qualifier
+("Lucid Chameleon"), "compare to / clone of / style" wording, and auction wording give `review`.
+A "5 Star Seller" is not the Star plastic.
+
+**Not built** - there is no client for eBay's Marketplace Insights (real sold prices; restricted
+access). `db.record_sale(..., source='marketplace_insights', confidence='confirmed')` and the
+exporter/dashboard already handle such rows when one exists.

@@ -115,3 +115,45 @@ def test_export_and_parse_refuse_missing_db(tmp_path):
         with pytest.raises(SystemExit):
             cli.main(["--db", str(tmp_path / "nope.db"), "--out", str(tmp_path / "o"), cmd])
     assert not (tmp_path / "nope.db").exists()
+
+
+# --- eBay wiring in the CLI -----------------------------------------------------------------
+
+@pytest.fixture
+def ebay_env(tmp_path, monkeypatch):
+    from disctracker import ebay
+
+    monkeypatch.setenv("EBAY_CLIENT_ID", "id")
+    monkeypatch.setenv("EBAY_CLIENT_SECRET", "secret")
+    calls = {"budgets": [], "result": {"queries_run": 5, "queries_complete": 5, "calls": 4000, "items_seen": 0,
+                                       "new_listings": 0, "gone": 0, "inferred_sales": 0,
+                                       "skipped_currency": 0, "stopped": "budget"}}
+
+    def fake_collect(conn, client, observed_on, call_budget=3500, **kw):
+        calls["budgets"].append(call_budget)
+        return dict(calls["result"])
+
+    monkeypatch.setattr(ebay, "collect", fake_collect)
+    return tmp_path, ["--db", str(tmp_path / "d.db")], calls
+
+
+def test_ebay_daily_call_allowance_is_shared_across_runs(ebay_env):
+    _, argv, calls = ebay_env
+    assert cli.main(argv + ["scrape-ebay"]) == 0
+    assert cli.main(argv + ["scrape-ebay"]) == 0  # 4000 already spent: only 500 of the 4500 left
+    assert cli.main(argv + ["scrape-ebay"]) == 0  # 4000 + 4000 > 4500: nothing left, collect not called
+    assert calls["budgets"] == [3500, 500]
+
+
+def test_ebay_total_failure_is_a_failed_run(ebay_env):
+    _, argv, calls = ebay_env
+    calls["result"].update(queries_run=0, stopped="errors")
+    assert cli.main(argv + ["scrape-ebay"]) == 1
+
+
+def test_scrape_ebay_without_keys_fails_but_run_skips(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("EBAY_CLIENT_ID", raising=False)
+    monkeypatch.delenv("EBAY_CLIENT_SECRET", raising=False)
+    argv = ["--db", str(tmp_path / "d.db")]
+    assert cli.main(argv + ["scrape-ebay"]) == 1
+    assert "EBAY_CLIENT_ID" in capsys.readouterr().err

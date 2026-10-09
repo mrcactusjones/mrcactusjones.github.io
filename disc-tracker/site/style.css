@@ -97,6 +97,7 @@ main:focus-visible, h1[tabindex="-1"]:focus-visible { outline: none; }   /* focu
 .site-foot ul { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 20px; }
 .site-foot .stale { color: var(--bad); font-weight: 600; }
 .site-foot p { max-width: 70ch; }
+.site-foot p + p { margin-top: 6px; }
 
 /* ---- controls ------------------------------------------------------------ */
 
@@ -119,6 +120,9 @@ input[type="search"]::placeholder { color: var(--ink-3); opacity: 1; }
 
 .check { display: inline-flex; align-items: center; gap: 8px; height: 40px; font-size: 14.5px; cursor: pointer; white-space: nowrap; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-bg); }
+/* two checkboxes (in stock / include marketplace) stack to the height of one control */
+.f-checks.two { gap: 0; }
+.f-checks.two .check { height: 20px; }
 
 /* segmented radio group: real radios, visually restyled */
 .seg { display: inline-flex; }
@@ -187,7 +191,7 @@ button.sort:hover { color: var(--ink); text-decoration: underline; }
 .arrow.idle { opacity: 0.35; }
 
 .c-name { min-width: 220px; }
-.c-name, .c-type, .s-store, .s-title, .eyebrow, .site-foot li { overflow-wrap: anywhere; }
+.c-name, .c-type, .s-store, .s-title, .sale-store, .eyebrow, .site-foot li { overflow-wrap: anywhere; }
 .c-name a { color: var(--ink); font-weight: 650; text-decoration: none; }
 .c-name a:hover { text-decoration: underline; }
 .c-name .plastic { color: var(--ink-2); font-weight: 500; }
@@ -285,6 +289,29 @@ tr.is-out .price { font-weight: 500; }
 .loading, .error { padding: 28px 4px; color: var(--ink-2); }
 .error { color: var(--ink); }
 
+/* ---- marketplace: badge, source switch, recent sales ---------------------- */
+
+/* Text tag, so the source is never carried by colour alone. Neutral on purpose: status and series colours are reserved. */
+.badge { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 17px; white-space: nowrap; vertical-align: 1px; }
+.badge-mp { color: var(--ink-2); border: 1px solid var(--control-border); background: transparent; }
+.price .note .badge, .tile .sub .badge { font-weight: 600; }
+
+.chart-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 16px; }
+.kpi-note { max-width: 78ch; margin: -6px 0 16px; color: var(--ink-2); font-size: 13px; }
+
+.list-note { margin: 0; padding: 10px 16px 14px; border-top: 1px solid var(--border); }
+.sales-card .card-sub { max-width: 78ch; }
+.sales-card .empty { padding: 20px 16px 24px; }
+.sale-tag { display: inline-flex; align-items: flex-start; gap: 7px; max-width: 36ch; font-size: 13px; line-height: 1.35; }
+.sale-tag .ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-top: 0; border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; }
+/* Inferred: quiet, italic, dashed marker. Confirmed: solid marker and full-strength text. They never look alike. */
+.sale-inferred { color: var(--ink-2); font-style: italic; }
+.sale-inferred .ico { border: 1px dashed var(--control-border); font-style: normal; }
+.sale-confirmed { color: var(--ink); font-weight: 650; }
+.sale-confirmed .ico { border: 1px solid var(--accent-bg); background: var(--accent-bg); color: var(--accent-fg); }
+tr.sale-row.inferred .sale-price { color: var(--ink-2); font-weight: 500; }
+.sale-link a.ext { font-weight: 600; }
+
 /* ---- narrow screens: rows become cards ----------------------------------- */
 
 /* The disc table needs about 805px of card width (7 columns), so it turns into cards below 840px of viewport;
@@ -292,8 +319,10 @@ tr.is-out .price { font-weight: 500; }
 @media (max-width: 840px) {
   .filters { grid-template-columns: 1fr 1fr; }
   .filters .f-search { grid-column: 1 / -1; }
-  .filters .f-cond, .filters .f-stock { grid-column: auto; }
-  .filters .f-stock { align-self: end; }
+  .filters .f-cond, .filters .f-checks { grid-column: auto; }
+  .filters .f-checks { align-self: end; }
+  .filters .f-checks.two { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: 4px 20px; }
+  .f-checks.two .check { height: 28px; }
   .mobile-sort { display: inline-flex; }
   .only-narrow { display: inline; }
 
@@ -339,6 +368,13 @@ tr.is-out .price { font-weight: 500; }
   table.plain.stack .s-weight { grid-area: 3 / 1; color: var(--ink-2); font-size: 13px; }
   table.plain.stack .c-status { grid-area: 3 / 2; text-align: right !important; font-size: 13px; }
   table.plain.stack .s-weight::before { content: "Weight "; color: var(--ink-3); }
+
+  table.plain.stack .sale-date { grid-area: 1 / 1; font-weight: 650; }
+  table.plain.stack .sale-price { grid-area: 1 / 2; text-align: right !important; }
+  table.plain.stack .sale-what { grid-area: 2 / 1 / 3 / 3; }
+  table.plain.stack .sale-store { grid-area: 3 / 1; color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+  table.plain.stack .sale-link { grid-area: 3 / 2; text-align: right; font-size: 13px; }
+  .sale-tag { max-width: none; }
 
   .disc-head h1 { font-size: 26px; }
   .kpis { grid-template-columns: 1fr; }

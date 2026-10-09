@@ -168,13 +168,18 @@ def test_index_header_stores_and_stats(world):
     assert index["generated_at"] == TODAY
     assert index["currency"] == "USD"
     assert index["stores"] == [
-        {"id": "alpha", "name": "Alpha Discs", "base_url": "https://alpha.example", "last_ok": "2026-10-08"},
-        {"id": "beta", "name": "Beta Discs", "base_url": "https://beta.example", "last_ok": "2026-10-08"},
-        {"id": "delta", "name": "Delta Discs", "base_url": "https://delta.example", "last_ok": None},
-        {"id": "gamma", "name": "Gamma Discs", "base_url": "https://gamma.example", "last_ok": "2026-10-08"},
+        {"id": "alpha", "name": "Alpha Discs", "base_url": "https://alpha.example", "kind": "retail",
+         "last_ok": "2026-10-08"},
+        {"id": "beta", "name": "Beta Discs", "base_url": "https://beta.example", "kind": "retail",
+         "last_ok": "2026-10-08"},
+        {"id": "delta", "name": "Delta Discs", "base_url": "https://delta.example", "kind": "retail",
+         "last_ok": None},
+        {"id": "gamma", "name": "Gamma Discs", "base_url": "https://gamma.example", "kind": "retail",
+         "last_ok": "2026-10-08"},
     ]
     assert index["stats"] == {"listings": 10, "matched": 7, "review": 1, "ignored": 1,
-                              "unparsed": 1, "discs": 2, "stores": 4}
+                              "unparsed": 1, "discs": 2, "stores": 4,
+                              "sales_confirmed": 0, "sales_inferred": 0}
     assert stats == index["stats"]
 
 
@@ -200,6 +205,8 @@ def test_destroyer_index_entry(world):
                         "change_7d": -0.0556, "change_30d": None}
     assert d["used"] == {"min": 9.99, "median": 9.99, "stores_in_stock": 1, "stores_listing": 1,
                          "change_7d": None, "change_30d": None}
+    # retail-only disc: no marketplace data, so no `retail` blocks; no sales either
+    assert d["sales_30d"] == {"confirmed": None, "inferred": None} and "retail" not in d
 
 
 def test_disc_with_only_gone_listings_is_still_exported(world):
@@ -265,8 +272,9 @@ def test_history_listings_are_live_variants_cheapest_first(world):
     assert first["url"] == "https://shop.example/products/h1"
     assert first["compare_at"] is None
     assert first["last_seen"] == "2026-10-08"
-    assert set(first) == {"store", "store_id", "title", "url", "condition", "weight_g", "price",
-                          "compare_at", "available", "last_seen"}
+    assert set(first) == {"store", "store_id", "store_kind", "title", "url", "condition", "weight_g",
+                          "price", "compare_at", "available", "last_seen"}
+    assert first["store_kind"] == "retail"
 
 
 def test_history_identity_fields(world):
@@ -277,8 +285,10 @@ def test_history_identity_fields(world):
         "key": DESTROYER, "slug": "innova-destroyer-star", "manufacturer": "Innova",
         "mold": "Destroyer", "plastic": "Star", "edition": "", "player": "",
         "disc_type": "Distance Driver"}
+    # a retail-only disc has no marketplace data, so no series_by_kind; sales is always present
     assert set(h) == {"key", "slug", "manufacturer", "mold", "plastic", "edition", "player",
-                      "disc_type", "series", "listings"}
+                      "disc_type", "series", "listings", "sales"}
+    assert h["sales"] == []
 
 
 # --------------------------------------------------------------------------- math
@@ -618,7 +628,7 @@ def test_unpriced_and_zero_priced_variants_are_not_live(tmp_path):
 def test_empty_database(tmp_path):
     stats = export.export_site(db.connect(":memory:"), tmp_path / "out", TODAY)
     assert stats == {"listings": 0, "matched": 0, "review": 0, "ignored": 0, "unparsed": 0,
-                     "discs": 0, "stores": 0}
+                     "discs": 0, "stores": 0, "sales_confirmed": 0, "sales_inferred": 0}
     index, hist = load(tmp_path / "out")
     assert index == {"generated_at": TODAY, "currency": "USD", "stores": [], "stats": stats, "discs": []}
     assert hist == {}
