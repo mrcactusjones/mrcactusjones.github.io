@@ -387,7 +387,8 @@ export function makePlan(opts) {
         const obj = { name: (army === 'light' ? 'Light ' : 'Dark ') + type, extruder, kind: 'piece', type, army,
                       volumes: [{ name: type, mesh, extruder, shared: type }] };
         objects.push(obj);
-        if (army === 'light') pieceInfo.push({ type, height: h, base: Math.max(w, dpt), w, d: dpt });
+        // base = the narrower footprint side, so a knight's overhanging head doesn't count
+        if (army === 'light') pieceInfo.push({ type, height: h, base: Math.min(w, dpt), w, d: dpt });
         if (h > printer.maxZ) errors.push(`The ${type} would be ${h.toFixed(0)} mm tall — taller than the ${printer.label} can print (${printer.maxZ} mm).`);
         for (let i = 0; i < PER_ARMY[type]; i++) items.push({ obj, w, d: dpt });
       }

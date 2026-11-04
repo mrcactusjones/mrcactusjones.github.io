@@ -221,10 +221,10 @@
 <script type="module">
 import * as G from './gen.js';
 
-// Piece files. Knight and rook use the Signature set until their own files land in ./pieces/.
+// Piece files (mm, standing on Z = 0). Source pieces are Signature size: 4.40 in king.
 const PIECE_FILES = {
   king: 'pieces/king.stl', queen: 'pieces/queen.stl', bishop: 'pieces/bishop.stl',
-  knight: '../chess/stl/knight.stl', rook: '../chess/stl/rook.stl', pawn: 'pieces/pawn.stl',
+  knight: 'pieces/knight.stl', rook: 'pieces/rook.stl', pawn: 'pieces/pawn.stl',
 };
 const UNIT_MM = { cm: 10, mm: 1, in: 25.4 };
 const $ = id => document.getElementById(id);
@@ -322,7 +322,6 @@ function update() {
   if (o.includePieces && !pieces && !pieceError) msgs.innerHTML += `<div class="msg note">Loading the pieces&hellip;</div>`;
   for (const e of plan.errors) msgs.innerHTML += `<div class="msg err">${e}</div>`;
   for (const w of plan.warnings) msgs.innerHTML += `<div class="msg warn">${w}</div>`;
-  if (o.includePieces && pieces && PIECE_FILES.knight.startsWith('../')) msgs.innerHTML += `<div class="msg note">Knight and rook are the Signature set's for now.</div>`;
   setButton();
   drawPlates();
   if (viewer) viewer.update(plan);
@@ -471,7 +470,13 @@ function makeViewer(THREE, OrbitControls, RoomEnvironment, toCreasedNormals) {
     if (!pieceGeo[type]) {
       const src = pieces[type], b = src.bounds();
       const g = toGeo(src);
-      g.translate(-(b.min[0] + b.max[0]) / 2, -(b.min[1] + b.max[1]) / 2, -b.min[2]);
+      // centre on the footprint, not the bounding box, so the knight's head can overhang
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (let i = 0; i < src.pos.length; i += 3) {
+        if (src.pos[i + 2] > b.min[2] + 0.5) continue;
+        x0 = Math.min(x0, src.pos[i]); x1 = Math.max(x1, src.pos[i]); y0 = Math.min(y0, src.pos[i + 1]); y1 = Math.max(y1, src.pos[i + 1]);
+      }
+      g.translate(-(x0 + x1) / 2, -(y0 + y1) / 2, -b.min[2]);
       pieceGeo[type] = toCreasedNormals(g, Math.PI / 6);
     }
     return pieceGeo[type];
@@ -507,7 +512,7 @@ function makeViewer(THREE, OrbitControls, RoomEnvironment, toCreasedNormals) {
         m.scale.setScalar(p.scale);
         const off = b.n > 1 ? [(f < 4 ? -1 : 1) * gap / 2, (r < 4 ? -1 : 1) * gap / 2] : [0, 0];
         m.position.set((f + 0.5) * b.s + off[0], (r + 0.5) * b.s + off[1], b.T);
-        if (type === 'knight') m.rotation.z = lightSide ? Math.PI / 2 : -Math.PI / 2;
+        if (type === 'knight' && !lightSide) m.rotation.z = Math.PI;   // the knight faces +y
         pieceGroup.add(m);
       };
       for (let f = 0; f < 8; f++) {
@@ -531,7 +536,7 @@ function makeViewer(THREE, OrbitControls, RoomEnvironment, toCreasedNormals) {
   controls.addEventListener('start', () => { userMoved = true; });
   function frame() {
     const fovV = camera.fov * Math.PI / 180, fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
-    const dist = (extent * 0.6) / Math.sin(Math.min(fovV, fovH) / 2);
+    const dist = (extent * 0.68) / Math.sin(Math.min(fovV, fovH) / 2);
     controls.target.set(0, extent * 0.04, 0);
     camera.position.copy(new THREE.Vector3(0.1, 0.74, 0.66).normalize().multiplyScalar(dist)).add(controls.target);
     camera.near = dist / 100; camera.far = dist * 20; camera.updateProjectionMatrix();

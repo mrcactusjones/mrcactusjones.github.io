@@ -14,10 +14,8 @@ Everything runs in the browser. Open `/chess-generator/` on the site.
 - `index.html`: the page (inputs, 3D preview, plate thumbnails, download).
 - `gen.js`: board geometry, piece scaling, plate layout and the 3MF/zip writer. No DOM, so it also runs in Node.
 - `pieces/*.stl`: the piece set, in mm, standing on Z = 0, centred on the origin.
-  They are the uploaded Signature-size pieces decimated to 30–40k triangles
-  (max deviation ≤ 0.1 mm, still watertight).
-  Knight and rook still come from `../chess/stl/` until their files are added here.
-  After adding them, point `PIECE_FILES` in `index.html` at `pieces/knight.stl` and `pieces/rook.stl`.
+  They are the uploaded Signature-size pieces (4.40 in king) decimated to 30–50k triangles
+  (max deviation ≤ 0.1 mm, still watertight). The knight is centred on its base and faces +Y.
 
 ## How the 3MF is put together
 
