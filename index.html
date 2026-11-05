@@ -660,104 +660,109 @@
   }
   #page-box .bx-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   /* ═══════════════════════════════════════════════════════════════
-     PAGE 8: SIGNATURE CHESS SET
+     PAGE 8: CHESS SET GENERATOR
      ═══════════════════════════════════════════════════════════════ */
   #page-chess {
-    --cs-gold:#e0b25c; --cs-green:#00e5a0; --cs-rose:#c0503a; --cs-ink:#efe6d4; --cs-mute:#8d846f;
-    min-height:calc(100vh - 48px);
-    padding:24px 18px 60px;
+    --gold:#e0b25c; --green:#00e5a0; --rose:#e2644a; --ink:#efe6d4; --mute:#9a907a; --bg:#0b0a08;
+    min-height:calc(100vh - 48px); padding:20px 16px 48px; color:var(--ink);
+    font-family:'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace; font-size:12px; line-height:1.5;
     background:
       radial-gradient(circle at 50% -10%, #2a2010 0%, transparent 55%),
       repeating-linear-gradient(0deg, transparent 0 38px, #e0b25c0f 38px 39px),
       repeating-linear-gradient(90deg, transparent 0 38px, #00e5a00c 38px 39px),
-      #0b0a08;
-    font-family:'IBM Plex Mono','JetBrains Mono',monospace;
-    color:var(--cs-ink);
+      var(--bg);
   }
-  #page-chess .cs-app { max-width:1180px; margin:0 auto; }
-  #page-chess .cs-titlebar {
-    display:flex; align-items:center; justify-content:space-between;
-    background:linear-gradient(90deg,var(--cs-gold),#b98a3a 55%,var(--cs-green));
-    padding:7px 14px; border-radius:8px 8px 0 0;
-    box-shadow:0 0 22px #e0b25c44, inset 0 1px 0 #ffffff55;
-  }
-  #page-chess .cs-titlebar .t { font-weight:700; font-size:13px; letter-spacing:3px; color:#141008; text-shadow:0 1px 0 #ffffff66; }
-  #page-chess .cs-titlebar .dots { display:flex; gap:7px; }
-  #page-chess .cs-titlebar .dots i { width:13px; height:13px; border-radius:50%; background:#141008; opacity:.55; }
-  #page-chess .cs-shell {
-    display:grid; grid-template-columns:330px 1fr; gap:0;
-    border:2px solid #e0b25c55; border-top:none; border-radius:0 0 10px 10px;
-    background:#100d08cc; backdrop-filter:blur(4px); overflow:hidden;
-  }
-  @media (max-width:840px){ #page-chess .cs-shell { grid-template-columns:1fr; } }
+  #page-chess [hidden] { display:none !important; }
+  #page-chess a { color:var(--green); }
+  #page-chess .app { max-width:1180px; margin:0 auto; }
+  #page-chess .titlebar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 12px; border-radius:10px 10px 0 0;
+    background:linear-gradient(90deg,var(--gold),#b98a3a 55%,var(--green)); }
+  #page-chess .titlebar .t { font-weight:700; font-size:13px; letter-spacing:3px; color:#141008; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-chess .shell { display:grid; grid-template-columns:360px minmax(0,1fr); border:2px solid #e0b25c66; border-top:0; border-radius:0 0 12px 12px; background:#0e0c08ee; overflow:hidden; }
+  @media (max-width:880px){ #page-chess .shell { grid-template-columns:minmax(0,1fr); }  }
 
-  #page-chess .cs-panel { padding:20px 18px; border-right:2px solid #e0b25c33; }
-  #page-chess .cs-hero h1 {
-    font-family:'VT323',monospace; font-size:42px; line-height:.9; letter-spacing:1px;
-    color:var(--cs-gold); text-shadow:0 0 10px #e0b25c88, 3px 3px 0 #2c5a3a; margin-bottom:2px;
-  }
-  #page-chess .cs-hero p { font-size:11px; color:#b9d9c7; letter-spacing:1px; margin-bottom:14px; }
-  #page-chess .cs-label { display:block; font-size:10px; letter-spacing:2px; color:var(--cs-green); text-transform:uppercase; margin:18px 0 8px; }
+  #page-chess .panel { padding:18px 18px 22px; border-right:2px solid #e0b25c33; min-width:0; }
+  @media (max-width:880px){ #page-chess .panel { border-right:0; border-bottom:2px solid #e0b25c33; }  }
+  #page-chess h1 { font-family:'VT323',monospace; font-weight:400; font-size:44px; line-height:.9; color:var(--gold); letter-spacing:1px; text-shadow:0 0 18px #e0b25c55; }
+  #page-chess .sub { font-size:11px; color:#b9d9c7; letter-spacing:1px; margin:8px 0 4px; }
+  #page-chess .label { display:block; font-size:10px; letter-spacing:2px; color:var(--green); text-transform:uppercase; margin:16px 0 7px; }
+  #page-chess .row { display:flex; gap:8px; align-items:center; }
+  #page-chess .row > * { min-width:0; }
+  #page-chess .field { flex:1; display:flex; align-items:center; border:2px solid #e0b25c66; border-radius:7px; background:#16120b; overflow:hidden; }
+  #page-chess .field:focus-within { border-color:var(--gold); box-shadow:0 0 0 2px #e0b25c33; }
+  #page-chess .field input { flex:1; min-width:0; width:100%; background:transparent; border:0; outline:0; color:#fff; font:600 18px 'IBM Plex Mono',monospace; padding:7px 10px; }
+  #page-chess .field .u { padding:0 10px; color:var(--mute); font-size:11px; letter-spacing:1px; }
+  #page-chess .field input::-webkit-inner-spin-button { opacity:.4; }
+  #page-chess .seg { display:flex; border:2px solid var(--green); border-radius:7px; overflow:hidden; flex-shrink:0; }
+  #page-chess .seg button { font:600 11px 'IBM Plex Mono',monospace; letter-spacing:1px; color:var(--green); background:transparent; border:0; padding:8px 10px; cursor:pointer; }
+  #page-chess .seg button + button { border-left:2px solid var(--green); }
+  #page-chess .seg button.active { background:var(--green); color:#06121a; }
+  #page-chess .seg button:not(.active):hover { background:#00e5a022; }
+  #page-chess .seg button:focus-visible, #page-chess .btn:focus-visible, #page-chess select:focus-visible, #page-chess .check input:focus-visible, #page-chess summary:focus-visible { outline:2px dashed var(--gold); outline-offset:2px; }
+  #page-chess .hint { font-size:10.5px; color:var(--mute); margin-top:5px; }
+  #page-chess .check { display:flex; gap:9px; align-items:flex-start; margin-top:14px; padding:10px 12px; border:2px solid #00e5a055; border-radius:8px; background:#041a1266; cursor:pointer; }
+  #page-chess .check input { accent-color:var(--green); width:16px; height:16px; margin-top:1px; flex-shrink:0; }
+  #page-chess .check b { color:#fff; font-weight:600; display:block; font-size:12px; }
+  #page-chess .check span span { color:#9fc9b6; font-size:10.5px; }
+  #page-chess select { width:100%; appearance:none; -webkit-appearance:none; font:600 12px 'IBM Plex Mono',monospace; color:#fff; padding:9px 30px 9px 10px; border:2px solid #e0b25c66; border-radius:7px; cursor:pointer;
+    background:#16120b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23e0b25c' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center; }
+  #page-chess .colours { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  #page-chess .swatch { display:flex; align-items:center; gap:8px; border:2px solid #e0b25c44; border-radius:7px; padding:6px 8px; background:#16120b; cursor:pointer; }
+  #page-chess .swatch input { width:30px; height:24px; border:0; padding:0; background:none; cursor:pointer; }
+  #page-chess .swatch span { font-size:10.5px; letter-spacing:1px; color:#d9cfb8; }
+  #page-chess .swatch span b { display:block; color:#fff; font-weight:600; letter-spacing:0; }
+  #page-chess details { margin-top:14px; border:1px dashed #e0b25c55; border-radius:8px; padding:0 12px; }
+  #page-chess details[open] { padding-bottom:12px; }
+  #page-chess summary { cursor:pointer; padding:9px 0; font-size:10px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; list-style:none; }
+  #page-chess summary::-webkit-details-marker { display:none; }
+  #page-chess summary::before { content:'▸ '; }
+  #page-chess details[open] summary::before { content:'▾ '; }
+  #page-chess details .label { margin-top:10px; }
+  #page-chess input[type=range] { width:100%; accent-color:var(--gold); }
 
-  #page-chess .cs-pieces { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-  #page-chess .cs-pieces button {
-    font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:9px 4px;
-    background:#1a150c; color:var(--cs-gold); border:2px solid #e0b25c66; border-radius:7px; cursor:pointer; transition:all .12s;
-  }
-  #page-chess .cs-pieces button .g { display:block; font-size:22px; line-height:1; margin-bottom:3px; font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols2',sans-serif; }
-  #page-chess .cs-pieces button:hover { border-color:var(--cs-gold); background:#241c0f; }
-  #page-chess .cs-pieces button.active { background:var(--cs-gold); color:#141008; border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c66; }
-  #page-chess .cs-pieces button.set { grid-column:1 / -1; }
+  #page-chess .readout { margin-top:16px; padding:11px 13px; border:1px dashed #00e5a055; border-radius:8px; background:#041a1266; font-size:11px; line-height:1.8; color:#b9f0dc; }
+  #page-chess .readout .hd { color:var(--gold); letter-spacing:2px; font-size:9.5px; margin:6px 0 2px; }
+  #page-chess .readout .hd:first-child { margin-top:0; }
+  #page-chess .readout .r { display:flex; justify-content:space-between; gap:10px; }
+  #page-chess .readout .r b { color:#fff; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  #page-chess .msg { margin-top:10px; padding:9px 11px; border-radius:8px; font-size:11px; line-height:1.55; }
+  #page-chess .msg.err { border:2px solid var(--rose); background:#2a0f0a; color:#ffd2c8; }
+  #page-chess .msg.warn { border:2px solid #e0b25c88; background:#221a0b; color:#f3dfb4; }
+  #page-chess .msg.note { border:1px solid #8d846f66; color:#cfc6b1; }
+  #page-chess .btn { display:block; width:100%; margin-top:14px; padding:14px 10px; border:0; border-radius:10px; cursor:pointer; text-align:center;
+    font:400 26px 'VT323',monospace; letter-spacing:2px; color:#141008; background:var(--gold); box-shadow:0 4px 18px #e0b25c66; transition:transform .12s, box-shadow .12s; }
+  #page-chess .btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 26px #e0b25caa; }
+  #page-chess .btn:disabled { background:#4a4334; color:#8d846f; box-shadow:none; cursor:not-allowed; }
+  #page-chess .btn small { display:block; font:500 10px 'IBM Plex Mono',monospace; letter-spacing:1px; margin-top:2px; opacity:.8; }
 
-  #page-chess .cs-seg { display:flex; gap:0; border:2px solid var(--cs-green); border-radius:7px; overflow:hidden; }
-  #page-chess .cs-seg button {
-    flex:1; font-family:inherit; font-size:11px; font-weight:700; letter-spacing:1.5px; padding:8px 4px;
-    background:transparent; color:var(--cs-green); border:none; cursor:pointer; transition:all .12s;
-  }
-  #page-chess .cs-seg button + button { border-left:2px solid var(--cs-green); }
-  #page-chess .cs-seg button.active { background:var(--cs-green); color:#06121a; }
-  #page-chess .cs-seg button:not(.active):hover { background:#00e5a022; }
+  #page-chess .stage { position:relative; display:flex; flex-direction:column; min-width:0; background:repeating-linear-gradient(0deg,#0b0a08 0 26px,#141009 26px 27px); }
+  #page-chess .viewport { position:relative; flex:1; min-height:520px; overflow:hidden; }
+  @media (max-width:880px){ #page-chess .viewport { min-height:340px; }  }
+  #page-chess .viewport canvas { display:block; width:100%; height:100%; touch-action:none; }
+  #page-chess .status { position:absolute; left:12px; bottom:12px; max-width:calc(100% - 24px); font-size:10.5px; letter-spacing:1.5px; color:var(--mute); pointer-events:none; background:#0b0a08cc; padding:3px 7px; border-radius:5px; }
+  #page-chess .status.err { color:var(--rose); }
+  #page-chess .vtools { position:absolute; top:12px; right:12px; display:flex; gap:6px; }
+  #page-chess .vtools .seg { background:#0b0a08cc; }
+  #page-chess .plates { border-top:2px solid #e0b25c33; padding:12px 14px 14px; }
+  #page-chess .plates .hd { font-size:10px; letter-spacing:2px; color:var(--green); text-transform:uppercase; margin-bottom:8px; }
+  #page-chess .plate-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:10px; }
+  #page-chess .plate { border:1px solid #e0b25c44; border-radius:8px; padding:6px; background:#100d08; }
+  #page-chess .plate svg { display:block; width:100%; height:auto; }
+  #page-chess .plate .n { font-size:10px; color:#fff; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-chess .plate .n i { font-style:normal; color:var(--gold); }
 
-  #page-chess .cs-readout { margin-top:18px; padding:12px 14px; border:1px dashed #00e5a055; border-radius:8px; background:#041a1266; font-size:11px; line-height:1.85; color:#b9f0dc; }
-  #page-chess .cs-readout .row { display:flex; justify-content:space-between; gap:8px; }
-  #page-chess .cs-readout .row b { color:#fff; font-weight:600; text-align:right; }
-  #page-chess .cs-readout .hd { color:var(--cs-gold); letter-spacing:2px; font-size:9px; margin-bottom:4px; }
-
-  #page-chess .cs-dlbtn {
-    display:block; width:100%; margin-top:18px; font-family:'VT323',monospace; font-size:24px; letter-spacing:2px; padding:10px;
-    background:linear-gradient(90deg,var(--cs-gold),#b98a3a); color:#141008; border:none; border-radius:9px; text-align:center; text-decoration:none;
-    cursor:pointer; box-shadow:0 0 18px #e0b25c66; transition:transform .1s, box-shadow .15s;
-  }
-  #page-chess .cs-dlbtn:hover { transform:translateY(-2px); box-shadow:0 6px 26px #e0b25caa; }
-  #page-chess .cs-dlbtn.alt { margin-top:9px; font-size:20px; background:transparent; color:var(--cs-gold); border:2px solid #e0b25c88; box-shadow:none; }
-  #page-chess .cs-dlbtn.alt:hover { border-color:var(--cs-gold); box-shadow:0 0 14px #e0b25c55; }
-  #page-chess .cs-src { display:block; margin-top:10px; font-size:10px; letter-spacing:2px; padding:7px; color:var(--cs-mute); border:1px solid #8d846f55; border-radius:7px; text-align:center; text-decoration:none; }
-  #page-chess .cs-src:hover { color:var(--cs-green); border-color:var(--cs-green); }
-
-  #page-chess .cs-stage { position:relative; display:flex; flex-direction:column; background:repeating-linear-gradient(0deg,#0b0a08 0 26px,#141009 26px 27px); }
-  #page-chess .cs-viewport { position:relative; flex:1; min-height:540px; overflow:hidden; }
-  #page-chess .cs-viewport canvas { display:block; width:100%; height:100%; touch-action:none; }
-  #page-chess .cs-fallback { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:24px; }
-  #page-chess .cs-viewport.live .cs-fallback { display:none; }
-  #page-chess .cs-status {
-    position:absolute; left:0; right:0; bottom:0; padding:9px 12px; font-size:10px; letter-spacing:2px; text-align:center;
-    color:var(--cs-mute); background:linear-gradient(180deg,transparent,#0b0a08cc); pointer-events:none;
-  }
-  #page-chess .cs-status.loading { color:var(--cs-green); }
-  #page-chess .cs-status.err { color:var(--cs-rose); }
-
-  #page-chess .cs-info { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; }
-  @media (max-width:840px){ #page-chess .cs-info { grid-template-columns:1fr; } }
-  #page-chess .cs-card { border:2px solid #e0b25c44; border-radius:10px; background:#100d08cc; padding:14px 16px; font-size:11px; line-height:1.7; color:#d9cfb8; }
-  #page-chess .cs-card h3 { font-family:'VT323',monospace; font-size:24px; letter-spacing:1px; color:var(--cs-green); margin-bottom:6px; text-shadow:0 0 8px #00e5a055; }
-  #page-chess .cs-card table { width:100%; border-collapse:collapse; }
-  #page-chess .cs-card th, #page-chess .cs-card td { text-align:left; padding:3px 4px; border-bottom:1px solid #e0b25c22; white-space:nowrap; }
-  #page-chess .cs-card th { color:var(--cs-gold); font-size:9px; letter-spacing:2px; font-weight:600; }
-  #page-chess .cs-card td.n { text-align:right; color:#fff; font-variant-numeric:tabular-nums; }
-  #page-chess .cs-card ul { padding-left:16px; }
-  #page-chess .cs-card li { margin:3px 0; }
-  #page-chess .cs-card li b, #page-chess .cs-card p b { color:var(--cs-gold); font-weight:600; }
-  #page-chess .cs-card p + p { margin-top:8px; }
+  #page-chess .info { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-top:16px; }
+  @media (max-width:880px){ #page-chess .info { grid-template-columns:minmax(0,1fr); }  }
+  #page-chess .card { border:2px solid #e0b25c44; border-radius:10px; background:#100d08cc; padding:14px 16px; font-size:11px; line-height:1.7; color:#d9cfb8; min-width:0; }
+  #page-chess .card h3 { font-family:'VT323',monospace; font-weight:400; font-size:24px; letter-spacing:1px; color:var(--green); margin-bottom:6px; text-shadow:0 0 8px #00e5a055; }
+  #page-chess .card ol, #page-chess .card ul { padding-left:18px; }
+  #page-chess .card li { margin:3px 0; }
+  #page-chess .card b { color:var(--gold); font-weight:600; }
+  #page-chess .card p + p { margin-top:8px; }
+  #page-chess .toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%, 80px); opacity:0; transition:all .3s; background:#141008; border:2px solid var(--gold); color:#fff; padding:9px 16px; border-radius:8px; font-size:11px; z-index:10; max-width:90vw; }
+  #page-chess .toast.show { transform:translate(-50%, 0); opacity:1; }
+  #page-chess .src { display:block; margin-top:10px; font-size:10px; letter-spacing:2px; padding:7px; color:var(--mute); border:1px solid #8d846f55; border-radius:7px; text-align:center; text-decoration:none; }
+  #page-chess .src:hover { color:var(--green); border-color:var(--green); }
   /* ═══════════════════════════════════════════════════════════════
      PAGE 9: CHESS SCALER — Win95 style
      ═══════════════════════════════════════════════════════════════ */
@@ -986,8 +991,8 @@
         <div class="home-card" data-goto="chess">
           <div class="hc-icon">&#9822;</div>
           <div>
-            <div class="hc-name">SIGNATURE CHESS SET</div>
-            <div class="hc-desc">A 3D-printable Staunton-style set with a 4.4&quot; king. Spin every piece in 3D, then download the STLs &mdash; one file per piece or the whole set zipped.</div>
+            <div class="hc-name">CHESS SET GENERATOR</div>
+            <div class="hc-desc">Type a board size and get a print-ready Bambu Studio 3MF: a two-colour board, split into four dovetailed quarters if it won't fit the bed, plus all 32 pieces sized to the squares.</div>
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
@@ -1651,85 +1656,107 @@
   <div class="bx-toast" id="boxToast"></div>
 </div>
 
-<!-- ═══════════════════════════════════ PAGE 8: SIGNATURE CHESS SET ═══════════════════════════════════ -->
+<!-- ═══════════════════════════════════ PAGE 8: CHESS SET GENERATOR ═══════════════════════════════════ -->
 <div id="page-chess" class="tool-page">
-  <div class="cs-app">
-    <div class="cs-titlebar">
-      <span class="t">&#9608; CHESS.EXE — SIGNATURE SET</span>
-      <span class="dots"><i></i><i></i><i></i></span>
+  <div class="app">
+    <div class="titlebar">
+      <span class="t">&#9608; CHESS.EXE — SET GENERATOR</span>
     </div>
-    <div class="cs-shell">
-      <div class="cs-panel">
-        <div class="cs-hero">
-          <h1>SIGNATURE<br>CHESS SET</h1>
-          <p>// 3D-PRINTABLE STAUNTON-STYLE SET &middot; KING 4.4 IN</p>
+    <div class="shell">
+      <div class="panel">
+        <h1>CHESS SET<br>GENERATOR</h1>
+        <p class="sub">// BOARD SIZE IN &rarr; BAMBU STUDIO .3MF OUT</p>
+
+        <label class="label" for="cgSize">Board size (square)</label>
+        <div class="row">
+          <div class="field"><input id="cgSize" type="number" inputmode="decimal" step="0.1" min="1" value="29.9" aria-describedby="cgSizeHint"><span class="u" data-unit>cm</span></div>
+          <div class="seg" id="cgUnits" role="group" aria-label="Units">
+            <button type="button" data-u="cm" class="active">CM</button><button type="button" data-u="mm">MM</button><button type="button" data-u="in">IN</button>
+          </div>
+        </div>
+        <div class="hint" id="cgSizeHint">Outside edge to outside edge. No border: the squares run to the edge.</div>
+
+        <label class="label" for="cgThick">Thickness</label>
+        <div class="field"><input id="cgThick" type="number" inputmode="decimal" step="0.1" min="0.1" value="0.8"><span class="u" data-unit>cm</span></div>
+
+        <label class="check" for="cgSplit">
+          <input type="checkbox" id="cgSplit" checked>
+          <span><b>Split into 4 pieces</b><span>Dovetailed quarters that drop into each other, one per plate.</span></span>
+        </label>
+
+        <label class="label" for="cgPrinter">Printer</label>
+        <select id="cgPrinter"></select>
+
+        <label class="label">Filaments</label>
+        <div class="colours">
+          <label class="swatch"><input type="color" id="cgLight" value="#efe3c8"><span>FILAMENT 1<b>Light</b></span></label>
+          <label class="swatch"><input type="color" id="cgDark" value="#2b211c"><span>FILAMENT 2<b>Dark</b></span></label>
         </div>
 
-        <label class="cs-label">Piece</label>
-        <div class="cs-pieces" id="csPieces">
-          <button class="set active" data-piece="set"><span class="g">&#9812;&#9813;&#9815;&#9816;&#9814;&#9817;</span>FULL SET</button>
-          <button data-piece="king"><span class="g">&#9812;</span>KING</button>
-          <button data-piece="queen"><span class="g">&#9813;</span>QUEEN</button>
-          <button data-piece="bishop"><span class="g">&#9815;</span>BISHOP</button>
-          <button data-piece="knight"><span class="g">&#9816;</span>KNIGHT</button>
-          <button data-piece="rook"><span class="g">&#9814;</span>ROOK</button>
-          <button data-piece="pawn"><span class="g">&#9817;</span>PAWN</button>
-        </div>
+        <label class="check" for="cgPieces">
+          <input type="checkbox" id="cgPieces" checked>
+          <span><b>Include the pieces</b><span>32 pieces sized to the squares, on their own plates.</span></span>
+        </label>
 
-        <label class="cs-label">Finish (preview only)</label>
-        <div class="cs-seg" id="csFinish">
-          <button data-finish="boxwood" class="active">BOXWOOD</button>
-          <button data-finish="rosewood">ROSEWOOD</button>
-          <button data-finish="ebony">EBONY</button>
-        </div>
+        <details id="cgAdv">
+          <summary>Advanced</summary>
+          <label class="label" for="cgFit">King base: <span id="cgFitVal">78</span>% of a square</label>
+          <input type="range" id="cgFit" min="60" max="90" step="1" value="78">
+          <div class="hint">75&ndash;80% is the usual tournament look. Every piece scales by the same amount.</div>
+          <label class="label" for="cgInlay">Dark square depth</label>
+          <div class="field"><input id="cgInlay" type="number" step="0.2" min="0.2" value="0.6"><span class="u">mm</span></div>
+          <div class="hint">How deep the dark filament goes. 0.6 mm = 3 layers at 0.2 mm.</div>
+          <label class="label" for="cgGap">Joint clearance (per side)</label>
+          <div class="field"><input id="cgGap" type="number" step="0.01" min="0" max="0.5" value="0.12"><span class="u">mm</span></div>
+          <div class="hint">0.10&ndash;0.15 mm is a snug push fit in PLA. Raise it if the quarters are too tight.</div>
+        </details>
 
-        <div class="cs-readout" id="csReadout"></div>
+        <div class="readout" id="cgReadout" aria-live="polite"></div>
+        <div id="cgMsgs"></div>
 
-        <a class="cs-dlbtn" id="csDownload" href="chess/stl/signature-chess-set-stl.zip" download>&#11015; DOWNLOAD ALL STL (ZIP)</a>
-        <a class="cs-dlbtn alt" id="csDownloadZip" href="chess/stl/signature-chess-set-stl.zip" download style="display:none">&#11015; DOWNLOAD ALL STL (ZIP)</a>
-        <a class="cs-src" href="#" id="csToScaler">&#9878; RESIZE THIS SET IN CHESS SCALER &#9658;</a>
-        <a class="cs-src" href="https://github.com/mrcactusjones/mrcactusjones.github.io/tree/main/chess" target="_blank" rel="noopener">&#9881; GENERATOR SOURCE &amp; PRINT NOTES</a>
+        <button class="btn" id="cgDl" type="button" disabled>&#11015; DOWNLOAD .3MF<small id="cgDlSub">Loading pieces&hellip;</small></button>
+        <a class="src" href="#" id="cgToScaler">&#9878; RESIZE IN CHESS SCALER &#9658;</a>
       </div>
 
-      <div class="cs-stage">
-        <div class="cs-viewport" id="csViewport">
-          <img class="cs-fallback" id="csFallback" src="chess/img/lineup.png" alt="The six chess pieces: pawn, rook, king, queen, bishop and knight">
-          <div class="cs-status" id="csStatus">LOADING 3D PREVIEW&hellip;</div>
+      <div class="stage">
+        <div class="viewport" id="cgViewport">
+          <div class="vtools">
+            <div class="seg" id="cgViewMode" role="group" aria-label="Preview">
+              <button type="button" data-v="set" class="active">SET UP</button><button type="button" data-v="apart">APART</button>
+            </div>
+          </div>
+          <div class="status" id="cgStatus">LOADING 3D PREVIEW&hellip;</div>
+        </div>
+        <div class="plates">
+          <div class="hd" id="cgPlatesHd">Build plates</div>
+          <div class="plate-list" id="cgPlates"></div>
         </div>
       </div>
     </div>
 
-    <div class="cs-info">
-      <div class="cs-card">
-        <h3>DIMENSIONS</h3>
-        <table>
-          <tr><th>PIECE</th><th>HEIGHT</th><th>BASE &Oslash;</th></tr>
-          <tr><td>King</td><td class="n">4.40 in &middot; 111.8 mm</td><td class="n">1.80 in &middot; 45.7 mm</td></tr>
-          <tr><td>Queen</td><td class="n">3.66 in &middot; 93.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
-          <tr><td>Bishop</td><td class="n">3.27 in &middot; 83.0 mm</td><td class="n">1.50 in &middot; 38.0 mm</td></tr>
-          <tr><td>Knight</td><td class="n">3.07 in &middot; 78.0 mm</td><td class="n">1.61 in &middot; 41.0 mm</td></tr>
-          <tr><td>Rook</td><td class="n">2.76 in &middot; 70.0 mm</td><td class="n">1.54 in &middot; 39.0 mm</td></tr>
-          <tr><td>Pawn</td><td class="n">2.44 in &middot; 62.0 mm</td><td class="n">1.18 in &middot; 30.0 mm</td></tr>
-        </table>
-        <p style="margin-top:8px">Full set = 32 pieces: 2&times; king, 2&times; queen, 4&times; bishop, 4&times; knight, 4&times; rook, 16&times; pawn. A 1.8 in king base suits <b>2.25&ndash;2.375 in squares</b>.</p>
+    <div class="info">
+      <div class="card">
+        <h3>PRINTING IT</h3>
+        <ol>
+          <li>Open the .3mf in <b>Bambu Studio</b> (File &rarr; Open Project). Printer, process and the two filaments are already chosen.</li>
+          <li>Each board quarter and each army has its own plate. Slice with <b>Slice all</b>.</li>
+          <li>On a quarter plate, map <b>filament 1</b> (light) and <b>filament 2</b> (dark) to your AMS slots when you send it.</li>
+          <li>Army plates use one filament each: light, then dark.</li>
+        </ol>
       </div>
-      <div class="cs-card">
-        <h3>PRINT GUIDE</h3>
-        <ul>
-          <li><b>Scale 100%</b> &mdash; files are in millimetres, standing upright on Z=0. Print as exported.</li>
-          <li><b>FDM</b> (0.4 mm nozzle): 0.12&ndash;0.16 mm layers, 3 walls, 15&ndash;25% gyroid. Two contrasting filaments for the two armies.</li>
-          <li><b>Supports:</b> tree / organic. Needed under the collar discs, inside the bishop's slit and beneath the knight's mane. Trees peel cleanly off the turned surfaces.</li>
-          <li><b>Resin:</b> same support spots. Solid prints have the best hand feel; or hollow, fill with steel shot and seal.</li>
-          <li><b>Finish:</b> a felt disc on each base. Sand the seam under the king's ball if supports touched it.</li>
-        </ul>
+      <div class="card">
+        <h3>THE BOARD</h3>
+        <p>The board is the light filament. The dark squares are inlaid into its <b>top layers</b>, so they come out flush, and the filament only swaps a few times per plate.</p>
+        <p>Split boards join with <b>dovetails</b> on the square edges. Each tab is coloured like the square it sits in, so the pattern stays unbroken across the seams. Press the quarters together on a flat table. A drop of glue in each joint makes it permanent.</p>
       </div>
-      <div class="cs-card">
-        <h3>THE SET</h3>
-        <p>Every piece shares one turned <b>family body</b>: a bull-nosed stepped foot, a squat belly bulb, stacked beads and a pair of shoulder collars. Only the crown changes &mdash; the king's ball and twisted flame finial, the queen's eight-petal coronet, the bishop's slit onion mitre, the rook's dished six-notch tower, the pawn's ball, and a sculpted knight with a wind-blown mane.</p>
-        <p>Generated parametrically in Python: lathe profiles, boolean cuts, and a signed-distance-field sculpt for the horse. Change one number in the script and the whole set rescales while keeping its proportions.</p>
+      <div class="card">
+        <h3>THE PIECES</h3>
+        <p>Pieces scale <b>uniformly</b> so the king's base is a set fraction of a square (78% by default). The other pieces keep their proportions.</p>
+        <p>Print upright with tree supports where the shapes overhang. A1 mini users: the 180 mm bed also fits a 29.9 cm board's quarters, but has no room left for a prime tower.</p>
       </div>
     </div>
   </div>
+  <div class="toast" id="cgToast"></div>
 </div>
 
 <!-- ═══════════════════════════════════ PAGE 9: CHESS SCALER ═══════════════════════════════════ -->
@@ -3993,212 +4020,371 @@ try {
   refresh();
 })();
 // ═══════════════════════════════════════════════════════════════
-// PAGE 8: SIGNATURE CHESS SET — 3D viewer + downloads
+// PAGE 8: CHESS SET GENERATOR — board size in, Bambu Studio 3MF out
+// Geometry + 3MF writer live in chess-generator/gen.js; pieces in chess-generator/pieces/.
 // ═══════════════════════════════════════════════════════════════
 (function(){
-  const PIECES = {
-    king:   { file:'king.stl',   h:111.76, base:45.72 },
-    queen:  { file:'queen.stl',  h:93,     base:41 },
-    bishop: { file:'bishop.stl', h:83,     base:38 },
-    knight: { file:'knight.stl', h:78,     base:41 },
-    rook:   { file:'rook.stl',   h:70,     base:39 },
-    pawn:   { file:'pawn.stl',   h:62,     base:30 },
-  };
-  const SET_ORDER = ['pawn','rook','king','queen','bishop','knight'];
-  const FINISH = {
-    boxwood:  { color:0xd8b06a, roughness:0.38, clearcoat:0.55 },
-    rosewood: { color:0x7e2f22, roughness:0.32, clearcoat:0.7 },
-    ebony:    { color:0x1e1b19, roughness:0.30, clearcoat:0.8 },
-  };
-  const STL_DIR = 'chess/stl/';
   const page = document.getElementById('page-chess');
   if (!page) return;
-  const viewport = document.getElementById('csViewport');
-  const status = document.getElementById('csStatus');
-  const readout = document.getElementById('csReadout');
-  const dl = document.getElementById('csDownload');
-  const dlZip = document.getElementById('csDownloadZip');
-  const pieceBtns = document.querySelectorAll('#csPieces button');
-  const finishBtns = document.querySelectorAll('#csFinish button');
-  const inch = mm => (mm / 25.4).toFixed(2);
-  const sizes = {};
-  let piece = 'set', finish = 'boxwood';
-
-  function setStatus(msg, cls){ status.textContent = msg; status.className = 'cs-status' + (cls ? ' ' + cls : ''); }
-
-  function renderReadout(){
-    let rows;
-    if (piece === 'set') {
-      rows = `<div class="hd">FULL SET · 6 UNIQUE PIECES</div>
-        <div class="row"><span>King height</span><b>4.40 in · 111.8 mm</b></div>
-        <div class="row"><span>King base Ø</span><b>1.80 in · 45.7 mm</b></div>
-        <div class="row"><span>Pawn height</span><b>2.44 in · 62.0 mm</b></div>
-        <div class="row"><span>Download</span><b>${sizes.zip ? sizes.zip : '6 × STL, zipped'}</b></div>`;
-    } else {
-      const p = PIECES[piece];
-      rows = `<div class="hd">${piece.toUpperCase()} · ${p.file}</div>
-        <div class="row"><span>Height</span><b>${inch(p.h)} in · ${p.h.toFixed(1)} mm</b></div>
-        <div class="row"><span>Base Ø</span><b>${inch(p.base)} in · ${p.base.toFixed(1)} mm</b></div>
-        <div class="row"><span>Per set</span><b>${{king:2,queen:2,bishop:4,knight:4,rook:4,pawn:16}[piece]} × (both colours)</b></div>
-        <div class="row"><span>File</span><b>${sizes[piece] ? sizes[piece] : 'binary STL, mm'}</b></div>`;
-    }
-    readout.innerHTML = rows;
-    if (piece === 'set') {
-      dl.href = STL_DIR + 'signature-chess-set-stl.zip'; dl.textContent = '⬇ DOWNLOAD ALL STL (ZIP)'; dl.removeAttribute('download');
-      dl.setAttribute('download', 'signature-chess-set-stl.zip');
-      dlZip.style.display = 'none';
-    } else {
-      dl.href = STL_DIR + PIECES[piece].file; dl.textContent = '⬇ DOWNLOAD ' + PIECES[piece].file.toUpperCase();
-      dl.setAttribute('download', PIECES[piece].file);
-      dlZip.style.display = '';
-    }
-  }
-
-  async function fetchSizes(){
-    const fmt = n => n > 1e6 ? (n/1e6).toFixed(1) + ' MB' : Math.round(n/1e3) + ' KB';
-    const targets = Object.assign({ zip:'signature-chess-set-stl.zip' }, Object.fromEntries(Object.entries(PIECES).map(([k,v]) => [k, v.file])));
-    await Promise.all(Object.entries(targets).map(async ([k,f]) => {
-      try { const r = await fetch(STL_DIR + f, { method:'HEAD' }); const n = +r.headers.get('content-length'); if (n) sizes[k] = fmt(n); } catch(e){}
-    }));
-    renderReadout();
-  }
-
-  pieceBtns.forEach(b => b.addEventListener('click', () => {
-    piece = b.dataset.piece;
-    pieceBtns.forEach(x => x.classList.toggle('active', x === b));
-    renderReadout();
-    if (viewer) viewer.show(piece);
-  }));
-  finishBtns.forEach(b => b.addEventListener('click', () => {
-    finish = b.dataset.finish;
-    finishBtns.forEach(x => x.classList.toggle('active', x === b));
-    if (viewer) viewer.setFinish(finish);
-  }));
-  renderReadout();
-  fetchSizes();
-  document.getElementById('csToScaler').addEventListener('click', e => {
-    e.preventDefault();
-    const tab = document.querySelector('.tab-btn[data-page="scaler"]');
-    if (tab) { tab.click(); window.dispatchEvent(new CustomEvent('chess-scaler:load-signature')); window.scrollTo(0, 0); }
-  });
-
-  // ---- three.js viewer (lazy: starts the first time the tab is shown) ----
-  let viewer = null, starting = false;
+  let started = false;
   async function start(){
-    if (viewer || starting) return;
-    starting = true;
-    try {
-      const THREE = await import('three');
-      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
-      const { STLLoader } = await import('three/addons/loaders/STLLoader.js');
-      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
-      const { mergeVertices } = await import('three/addons/utils/BufferGeometryUtils.js');
-      viewer = buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices);
-      viewer.setFinish(finish);
-      await viewer.show(piece);
-    } catch (e) {
-      console.error('chess viewer', e);
-      setStatus('3D PREVIEW UNAVAILABLE — DOWNLOADS STILL WORK', 'err');
-      starting = false;
+    if (started) return;
+    started = true;
+    try { init(await import('./chess-generator/gen.js')); }
+    catch (e) {
+      console.error('chess generator', e);
+      const st = document.getElementById('cgStatus');
+      st.textContent = 'COULD NOT LOAD THE GENERATOR — RELOAD TO TRY AGAIN'; st.classList.add('err');
     }
   }
-  const mo = new MutationObserver(() => { if (page.classList.contains('active')) start(); });
-  mo.observe(page, { attributes:true, attributeFilter:['class'] });
+  // load lazily, the first time the tab is shown
+  new MutationObserver(() => { if (page.classList.contains('active')) start(); }).observe(page, { attributes:true, attributeFilter:['class'] });
   if (page.classList.contains('active')) start();
 
-  function buildViewer(THREE, OrbitControls, STLLoader, RoomEnvironment, mergeVertices){
-    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    viewport.appendChild(renderer.domElement);
+  function init(G){
+    // Piece files (mm, standing on Z = 0). Source pieces are Signature size: 4.40 in king.
+    const PIECE_FILES = Object.fromEntries(G.PIECE_ORDER.map(t => [t, 'chess-generator/pieces/' + t + '.stl']));
+    const UNIT_MM = { cm: 10, mm: 1, in: 25.4 };
+    const $ = id => document.getElementById(id);
+    const inch = mm => (mm / 25.4).toFixed(2);
 
-    const scene = new THREE.Scene();
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    let unit = 'cm';
+    let building = false;
+    let pieces = null, pieceError = null;
+    let plan = null;
 
-    const camera = new THREE.PerspectiveCamera(28, 1, 1, 3000);
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; controls.dampingFactor = 0.08;
-    controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
-    controls.maxPolarAngle = Math.PI * 0.52;
-    let idleTimer = null;
-    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
-    controls.addEventListener('end', () => { idleTimer = setTimeout(() => controls.autoRotate = true, 5000); });
+    // ── controls ──────────────────────────────────────────────
+    for (const [key, p] of Object.entries(G.PRINTERS)) {
+      const o = document.createElement('option');
+      o.value = key; o.textContent = `${p.label} — ${p.bed[0]} × ${p.bed[1]} mm`;
+      $('cgPrinter').append(o);
+    }
+    $('cgPrinter').value = 'p1s';
 
-    const key = new THREE.DirectionalLight(0xfff1dc, 2.4);
-    key.position.set(-140, 220, 180); key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
-    Object.assign(key.shadow.camera, { left:-220, right:220, top:220, bottom:-220, near:10, far:900 });
-    scene.add(key);
-    scene.add(new THREE.HemisphereLight(0xfff4e6, 0x3a2e1c, 0.55));
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.ShadowMaterial({ opacity:0.45 }));
-    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-
-    const material = new THREE.MeshPhysicalMaterial({ color:0xd8b06a, roughness:0.38, metalness:0, clearcoat:0.55, clearcoatRoughness:0.3 });
-    const group = new THREE.Group(); scene.add(group);
-    const loader = new STLLoader();
-    const cache = new Map();
-    async function geom(name){
-      if (!cache.has(name)) {
-        cache.set(name, loader.loadAsync(STL_DIR + PIECES[name].file).then(g => {
-          g = mergeVertices(g, 1e-4); g.computeVertexNormals(); g.computeBoundingBox(); return g;
-        }));
+    $('cgUnits').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || b.dataset.u === unit) return;
+      const next = b.dataset.u, f = UNIT_MM[unit] / UNIT_MM[next];
+      for (const id of ['cgSize', 'cgThick']) {
+        const v = parseFloat($(id).value);
+        if (isFinite(v)) $(id).value = +(v * f).toFixed(next === 'mm' ? 1 : next === 'in' ? 3 : 2);
       }
-      return cache.get(name);
+      $('cgSize').step = $('cgThick').step = next === 'mm' ? '1' : next === 'in' ? '0.01' : '0.1';
+      unit = next;
+      page.querySelectorAll('[data-unit]').forEach(s => s.textContent = unit);
+      $('cgUnits').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      update();
+    });
+    $('cgFit').addEventListener('input', () => { $('cgFitVal').textContent = $('cgFit').value; });
+    for (const id of ['cgSize', 'cgThick', 'cgSplit', 'cgPrinter', 'cgPieces', 'cgFit', 'cgInlay', 'cgGap', 'cgLight', 'cgDark'])
+      $(id).addEventListener($(id).type === 'checkbox' || $(id).tagName === 'SELECT' ? 'change' : 'input', schedule);
+
+    function readOpts() {
+      const num = (id, d) => { const v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+      return {
+        size: num('cgSize', 0) * UNIT_MM[unit],
+        thickness: num('cgThick', 0) * UNIT_MM[unit],
+        split: $('cgSplit').checked,
+        printer: $('cgPrinter').value,
+        includePieces: $('cgPieces').checked,
+        kingPct: num('cgFit', 78) / 100,
+        inlay: num('cgInlay', 0.6),
+        clearance: num('cgGap', 0.12),
+        light: $('cgLight').value, dark: $('cgDark').value,
+      };
     }
 
-    function resize(){
-      const w = viewport.clientWidth || 800, h = viewport.clientHeight || 540;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h; camera.updateProjectionMatrix();
-    }
-    new ResizeObserver(resize).observe(viewport);
-    resize();
-
-    function frame(){
-      const box = new THREE.Box3().setFromObject(group);
-      if (box.isEmpty()) return;
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const fovV = camera.fov * Math.PI / 180;
-      const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
-      const dist = Math.max(size.y / (2 * Math.tan(fovV / 2)), size.x / (2 * Math.tan(fovH / 2))) * 1.25 + size.z * 0.6;
-      controls.target.copy(center);
-      camera.position.set(center.x + dist * 0.25, center.y + dist * 0.28, center.z + dist * 0.93);
-      camera.near = dist / 50; camera.far = dist * 20; camera.updateProjectionMatrix();
-      controls.update();
+    function validate(o) {
+      const errs = [];
+      if (!(o.size >= 80 && o.size <= 1000)) errs.push('Board size must be between 8 and 100 cm.');
+      if (!(o.thickness >= 3 && o.thickness <= 40)) errs.push('Thickness must be between 3 and 40 mm.');
+      if (o.thickness > 0 && o.inlay > o.thickness - 1) errs.push('Dark square depth must be at least 1 mm less than the thickness.');
+      if (!(o.inlay >= 0.2)) errs.push('Dark square depth must be at least 0.2 mm.');
+      if (!(o.clearance >= 0 && o.clearance <= 0.5)) errs.push('Joint clearance must be between 0 and 0.5 mm.');
+      return errs;
     }
 
-    let token = 0;
-    async function show(which){
-      const my = ++token;
-      const names = which === 'set' ? SET_ORDER : [which];
-      setStatus('LOADING ' + (which === 'set' ? 'FULL SET' : PIECES[which].file.toUpperCase()) + '…', 'loading');
-      let geos;
-      try { geos = await Promise.all(names.map(geom)); }
-      catch (e) { console.error(e); setStatus('COULD NOT LOAD STL — USE THE DOWNLOAD BUTTON', 'err'); return; }
-      if (my !== token) return;
-      group.clear();
-      const gap = 12; let x = 0; const widths = geos.map(g => g.boundingBox.max.x - g.boundingBox.min.x);
-      const total = widths.reduce((a, b) => a + b, 0) + gap * (geos.length - 1);
-      geos.forEach((g, i) => {
-        const m = new THREE.Mesh(g, material);
-        m.castShadow = true; m.receiveShadow = true;
-        m.rotation.x = -Math.PI / 2;                               // STL is Z-up
-        m.position.x = x - g.boundingBox.min.x - total / 2;
-        group.add(m); x += widths[i] + gap;
-      });
-      frame();
-      viewport.classList.add('live');
-      setStatus('DRAG TO ORBIT · SCROLL TO ZOOM · ' + (which === 'set' ? 'PAWN · ROOK · KING · QUEEN · BISHOP · KNIGHT' : which.toUpperCase()));
-    }
-    function setFinish(f){ const s = FINISH[f]; material.color.setHex(s.color); material.roughness = s.roughness; material.clearcoat = s.clearcoat; }
+    let timer = 0;
+    function schedule() { clearTimeout(timer); timer = setTimeout(update, 120); }
 
-    (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
-    return { show, setFinish };
+    // ── plan + readout ───────────────────────────────────────
+    function update() {
+      const o = readOpts();
+      const errs = validate(o);
+      const msgs = $('cgMsgs');
+      msgs.innerHTML = '';
+      if (errs.length) {
+        plan = null;
+        msgs.innerHTML = errs.map(e => `<div class="msg err">${e}</div>`).join('');
+        $('cgReadout').innerHTML = '';
+        setButton();
+        return;
+      }
+      plan = G.makePlan({ ...o, pieces });
+      plan.opts = o;
+      const b = plan.board, pr = plan.printer;
+      const q = b.quarters[0].bounds, qw = q.max[0] - q.min[0], qh = q.max[1] - q.min[1];
+      let html = `<div class="hd">BOARD</div>
+        <div class="r"><span>Squares</span><b>${b.s.toFixed(1)} mm · ${inch(b.s)} in</b></div>
+        <div class="r"><span>Thickness</span><b>${b.T.toFixed(1)} mm · dark top ${b.d.toFixed(1)} mm</b></div>
+        <div class="r"><span>${b.n > 1 ? 'Each quarter' : 'Board'}</span><b>${qw.toFixed(1)} × ${qh.toFixed(1)} mm</b></div>`;
+      if (b.n > 1) html += `<div class="r"><span>Dovetails</span><b>${b.dovetail.depth.toFixed(1)} deep · ${b.dovetail.head.toFixed(1)} wide</b></div>`;
+      if (plan.pieceInfo.length) {
+        html += `<div class="hd">PIECES · ${(plan.scale * 100).toFixed(1)}% OF THE SOURCE SET</div>`;
+        for (const p of plan.pieceInfo)
+          html += `<div class="r"><span>${p.type[0].toUpperCase() + p.type.slice(1)}</span><b>${p.height.toFixed(1)} tall · ${p.base.toFixed(1)} base</b></div>`;
+      }
+      html += `<div class="hd">${plan.plates.length} PLATES · ${pr.label.toUpperCase()}</div>`;
+      $('cgReadout').innerHTML = html;
+
+      if (o.includePieces && pieceError) msgs.innerHTML += `<div class="msg err">Couldn't load the piece files (${pieceError}). The board still downloads.</div>`;
+      if (o.includePieces && !pieces && !pieceError) msgs.innerHTML += `<div class="msg note">Loading the pieces&hellip;</div>`;
+      for (const e of plan.errors) msgs.innerHTML += `<div class="msg err">${e}</div>`;
+      for (const w of plan.warnings) msgs.innerHTML += `<div class="msg warn">${w}</div>`;
+      setButton();
+      drawPlates();
+      if (viewer) viewer.update(plan);
+    }
+
+    function setButton() {
+      const btn = $('cgDl'), sub = $('cgDlSub');
+      const waiting = plan && plan.opts.includePieces && !pieces && !pieceError;
+      btn.disabled = !plan || plan.errors.length > 0 || waiting || building;
+      if (building) sub.textContent = 'Building…';
+      else if (!plan) sub.textContent = 'Fix the settings above';
+      else if (plan.errors.length) sub.textContent = 'Fix the problem above first';
+      else if (waiting) sub.textContent = 'Loading pieces…';
+      else sub.textContent = `${plan.plates.length} plates · Bambu Studio project`;
+    }
+
+    // ── plate thumbnails (top view) ──────────────────────────
+    function drawPlates() {
+      const list = $('cgPlates');
+      if (!plan) { list.innerHTML = ''; return; }
+      const bed = plan.printer.bed, ex = plan.printer.exclude;
+      const L = plan.opts.light, D = plan.opts.dark;
+      $('cgPlatesHd').textContent = `Build plates — ${plan.printer.bed[0]} × ${plan.printer.bed[1]} mm`;
+      const Y = y => bed[1] - y;
+      list.innerHTML = plan.plates.map((pl, i) => {
+        let g = '';
+        for (const it of pl.items) {
+          const o = it.obj;
+          if (o.kind === 'board') {
+            const q = pl.quarter, bb = q.bounds;
+            const dx = it.x - (bb.min[0] + bb.max[0]) / 2, dy = it.y - (bb.min[1] + bb.max[1]) / 2;
+            const path = poly => 'M' + poly.map(([x, y]) => `${(x + dx).toFixed(1)},${Y(y + dy).toFixed(1)}`).join('L') + 'Z';
+            g += `<path d="${path(q.outline)}" fill="${L}" stroke="#b8ad94" stroke-width="1.5"/>`;
+            for (const c of [...q.cells, ...q.tabs]) if (c.dark) g += `<path d="${path(c.poly)}" fill="${D}"/>`;
+          } else {
+            const v = o.volumes[0].mesh.bounds();
+            const rx = (v.max[0] - v.min[0]) / 2, ry = (v.max[1] - v.min[1]) / 2;
+            g += `<ellipse cx="${it.x.toFixed(1)}" cy="${Y(it.y).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${o.extruder === 1 ? L : D}" stroke="${o.extruder === 1 ? '#000' : '#b8ad94'}" stroke-width="1.5"/>`;
+          }
+        }
+        if (pl.tower) g += `<rect x="${pl.tower[0]}" y="${Y(pl.tower[1] + 45)}" width="35" height="45" fill="none" stroke="#00e5a0" stroke-width="2" stroke-dasharray="5 4"/>`;
+        const exz = ex ? `<rect x="${ex[0]}" y="${Y(ex[3])}" width="${ex[2] - ex[0]}" height="${ex[3] - ex[1]}" fill="#e2644a33"/>` : '';
+        const count = pl.items.length;
+        return `<div class="plate" title="${pl.name}"><svg viewBox="-4 -4 ${bed[0] + 8} ${bed[1] + 8}" role="img" aria-label="Plate ${i + 1}: ${pl.name}">
+          <rect x="0" y="0" width="${bed[0]}" height="${bed[1]}" rx="6" fill="#2b2a28" stroke="#5a5650" stroke-width="2"/>${exz}${g}</svg>
+          <div class="n"><i>${i + 1}</i> ${pl.name}${count > 1 ? ' · ' + count : ''}</div></div>`;
+      }).join('');
+    }
+
+    // ── download ─────────────────────────────────────────────
+    $('cgDl').addEventListener('click', async () => {
+      if (!plan || building) return;
+      building = true; setButton();
+      try {
+        await new Promise(r => setTimeout(r, 30));
+        const o = plan.opts;
+        const sizeTxt = unit === 'in' ? (o.size / 25.4).toFixed(2) + 'in' : unit === 'mm' ? Math.round(o.size) + 'mm' : (o.size / 10).toFixed(1) + 'cm';
+        const title = `Chess set ${sizeTxt}${o.split ? ' (split)' : ''}`;
+        const parts = await G.build3MF(plan, { light: o.light, dark: o.dark }, title);
+        const blob = new Blob(parts, { type: 'model/3mf' });
+        const name = `chess-set_${sizeTxt}${o.split ? '_split' : ''}_${o.printer}.3mf`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        toast(`Saved ${name} (${(blob.size / 1e6).toFixed(1)} MB)`);
+      } catch (e) {
+        console.error(e); toast('Could not build the 3MF: ' + e.message);
+      } finally { building = false; setButton(); }
+    });
+
+    let toastTimer = 0;
+    function toast(msg) { const t = $('cgToast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500); }
+
+    // ── load pieces ──────────────────────────────────────────
+    (async () => {
+      try {
+        const entries = await Promise.all(Object.entries(PIECE_FILES).map(async ([k, f]) => {
+          const r = await fetch(f);
+          if (!r.ok) throw new Error(f + ' ' + r.status);
+          return [k, G.parseSTL(await r.arrayBuffer())];
+        }));
+        pieces = Object.fromEntries(entries);
+      } catch (e) { console.error(e); pieceError = e.message; }
+      update();
+    })();
+
+    // ── 3D preview ───────────────────────────────────────────
+    let viewer = null;
+    let view = 'set';
+    $('cgViewMode').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      view = b.dataset.v;
+      $('cgViewMode').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+      if (viewer && plan) viewer.update(plan);
+    });
+
+    (async () => {
+      try {
+        const THREE = await import('three');
+        const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+        const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+        const { toCreasedNormals } = await import('three/addons/utils/BufferGeometryUtils.js');
+        viewer = makeViewer(THREE, OrbitControls, RoomEnvironment, toCreasedNormals);
+        if (plan) viewer.update(plan);
+      } catch (e) {
+        console.error(e);
+        $('cgStatus').textContent = '3D PREVIEW UNAVAILABLE — THE DOWNLOAD STILL WORKS';
+        $('cgStatus').classList.add('err');
+      }
+    })();
+
+    function makeViewer(THREE, OrbitControls, RoomEnvironment, toCreasedNormals) {
+      const vp = $('cgViewport');
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      vp.prepend(renderer.domElement);
+      const scene = new THREE.Scene();
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+      const camera = new THREE.PerspectiveCamera(30, 1, 1, 10000);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxPolarAngle = Math.PI * 0.49;
+      const key = new THREE.DirectionalLight(0xfff1dc, 2.2);
+      key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0005;
+      scene.add(key, key.target, new THREE.HemisphereLight(0xfff4e6, 0x3a2e1c, 0.5));
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.4 }));
+      ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+      const mat = hex => new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.5 });
+      const matLight = mat(0xffffff), matDark = mat(0x000000);
+      const world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);   // Z-up → Y-up
+      const boardGroup = new THREE.Group(), pieceGroup = new THREE.Group();
+      world.add(boardGroup, pieceGroup);
+
+      const toGeo = m => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(Float32Array.from(m.pos), 3));
+        g.setIndex(new THREE.BufferAttribute(Uint32Array.from(m.tri), 1));
+        return g;
+      };
+      const pieceGeo = {};
+      function geoFor(type) {
+        if (!pieceGeo[type]) {
+          const src = pieces[type], b = src.bounds();
+          const g = toGeo(src);
+          // centre on the footprint, not the bounding box, so the knight's head can overhang
+          let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+          for (let i = 0; i < src.pos.length; i += 3) {
+            if (src.pos[i + 2] > b.min[2] + 0.5) continue;
+            x0 = Math.min(x0, src.pos[i]); x1 = Math.max(x1, src.pos[i]); y0 = Math.min(y0, src.pos[i + 1]); y1 = Math.max(y1, src.pos[i + 1]);
+          }
+          g.translate(-(x0 + x1) / 2, -(y0 + y1) / 2, -b.min[2]);
+          pieceGeo[type] = toCreasedNormals(g, Math.PI / 6);
+        }
+        return pieceGeo[type];
+      }
+
+      let lastKey = '', framedFor = '', dirty = true;
+      function update(p) {
+        dirty = true;
+        matLight.color.set(p.opts.light); matDark.color.set(p.opts.dark);
+        const b = p.board, gap = view === 'apart' ? Math.max(12, b.s * 0.45) : 0;
+        const boardKey = [b.W, b.T, b.d, b.c, b.n].join();
+        if (boardKey !== lastKey) {
+          lastKey = boardKey;
+          boardGroup.children.forEach(m => m.geometry.dispose());
+          boardGroup.clear();
+          for (const q of b.quarters) {
+            for (const [mesh, m] of [[q.light, matLight], [q.dark, matDark]]) {
+              const g = toGeo(mesh).toNonIndexed(); g.computeVertexNormals();
+              const o = new THREE.Mesh(g, m); o.castShadow = o.receiveShadow = true;
+              o.userData.q = q; boardGroup.add(o);
+            }
+          }
+        }
+        for (const o of boardGroup.children) {
+          const q = o.userData.q, sx = q.qi === 0 ? -1 : 1, sy = q.qj === 0 ? -1 : 1;
+          o.position.set(b.n > 1 ? sx * gap / 2 : 0, b.n > 1 ? sy * gap / 2 : 0, 0);
+        }
+        pieceGroup.clear();
+        if (pieces && p.opts.includePieces && p.scale) {
+          const back = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+          const add = (type, f, r, lightSide) => {
+            const m = new THREE.Mesh(geoFor(type), lightSide ? matLight : matDark);
+            m.castShadow = m.receiveShadow = true;
+            m.scale.setScalar(p.scale);
+            const off = b.n > 1 ? [(f < 4 ? -1 : 1) * gap / 2, (r < 4 ? -1 : 1) * gap / 2] : [0, 0];
+            m.position.set((f + 0.5) * b.s + off[0], (r + 0.5) * b.s + off[1], b.T);
+            if (type === 'knight' && !lightSide) m.rotation.z = Math.PI;   // the knight faces +y
+            pieceGroup.add(m);
+          };
+          for (let f = 0; f < 8; f++) {
+            add(back[f], f, 0, true); add('pawn', f, 1, true);
+            add('pawn', f, 6, false); add(back[f], f, 7, false);
+          }
+        }
+        world.position.set(-b.W / 2, 0, b.W / 2);
+        const R = b.W * 0.75 + gap;
+        key.position.set(-R * 0.8, R * 1.6, R * 1.1);
+        Object.assign(key.shadow.camera, { left: -R, right: R, top: R, bottom: -R, near: 1, far: R * 6 });
+        key.shadow.camera.updateProjectionMatrix();
+        ground.scale.set(R * 8, R * 8, 1);
+        const fk = (b.W + gap).toFixed(0);
+        if (fk !== framedFor) { framedFor = fk; extent = b.W + gap; userMoved = false; frame(); }
+        $('cgStatus').textContent = 'DRAG TO ORBIT · SCROLL TO ZOOM' + (b.n > 1 ? ' · APART SHOWS THE JOINTS' : '');
+      }
+
+      // Fit the board in view for the current aspect ratio (until the user orbits).
+      let extent = 300, userMoved = false;
+      controls.addEventListener('start', () => { userMoved = true; });
+      function frame() {
+        const fovV = camera.fov * Math.PI / 180, fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+        const dist = (extent * 0.68) / Math.sin(Math.min(fovV, fovH) / 2);
+        controls.target.set(0, extent * 0.04, 0);
+        camera.position.copy(new THREE.Vector3(0.1, 0.74, 0.66).normalize().multiplyScalar(dist)).add(controls.target);
+        camera.near = dist / 100; camera.far = dist * 20; camera.updateProjectionMatrix();
+        controls.update();
+      }
+
+      function resize() {
+        const w = vp.clientWidth || 800, h = vp.clientHeight || 520;
+        renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+        if (!userMoved) frame();
+        dirty = true;
+      }
+      new ResizeObserver(resize).observe(vp); resize();
+      // Draw only while this tab is open, and only when something moved or changed.
+      (function loop() {
+        requestAnimationFrame(loop);
+        if (!page.classList.contains('active')) { dirty = true; return; }
+        if (controls.update() || dirty) { dirty = false; renderer.render(scene, camera); }
+      })();
+      return { update };
+    }
+
+    $('cgToScaler').addEventListener('click', e => {
+      e.preventDefault();
+      const tab = document.querySelector('.tab-btn[data-page="scaler"]');
+      if (tab) { tab.click(); window.dispatchEvent(new CustomEvent('chess-scaler:load-signature')); window.scrollTo(0, 0); }
+    });
+
+    update();
   }
 })();
 // ═══════════════════════════════════════════════════════════════
@@ -4928,7 +5114,7 @@ try {
     SLOTS.forEach(s => slotEls[s].classList.add('busy'));
     try {
       await Promise.all(SLOTS.map(async s => {
-        const r = await fetch('chess/stl/' + s + '.stl');
+        const r = await fetch('chess-generator/pieces/' + s + '.stl');
         if (!r.ok) throw new Error(s + '.stl: HTTP ' + r.status);
         setPiece(s, makePiece({ name: s + '.stl', raw: parseSTL(await r.arrayBuffer()) }));
       }));
@@ -5126,6 +5312,15 @@ try {
   refresh();
   if (page.classList.contains('active')) start();
 
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// Open a tab from the URL hash, e.g. /#chess
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  const btn = h && Array.from(document.querySelectorAll('.tab-btn')).find(b => b.dataset.page === h);
+  if (btn) btn.click();
 })();
 </script>
 </body>
