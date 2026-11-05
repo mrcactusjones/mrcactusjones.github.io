@@ -7,13 +7,14 @@ Type in a board size and thickness and get a Bambu Studio project `.3mf`:
 - a full 32-piece set, uniformly scaled so the king's base is a set percentage of a square;
 - plates, per-part filaments and the printer/process/filament presets already set.
 
-Everything runs in the browser. Open `/chess-generator/` on the site.
+Everything runs in the browser. It is the Toolkit's **Chess Set** tab (`/#chess`).
 
 ## Files
 
-- `index.html`: the page (inputs, 3D preview, plate thumbnails, download).
+- `../index.html` (`#page-chess`): the page: inputs, 3D preview, plate thumbnails, download.
+- `index.html`: redirects old `/chess-generator/` links to `/#chess`.
 - `gen.js`: board geometry, piece scaling, plate layout and the 3MF/zip writer. No DOM, so it also runs in Node.
-- `pieces/*.stl`: the piece set, in mm, standing on Z = 0, centred on the origin.
+- `pieces/*.stl`: the piece set (Chess Scaler's "Load Signature Set" loads these too), in mm, standing on Z = 0, centred on the origin.
   They are the uploaded Signature-size pieces (4.40 in king) decimated to 30–50k triangles
   (max deviation ≤ 0.1 mm, still watertight). The knight is centred on its base and faces +Y.
 
