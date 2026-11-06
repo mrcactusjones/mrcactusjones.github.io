@@ -2,7 +2,8 @@
 
 Involute gears for 3D printing. It is the Toolkit's **Gear Generator** tab (`/#gears`).
 
-- Spur, helical or herringbone teeth, sized by module, diametral pitch or circular pitch,
+- Spur, helical or herringbone teeth, sized by module, diametral pitch, circular pitch, or
+  gear 1's outside diameter (the module is solved so the tips land exactly on that size),
   14.5° / 20° / 25° pressure angle.
 - One gear by default; optionally a mating gear (centre distance worked out, profile shift
   included) or a rack (length in teeth, back height, mounting holes).
