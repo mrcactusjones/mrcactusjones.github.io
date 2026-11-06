@@ -895,6 +895,98 @@
   #page-scaler .sc-dropveil .sc-dialog-body .ico { font-size:30px; line-height:1; }
   #page-scaler .sc-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:#ffffe1; border:1px solid #000; padding:7px 14px; font-size:11px; color:#000; pointer-events:none; opacity:0; transition:all .3s; box-shadow:2px 2px 0 rgba(0,0,0,.3); z-index:9999; max-width:90vw; }
   #page-scaler .sc-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE 10: GEAR GENERATOR — blueprint
+     ═══════════════════════════════════════════════════════════════ */
+  #page-gears {
+    --bp:#0b1d3a; --bp2:#0e2549; --ink:#e8f1ff; --line:#7fb2ff; --dim:#8fa9cf; --amber:#ffb547; --cyan:#4dd0e1; --red:#ff7a6b;
+    min-height:calc(100vh - 48px); padding:20px 16px 48px; color:var(--ink);
+    font-family:'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace; font-size:12px; line-height:1.5;
+    background:
+      linear-gradient(rgba(127,178,255,.22) 1px, transparent 1px) 0 0 / 100px 100px,
+      linear-gradient(90deg, rgba(127,178,255,.22) 1px, transparent 1px) 0 0 / 100px 100px,
+      linear-gradient(rgba(127,178,255,.08) 1px, transparent 1px) 0 0 / 20px 20px,
+      linear-gradient(90deg, rgba(127,178,255,.08) 1px, transparent 1px) 0 0 / 20px 20px,
+      var(--bp);
+  }
+  #page-gears [hidden] { display:none !important; }
+  #page-gears .gg-app { max-width:1240px; margin:0 auto; }
+  #page-gears .gg-titlebar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 14px; border:1px solid var(--line); border-bottom:0; background:#102c58; letter-spacing:3px; font-weight:700; font-size:12px; }
+  #page-gears .gg-titlebar .t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #page-gears .gg-titlebar .s { color:var(--amber); letter-spacing:1px; white-space:nowrap; }
+  #page-gears .gg-shell { display:grid; grid-template-columns:380px minmax(0,1fr); border:1px solid var(--line); background:#0b1d3aee; }
+  @media (max-width:900px){ #page-gears .gg-shell { grid-template-columns:minmax(0,1fr); } }
+  #page-gears .gg-panel { padding:16px 16px 20px; border-right:1px dashed #7fb2ff66; min-width:0; }
+  @media (max-width:900px){ #page-gears .gg-panel { border-right:0; border-bottom:1px dashed #7fb2ff66; } }
+  #page-gears h1 { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:38px; line-height:.95; letter-spacing:1px; color:#fff; }
+  #page-gears h1 span { color:var(--amber); }
+  #page-gears .gg-sub { font-size:10.5px; color:var(--dim); letter-spacing:1px; margin:8px 0 2px; }
+  #page-gears .gg-sec { margin-top:14px; padding-top:12px; border-top:1px solid #7fb2ff33; }
+  #page-gears .gg-h { display:flex; align-items:center; justify-content:space-between; font-size:10px; letter-spacing:2.5px; color:var(--cyan); text-transform:uppercase; margin-bottom:8px; }
+  #page-gears .gg-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:8px; }
+  #page-gears .gg-grid label, #page-gears .gg-f { display:flex; flex-direction:column; gap:3px; font-size:10px; color:var(--dim); letter-spacing:.5px; min-width:0; }
+  #page-gears .gg-grid label.wide { grid-column:1 / -1; }
+  #page-gears input[type=number], #page-gears select {
+    width:100%; min-width:0; font:600 13px 'IBM Plex Mono',monospace; color:#fff; background:#081732; border:1px solid #7fb2ff77; border-radius:4px; padding:6px 8px; outline:none;
+  }
+  #page-gears select { appearance:none; -webkit-appearance:none; padding-right:26px; cursor:pointer;
+    background:#081732 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237fb2ff' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 9px center; }
+  #page-gears input[type=number]:focus, #page-gears select:focus { border-color:var(--amber); box-shadow:0 0 0 2px #ffb54733; }
+  #page-gears input:disabled { opacity:.45; }
+  #page-gears .gg-seg { display:flex; border:1px solid var(--line); border-radius:4px; overflow:hidden; }
+  #page-gears .gg-seg button { flex:1; font:600 10.5px 'IBM Plex Mono',monospace; letter-spacing:1px; color:var(--line); background:transparent; border:0; padding:7px 4px; cursor:pointer; white-space:nowrap; }
+  #page-gears .gg-seg button + button { border-left:1px solid var(--line); }
+  #page-gears .gg-seg button.on { background:var(--line); color:#071226; }
+  #page-gears .gg-seg button:not(.on):hover { background:#7fb2ff22; }
+  #page-gears button:focus-visible, #page-gears input[type=checkbox]:focus-visible { outline:2px dashed var(--amber); outline-offset:2px; }
+  #page-gears .gg-chk { display:flex !important; flex-direction:row !important; align-items:center; gap:6px; font-size:11px !important; color:var(--ink) !important; cursor:pointer; }
+  #page-gears .gg-chk input { accent-color:var(--amber); width:14px; height:14px; }
+  #page-gears .gg-inline { display:flex; gap:8px; align-items:center; }
+  #page-gears .gg-inline input[type=number] { flex:1; }
+  #page-gears #ggG2, #page-gears #ggRack { margin-top:14px; }
+  #page-gears .gg-sub2 { margin-top:10px; font-size:10px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; }
+  #page-gears .gg-colour { display:flex; align-items:center; gap:8px; }
+  #page-gears .gg-colour input { width:34px; height:28px; padding:0; border:1px solid #7fb2ff77; border-radius:4px; background:none; cursor:pointer; }
+
+  #page-gears .gg-msg { margin-top:10px; padding:8px 10px; border-radius:4px; font-size:11px; line-height:1.5; }
+  #page-gears .gg-msg.err { border:1px solid var(--red); background:#3a1414aa; color:#ffd9d3; }
+  #page-gears .gg-msg.warn { border:1px solid #ffb54788; background:#3a2a0aaa; color:#ffe7bf; }
+  #page-gears .gg-dl { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+  #page-gears .gg-btn { font:700 13px 'Space Grotesk',sans-serif; letter-spacing:1.5px; padding:11px 8px; border-radius:4px; cursor:pointer; border:1px solid var(--amber); color:var(--amber); background:transparent; }
+  #page-gears .gg-btn small { display:block; font:500 9.5px 'IBM Plex Mono',monospace; letter-spacing:.5px; opacity:.8; margin-top:2px; }
+  #page-gears .gg-btn.main { background:var(--amber); color:#1a1205; }
+  #page-gears .gg-btn:hover:not(:disabled) { box-shadow:0 0 14px #ffb54766; }
+  #page-gears .gg-btn:disabled { border-color:#5b6b85; color:#5b6b85; background:transparent; cursor:not-allowed; box-shadow:none; }
+
+  #page-gears .gg-stage { display:flex; flex-direction:column; min-width:0; }
+  #page-gears .gg-view { position:relative; flex:1; min-height:500px; overflow:hidden; background:radial-gradient(circle at 50% 45%, #12305f 0%, #0b1d3a 70%); }
+  @media (max-width:900px){ #page-gears .gg-view { min-height:340px; } }
+  #page-gears .gg-view canvas { display:block; width:100%; height:100%; touch-action:none; }
+  #page-gears .gg-vtools { position:absolute; top:10px; right:10px; left:10px; display:flex; justify-content:space-between; gap:8px; pointer-events:none; }
+  #page-gears .gg-vtools > * { pointer-events:auto; }
+  #page-gears .gg-vtools .gg-seg { background:#0b1d3acc; }
+  #page-gears .gg-spin { font:700 11px 'IBM Plex Mono',monospace; letter-spacing:1.5px; padding:7px 12px; border-radius:4px; border:1px solid var(--amber); background:#0b1d3acc; color:var(--amber); cursor:pointer; }
+  #page-gears .gg-spin.on { background:var(--amber); color:#1a1205; }
+  #page-gears .gg-status { position:absolute; left:10px; bottom:10px; max-width:calc(100% - 20px); font-size:10px; letter-spacing:1.5px; color:var(--dim); background:#0b1d3acc; padding:3px 7px; border-radius:4px; pointer-events:none; }
+  #page-gears .gg-status.err { color:var(--red); }
+  #page-gears .gg-specs { border-top:1px dashed #7fb2ff66; padding:12px 14px; overflow-x:auto; }
+  #page-gears .gg-specs table { width:100%; border-collapse:collapse; font-size:11px; }
+  #page-gears .gg-specs th { text-align:right; color:var(--cyan); font-weight:600; font-size:9.5px; letter-spacing:1.5px; padding:3px 8px; border-bottom:1px solid #7fb2ff55; white-space:nowrap; }
+  #page-gears .gg-specs th:first-child, #page-gears .gg-specs td:first-child { text-align:left; color:var(--dim); }
+  #page-gears .gg-specs td { text-align:right; padding:3px 8px; border-bottom:1px solid #7fb2ff1a; white-space:nowrap; font-variant-numeric:tabular-nums; color:#fff; }
+  #page-gears .gg-pair { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:11px; color:var(--dim); }
+  #page-gears .gg-pair b { color:var(--amber); font-weight:600; }
+
+  #page-gears .gg-info { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-top:16px; }
+  @media (max-width:900px){ #page-gears .gg-info { grid-template-columns:minmax(0,1fr); } }
+  #page-gears .gg-card { border:1px solid #7fb2ff66; background:#0b1d3add; padding:14px 16px; font-size:11px; line-height:1.7; color:#cfe0ff; min-width:0; }
+  #page-gears .gg-card h3 { font-family:'Space Grotesk',sans-serif; font-size:16px; letter-spacing:2px; color:var(--amber); margin-bottom:6px; }
+  #page-gears .gg-card ul { padding-left:16px; }
+  #page-gears .gg-card li { margin:3px 0; }
+  #page-gears .gg-card b { color:#fff; font-weight:600; }
+  #page-gears .gg-card p + p { margin-top:8px; }
+  #page-gears .gg-toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%, 80px); opacity:0; transition:all .3s; background:#0e2549; border:1px solid var(--amber); color:#fff; padding:9px 16px; border-radius:4px; font-size:11px; z-index:10; max-width:90vw; }
+  #page-gears .gg-toast.show { transform:translate(-50%, 0); opacity:1; }
 </style>
 </head>
 <body>
@@ -912,6 +1004,7 @@
   <button class="tab-btn" data-page="box">&#128230; Box Dieline</button>
   <button class="tab-btn" data-page="chess">&#9822; Chess Set</button>
   <button class="tab-btn" data-page="scaler">&#9878; Chess Scaler</button>
+  <button class="tab-btn" data-page="gears">&#9881; Gear Generator</button>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -1004,10 +1097,18 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <div class="home-card" data-goto="gears">
+          <div class="hc-icon">&#9881;</div>
+          <div>
+            <div class="hc-name">GEAR GENERATOR</div>
+            <div class="hc-desc">Involute gears for 3D printing: spur, helical or herringbone, an optional mating gear or rack, bores, hubs and filament-saving cut-outs. Exports STL, a Bambu Studio 3MF, SVG and DXF.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">9 PROGRAMS LOADED</span>
+      <span class="home-status-cell">10 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -1847,6 +1948,108 @@
   <div class="sc-toast" id="scToast"></div>
 </div>
 
+<!-- ═══════════════════════════════════ PAGE 10: GEAR GENERATOR ═══════════════════════════════════ -->
+<div id="page-gears" class="tool-page">
+  <div class="gg-app">
+    <div class="gg-titlebar"><span class="t">&#9881; GEARS.EXE — GEAR GENERATOR</span><span class="s" id="ggTitleInfo"></span></div>
+    <div class="gg-shell">
+      <div class="gg-panel">
+        <h1>GEAR<br><span>GENERATOR</span></h1>
+        <p class="gg-sub">// INVOLUTE GEARS FOR 3D PRINTING &rarr; STL &middot; 3MF &middot; SVG &middot; DXF</p>
+
+        <div class="gg-sec">
+          <div class="gg-h">Teeth</div>
+          <div class="gg-seg" id="ggType" role="group" aria-label="Tooth type">
+            <button type="button" data-v="spur" class="on">SPUR</button><button type="button" data-v="helical">HELICAL</button><button type="button" data-v="herringbone">HERRINGBONE</button>
+          </div>
+          <div class="gg-grid">
+            <label>Size by
+              <select id="ggPitchMode"><option value="module">Module (mm)</option><option value="dp">Diametral pitch</option><option value="cp">Circular pitch (mm)</option></select>
+            </label>
+            <label><span id="ggPitchLabel">Module</span><input id="ggPitch" type="number" min="0.1" step="0.1" value="2"></label>
+            <label>Pressure angle
+              <select id="ggPA"><option value="14.5">14.5&deg;</option><option value="20" selected>20&deg;</option><option value="25">25&deg;</option></select>
+            </label>
+            <label id="ggHelixWrap" hidden>Helix angle &deg;<input id="ggHelix" type="number" min="5" max="45" step="1" value="20"></label>
+            <label>Face width (mm)<input id="ggWidth" type="number" min="1" max="200" step="0.5" value="8"></label>
+            <label>Backlash (mm)<input id="ggBacklash" type="number" min="0" max="1" step="0.05" value="0.2"></label>
+          </div>
+        </div>
+
+        <div class="gg-sec" id="ggG1"></div>
+
+        <div class="gg-sec">
+          <div class="gg-h">Second part</div>
+          <div class="gg-seg" id="ggSecond" role="group" aria-label="Second part">
+            <button type="button" data-v="none" class="on">NONE</button><button type="button" data-v="gear">MATING GEAR</button><button type="button" data-v="rack">RACK</button>
+          </div>
+          <div id="ggG2" hidden></div>
+          <div id="ggRack" hidden>
+            <div class="gg-grid">
+              <label>Rack teeth<input id="ggRackTeeth" type="number" min="2" max="200" step="1" value="12"></label>
+              <label>Back height (mm)<input id="ggRackBack" type="number" min="1" max="100" step="0.5" value="6"></label>
+              <label>Mounting holes<input id="ggRackHoles" type="number" min="0" max="20" step="1" value="2"></label>
+              <label>Hole &Oslash; (mm)<input id="ggRackHoleD" type="number" min="1" max="20" step="0.1" value="3.2"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="gg-sec">
+          <div class="gg-h">Print</div>
+          <div class="gg-grid">
+            <label class="wide">Printer (for the 3MF)<select id="ggPrinter"></select></label>
+            <label>Filament
+              <span class="gg-colour"><input type="color" id="ggColour" value="#ff8a3d"><span id="ggColourHex">#FF8A3D</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="ggMsgs" aria-live="polite"></div>
+        <div class="gg-dl">
+          <button type="button" class="gg-btn main" id="ggSTL" disabled>&#11015; STL<small id="ggSTLsub">for any slicer</small></button>
+          <button type="button" class="gg-btn main" id="gg3MF" disabled>&#11015; 3MF<small>Bambu Studio project</small></button>
+          <button type="button" class="gg-btn" id="ggSVG" disabled>&#11015; SVG<small>2D outline, mm</small></button>
+          <button type="button" class="gg-btn" id="ggDXF" disabled>&#11015; DXF<small>laser / CAD</small></button>
+        </div>
+      </div>
+
+      <div class="gg-stage">
+        <div class="gg-view" id="ggView">
+          <div class="gg-vtools">
+            <button type="button" class="gg-spin" id="ggSpin" aria-pressed="false">&#9654; SPIN</button>
+            <div class="gg-seg" id="ggCam" role="group" aria-label="View"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="top">TOP</button></div>
+          </div>
+          <div class="gg-status" id="ggStatus">LOADING&hellip;</div>
+        </div>
+        <div class="gg-specs" id="ggSpecs" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="gg-info">
+      <div class="gg-card">
+        <h3>PRINTING GEARS</h3>
+        <ul>
+          <li>Print <b>flat</b>, as exported. Herringbone and helical teeth need no supports.</li>
+          <li>Teeth are mostly walls: <b>3&ndash;4 walls</b> and 0.12&ndash;0.2 mm layers give strong, smooth teeth.</li>
+          <li><b>Backlash</b> thins every tooth so printed gears don't bind. 0.2 mm total suits most FDM printers.</li>
+          <li>Bores print <b>0.15 mm oversize</b> so they slide onto the shaft.</li>
+        </ul>
+      </div>
+      <div class="gg-card">
+        <h3>SIZING</h3>
+        <p><b>Module</b> sets the tooth size: pitch diameter = module &times; teeth. Gears only mesh with the same module and pressure angle. Diametral pitch is the inch version (25.4 &divide; module).</p>
+        <p>Small gears get <b>profile shift</b> automatically so their teeth aren't undercut. The centre distance adjusts to match.</p>
+      </div>
+      <div class="gg-card">
+        <h3>CUT-OUTS</h3>
+        <p>Spokes, round holes or radial slots remove material between the hub and the teeth. That saves <b>filament and print time</b>. A rim is always kept under the teeth.</p>
+        <p>The table shows each part's solid PLA weight and how much the cut-outs save.</p>
+      </div>
+    </div>
+  </div>
+  <div class="gg-toast" id="ggToast"></div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -1864,7 +2067,7 @@ tabBtns.forEach(btn => {
     btn.scrollIntoView({ block:'nearest', inline:'nearest' });
     pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
     // Fix body bg for different tools
-    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08', scaler:'#008080' };
+    const bgs = { home:'#008080', pdf:'#008080', parking:'#008080', colordel:'#008080', neglab:'#c0c0c0', fastreader:'#008080', tts:'#0a0a0f', box:'#0a0a0f', chess:'#0b0a08', scaler:'#008080', gears:'#0b1d3a' };
     document.body.style.background = bgs[target] || '#08080c';
   });
 });
@@ -5312,6 +5515,377 @@ try {
   refresh();
   if (page.classList.contains('active')) start();
 
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE 10: GEAR GENERATOR — involute gears for 3D printing
+// Geometry lives in gear-generator/gear.js; STL/3MF helpers in lib/print3d.js.
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const page = document.getElementById('page-gears');
+  if (!page) return;
+  const $ = id => document.getElementById(id);
+  let started = false;
+  async function start(){
+    if (started) return;
+    started = true;
+    try {
+      const [G, L, THREE] = await Promise.all([import('./gear-generator/gear.js'), import('./lib/print3d.js'), import('three')]);
+      init(G, L, THREE);
+    } catch (e) {
+      console.error('gear generator', e);
+      $('ggStatus').textContent = 'COULD NOT LOAD THE GENERATOR — RELOAD TO TRY AGAIN'; $('ggStatus').classList.add('err');
+    }
+  }
+  // load lazily, the first time the tab is shown
+  new MutationObserver(() => { if (page.classList.contains('active')) start(); }).observe(page, { attributes:true, attributeFilter:['class'] });
+  if (page.classList.contains('active')) start();
+
+  function init(G, L, THREE){
+    const V = pts => pts.map(([x, y]) => new THREE.Vector2(x, y));
+    const triangulate = (c, holes) => THREE.ShapeUtils.triangulateShape(V(c), holes.map(V));
+    const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+    let timer = 0;
+    const schedule = () => { clearTimeout(timer); timer = setTimeout(update, 120); };
+
+    // ── one panel per gear (gear 1 always, gear 2 when "mating gear" is on) ──
+    function gearPanel(el, title, d){
+      el.innerHTML = `
+        <div class="gg-h">${title}</div>
+        <div class="gg-grid">
+          <label>Teeth<input data-k="teeth" type="number" min="6" max="300" step="1" value="${d.teeth}"></label>
+          <label>Profile shift
+            <span class="gg-inline"><input data-k="shift" type="number" min="-0.6" max="1.2" step="0.05" value="0" disabled aria-label="${title} profile shift">
+            <label class="gg-chk"><input data-k="autoShift" type="checkbox" checked>auto</label></span>
+          </label>
+          <label>Bore
+            <select data-k="boreType"><option value="none">None (solid)</option><option value="round" selected>Round</option><option value="d">D-shaft</option><option value="hex">Hex</option><option value="key">Keyway</option></select>
+          </label>
+          <label data-bore="round d key">Bore &Oslash; (mm)<input data-k="boreD" type="number" min="0.5" step="0.1" value="${d.bore}"></label>
+          <label data-bore="d">Flat to far side (mm)<input data-k="boreFlat" type="number" min="0.5" step="0.1" value="${+(d.bore * 0.9).toFixed(1)}"></label>
+          <label data-bore="hex">Across flats (mm)<input data-k="boreAF" type="number" min="1" step="0.1" value="7"></label>
+          <label data-bore="key">Key width (mm)<input data-k="keyW" type="number" min="0.5" step="0.1" value="2"></label>
+          <label data-bore="key">Key depth (mm)<input data-k="keyD" type="number" min="0.2" step="0.1" value="1"></label>
+          <label class="gg-chk wide"><input data-k="hubOn" type="checkbox">Hub on one side</label>
+          <label data-hub>Hub &Oslash; (mm)<input data-k="hubD" type="number" min="2" step="0.5" value="${d.hubD}"></label>
+          <label data-hub>Hub height (mm)<input data-k="hubH" type="number" min="0.5" step="0.5" value="6"></label>
+        </div>
+        <div class="gg-sub2">Cut-outs &middot; save filament</div>
+        <div class="gg-seg" data-k="cutStyle" role="group" aria-label="${title} cut-outs" style="margin-top:6px">
+          <button type="button" data-v="none">NONE</button><button type="button" data-v="spokes" class="on">SPOKES</button><button type="button" data-v="holes">HOLES</button><button type="button" data-v="slots">SLOTS</button>
+        </div>
+        <div class="gg-grid" data-cut>
+          <label>Count<input data-k="cutCount" type="number" min="2" max="24" step="1" value="${d.cutCount}"></label>
+          <label><span data-k="cutSizeLabel">Spoke width (mm)</span><input data-k="cutSize" type="number" min="0.5" step="0.5" value="${d.cutSize}"></label>
+        </div>`;
+      const q = k => el.querySelector(`[data-k="${k}"]`);
+      const style = () => el.querySelector('[data-k=cutStyle] .on').dataset.v;
+      const sync = () => {
+        q('shift').disabled = q('autoShift').checked;
+        const bt = q('boreType').value;
+        el.querySelectorAll('[data-bore]').forEach(n => { n.hidden = !n.dataset.bore.split(' ').includes(bt); });
+        el.querySelectorAll('[data-hub]').forEach(n => { n.hidden = !q('hubOn').checked; });
+        el.querySelector('[data-cut]').hidden = style() === 'none';
+        q('cutSizeLabel').textContent = { spokes: 'Spoke width (mm)', holes: 'Hole Ø (mm)', slots: 'Slot width (mm)' }[style()] || '';
+      };
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-k=cutStyle] button');
+        if (!b || b.classList.contains('on')) return;
+        el.querySelectorAll('[data-k=cutStyle] button').forEach(x => x.classList.toggle('on', x === b));
+        const size = { spokes: d.cutSize, holes: d.cutSize * 2, slots: 3 }[b.dataset.v];
+        if (size) q('cutSize').value = size;
+        sync(); schedule();
+      });
+      el.addEventListener('input', () => { sync(); schedule(); });
+      el.addEventListener('change', () => { sync(); schedule(); });
+      sync();
+      const n = k => parseFloat(q(k).value);
+      return {
+        read: () => ({
+          teeth: Math.round(n('teeth')), autoShift: q('autoShift').checked, shift: n('shift') || 0,
+          bore: { type: q('boreType').value, d: n('boreD'), flat: n('boreFlat'), af: n('boreAF'), keyW: n('keyW'), keyD: n('keyD') },
+          hub: { on: q('hubOn').checked, d: n('hubD'), h: n('hubH') },
+          cut: { style: style(), count: Math.round(n('cutCount')), size: n('cutSize') },
+        }),
+        showShift: x => { if (q('autoShift').checked) q('shift').value = (+x).toFixed(3); },
+      };
+    }
+    const g1 = gearPanel($('ggG1'), 'Gear 1', { teeth: 20, bore: 5, hubD: 14, cutCount: 5, cutSize: 3 });
+    const g2 = gearPanel($('ggG2'), 'Gear 2', { teeth: 40, bore: 8, hubD: 20, cutCount: 6, cutSize: 4 });
+
+    // ── shared controls ──
+    for (const [key, p] of Object.entries(G.PRINTERS)) {
+      const o = document.createElement('option'); o.value = key; o.textContent = `${p.label} — ${p.bed[0]} × ${p.bed[1]} mm`; $('ggPrinter').append(o);
+    }
+    $('ggPrinter').value = 'p1s';
+    let pitchMode = 'module';
+    const toModule = (mode, v) => (mode === 'dp' ? 25.4 / v : mode === 'cp' ? v / Math.PI : v);
+    const fromModule = (mode, m) => (mode === 'dp' ? 25.4 / m : mode === 'cp' ? m * Math.PI : m);
+    $('ggPitchMode').addEventListener('change', () => {
+      const m = toModule(pitchMode, parseFloat($('ggPitch').value));
+      pitchMode = $('ggPitchMode').value;
+      if (isFinite(m) && m > 0) $('ggPitch').value = +fromModule(pitchMode, m).toFixed(3);
+      $('ggPitchLabel').textContent = { module: 'Module', dp: 'Diametral pitch', cp: 'Circular pitch (mm)' }[pitchMode];
+      $('ggPitch').step = pitchMode === 'dp' ? '1' : '0.1';
+      schedule();
+    });
+    const seg = (id, after) => $(id).addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || b.classList.contains('on')) return;
+      $(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      after(b.dataset.v);
+    });
+    seg('ggType', schedule);
+    seg('ggSecond', schedule);
+    for (const id of ['ggPitch', 'ggPA', 'ggHelix', 'ggWidth', 'ggBacklash', 'ggRackTeeth', 'ggRackBack', 'ggRackHoles', 'ggRackHoleD', 'ggPrinter'])
+      $(id).addEventListener($(id).tagName === 'SELECT' ? 'change' : 'input', schedule);
+    $('ggColour').addEventListener('input', () => { $('ggColourHex').textContent = $('ggColour').value.toUpperCase(); if (viewer && model) viewer.colours(); });
+
+    function readParams(){
+      const n = id => parseFloat($(id).value);
+      return {
+        type: $('ggType').querySelector('.on').dataset.v,
+        module: toModule(pitchMode, n('ggPitch')), pressureAngle: n('ggPA'), helixAngle: n('ggHelix'),
+        faceWidth: n('ggWidth'), backlash: n('ggBacklash'),
+        g1: g1.read(), second: $('ggSecond').querySelector('.on').dataset.v, g2: g2.read(),
+        rack: { teeth: Math.round(n('ggRackTeeth')), back: n('ggRackBack'), holes: { count: Math.round(n('ggRackHoles')) || 0, d: n('ggRackHoleD') } },
+      };
+    }
+    function validate(p){
+      const e = [];
+      if (!(p.module >= 0.2 && p.module <= 20)) e.push('Tooth size must be module 0.2–20 mm (diametral pitch 1.3–127).');
+      if (!(p.faceWidth >= 1 && p.faceWidth <= 200)) e.push('Face width must be 1–200 mm.');
+      if (!(p.backlash >= 0 && p.backlash <= 1)) e.push('Backlash must be 0–1 mm.');
+      if (p.type !== 'spur' && !(p.helixAngle >= 5 && p.helixAngle <= 45)) e.push('Helix angle must be 5–45°.');
+      for (const [name, g] of [['Gear 1', p.g1], ...(p.second === 'gear' ? [['Gear 2', p.g2]] : [])]) {
+        if (!(g.teeth >= 6 && g.teeth <= 300)) e.push(`${name}: teeth must be 6–300.`);
+        if (!g.autoShift && !(g.shift >= -0.6 && g.shift <= 1.2)) e.push(`${name}: profile shift must be between −0.6 and 1.2.`);
+        const b = g.bore, need = { round: [b.d], d: [b.d, b.flat], hex: [b.af], key: [b.d, b.keyW, b.keyD] }[b.type] || [];
+        if (need.some(v => !(v > 0))) e.push(`${name}: fill in the bore size.`);
+        if (b.type === 'd' && b.flat >= b.d) e.push(`${name}: the D-flat must be smaller than the bore diameter.`);
+        if (g.hub.on && !(g.hub.d > 0 && g.hub.h > 0)) e.push(`${name}: fill in the hub size.`);
+        if (g.cut.style !== 'none' && !(g.cut.count >= 2 && g.cut.count <= 24 && g.cut.size > 0)) e.push(`${name}: cut-outs need a count of 2–24 and a size.`);
+      }
+      if (p.second === 'rack' && !(p.rack.teeth >= 2 && p.rack.teeth <= 200 && p.rack.back >= 1)) e.push('Rack: 2–200 teeth and a back at least 1 mm tall.');
+      if (p.second === 'rack' && p.rack.holes.count > 0 && !(p.rack.holes.d > 0)) e.push('Rack: fill in the hole diameter.');
+      return e;
+    }
+
+    // ── model + readouts ──
+    let model = null, params = null, plan = null;
+    function update(){
+      params = readParams();
+      $('ggHelixWrap').hidden = params.type === 'spur';
+      $('ggG2').hidden = params.second !== 'gear';
+      $('ggRack').hidden = params.second !== 'rack';
+      const errs = validate(params);
+      if (errs.length) { model = null; plan = null; showMsgs(errs, []); renderSpecs(); setButtons(); return; }
+      model = G.makeModel(params, triangulate);
+      if (params.g1.autoShift) g1.showShift(model.parts[0].b.x);
+      if (params.second === 'gear' && params.g2.autoShift && model.parts[1]) g2.showShift(model.parts[1].b.x);
+      plan = model.errors.length ? null : G.makePrintPlan(model, $('ggPrinter').value);
+      showMsgs(model.errors, [...model.warnings, ...(plan ? plan.errors.map(x => '3MF: ' + x) : [])]);
+      renderSpecs(); setButtons();
+      $('ggTitleInfo').textContent = `MODULE ${+params.module.toFixed(3)} · ${params.pressureAngle}° · ${params.type.toUpperCase()}`;
+      if (viewer) viewer.update(model, params);
+    }
+    function showMsgs(errs, warns){
+      $('ggMsgs').innerHTML = errs.map(x => `<div class="gg-msg err">${x}</div>`).join('') + warns.map(x => `<div class="gg-msg warn">${x}</div>`).join('');
+    }
+    function renderSpecs(){
+      if (!model) { $('ggSpecs').innerHTML = ''; return; }
+      const parts = model.parts, rows = [];
+      const row = (label, f) => {                                          // skip rows that are empty for every part
+        const vals = parts.map(f);
+        if (vals.every(v => v == null)) return;
+        rows.push(`<tr><td>${label}</td>${vals.map(v => `<td>${v ?? '—'}</td>`).join('')}</tr>`);
+      };
+      row('Teeth', p => (p.kind === 'gear' ? p.b.z : params.rack.teeth));
+      row('Pitch Ø', p => (p.kind === 'gear' ? fmt(2 * p.b.r) + ' mm' : null));
+      row('Outside Ø', p => (p.kind === 'gear' ? fmt(2 * p.b.ra) + ' mm' : null));
+      row('Root Ø', p => (p.kind === 'gear' ? fmt(2 * p.b.rf) + ' mm' : null));
+      row('Profile shift', p => (p.kind === 'gear' ? fmt(p.b.x, 3) : null));
+      row('Length', p => (p.kind === 'rack' ? fmt(p.length) + ' mm' : null));
+      row('Height', p => fmt(p.height, 1) + ' mm');
+      row('Solid PLA weight', p => (p.volume ? fmt(p.volume * 1.24 / 1000, 1) + ' g' : null));
+      row('Cut-outs save', p => (p.kind === 'gear' && p.cutSaving > 0.005 ? Math.round(p.cutSaving * 100) + '%' : null));
+      const info = model.info, b1 = parts[0].b, pair = [`Circular pitch <b>${fmt(Math.PI * b1.mt)} mm</b>`];
+      if (info.ratio) pair.push(`Ratio <b>${fmt(info.ratio, 3)} : 1</b>`, `Centre distance <b>${fmt(info.centre, 3)} mm</b>`);
+      if (info.travel) pair.push(`Rack travel per turn <b>${fmt(info.travel)} mm</b>`);
+      if (info.contact) pair.push(`Contact ratio <b>${fmt(info.contact)}</b>`);
+      if (info.overlap) pair.push(`Overlap ratio <b>${fmt(info.overlap)}</b>`);
+      $('ggSpecs').innerHTML = `<table><thead><tr><th></th>${parts.map(p => `<th scope="col">${p.name.toUpperCase()}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` +
+        `<div class="gg-pair">${pair.map(x => `<span>${x}</span>`).join('')}</div>`;
+    }
+    function setButtons(){
+      const ok = !!model && !model.errors.length;
+      for (const id of ['ggSTL', 'ggSVG', 'ggDXF']) $(id).disabled = !ok;
+      $('gg3MF').disabled = !ok || !plan || !!plan.errors.length || !plan.plates.length;
+      $('ggSTLsub').textContent = ok && model.parts.length > 1 ? `${model.parts.length} parts, zipped` : 'for any slicer';
+    }
+
+    // ── downloads ──
+    const mm = v => String(+v.toFixed(3));
+    function slug(){
+      const p = params, a = model.parts;
+      let s = `gear-m${mm(p.module)}-${a[0].b.z}T`;
+      if (p.second === 'gear') s += `+${a[1].b.z}T`;
+      if (p.second === 'rack') s += `+rack${p.rack.teeth}`;
+      return s + (p.type === 'spur' ? '' : '-' + p.type);
+    }
+    const partFile = p => (p.kind === 'rack' ? `rack_${params.rack.teeth}T` : `${p.name.toLowerCase().replace(/\s+/g, '-')}_${p.b.z}T`);
+    function save(blob, name){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      toast(`Saved ${name}`);
+    }
+    async function guarded(fn){ try { await fn(); } catch (e) { console.error(e); toast('Export failed: ' + e.message); } }
+    $('ggSTL').addEventListener('click', () => guarded(async () => {
+      const parts = model.parts.filter(p => p.mesh);
+      if (parts.length === 1) save(new Blob([L.stlBinary(parts[0].mesh, 'Gear Generator')], { type: 'model/stl' }), slug() + '.stl');
+      else save(new Blob(await L.makeZip(parts.map(p => ({ name: partFile(p) + '.stl', data: L.stlBinary(p.mesh, 'Gear Generator') }))), { type: 'application/zip' }), slug() + '.zip');
+    }));
+    $('gg3MF').addEventListener('click', () => guarded(async () => {
+      const parts = await L.build3MF(plan, [$('ggColour').value], 'Gears ' + slug());
+      save(new Blob(parts, { type: 'model/3mf' }), slug() + '_' + $('ggPrinter').value + '.3mf');
+    }));
+    $('ggSVG').addEventListener('click', () => guarded(() => save(new Blob([G.toSVG(model)], { type: 'image/svg+xml' }), slug() + '.svg')));
+    $('ggDXF').addEventListener('click', () => guarded(() => save(new Blob([G.toDXF(model)], { type: 'application/dxf' }), slug() + '.dxf')));
+    let toastTimer = 0;
+    function toast(msg){ const t = $('ggToast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500); }
+
+    // ── 3D preview ──
+    let viewer = null;
+    (async () => {
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+      const { toCreasedNormals } = await import('three/addons/utils/BufferGeometryUtils.js');
+      viewer = makeViewer(OrbitControls, RoomEnvironment, toCreasedNormals);
+      if (model) viewer.update(model, params);
+    })().catch(e => { console.error(e); $('ggStatus').textContent = '3D PREVIEW UNAVAILABLE — DOWNLOADS STILL WORK'; $('ggStatus').classList.add('err'); });
+
+    function makeViewer(OrbitControls, RoomEnvironment, toCreasedNormals){
+      const vp = $('ggView');
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      vp.prepend(renderer.domElement);
+      const scene = new THREE.Scene();
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+      const camera = new THREE.PerspectiveCamera(32, 1, 1, 10000);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.1;
+      const key = new THREE.DirectionalLight(0xffffff, 1.5);
+      key.position.set(-1, 2, 1.5);
+      scene.add(key, new THREE.HemisphereLight(0xdfe9ff, 0x0b1d3a, 0.7));
+      const world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);    // Z-up → Y-up
+      let grid = null;
+      const mats = [0, 1].map(() => new THREE.MeshPhysicalMaterial({ roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.4 }));
+      let groups = [], extent = 100, userMoved = false, camMode = '3d', dirty = true, lastKey = '';
+      let spinning = false, phase = 0, tau = 0, cur = null;
+      controls.addEventListener('start', () => { userMoved = true; });
+
+      function colours(){
+        const c = $('ggColour').value;
+        mats[0].color.set(c); mats[1].color.set(c).offsetHSL(0, -0.08, -0.14);
+        dirty = true;
+      }
+      function frame(){
+        const fovV = camera.fov * Math.PI / 180, fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+        const dist = (extent * 0.7) / Math.sin(Math.min(fovV, fovH) / 2);
+        controls.target.set(0, 0, 0);
+        const dir = camMode === 'top' ? new THREE.Vector3(0, 1, 0.0001) : new THREE.Vector3(0.25, 0.85, 0.75);
+        camera.position.copy(dir.normalize().multiplyScalar(dist));
+        camera.near = dist / 100; camera.far = dist * 20; camera.updateProjectionMatrix();
+        controls.update(); dirty = true;
+      }
+      function pose(){
+        for (const g of groups) {
+          const pt = g.userData.part, pl = pt.place;
+          if (pt.kind === 'rack') { g.rotation.z = pl.rot; g.position.set(pl.x + phase * pt.linear, pl.y, 0); }
+          else { g.rotation.z = pl.rot + phase * pt.ratio; g.position.set(pl.x, pl.y, 0); }
+        }
+        dirty = true;
+      }
+      function update(m, p){
+        cur = { m, p };
+        colours();
+        const k = JSON.stringify(p);
+        if (k === lastKey) return;
+        lastKey = k;
+        for (const g of groups) { g.children.forEach(c => c.geometry.dispose()); world.remove(g); }
+        groups = m.parts.filter(pt => pt.mesh).map((pt, i) => {
+          const geo = new THREE.BufferGeometry();
+          geo.setAttribute('position', new THREE.BufferAttribute(Float32Array.from(pt.mesh.pos), 3));
+          geo.setIndex(new THREE.BufferAttribute(Uint32Array.from(pt.mesh.tri), 1));
+          const mesh = new THREE.Mesh(toCreasedNormals(geo, Math.PI / 5), mats[i ? 1 : 0]);
+          geo.dispose();
+          const g = new THREE.Group(); g.add(mesh); g.userData.part = pt; world.add(g);
+          return g;
+        });
+        phase = 0; tau = 0; pose();
+        // centre the assembly and size the grid under it
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const g of groups) {
+          const pt = g.userData.part, c = Math.cos(pt.place.rot), s = Math.sin(pt.place.rot);
+          for (const [x, y] of pt.outline) {
+            const X = pt.place.x + x * c - y * s, Y = pt.place.y + x * s + y * c;
+            x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y);
+          }
+        }
+        world.position.set(-(x0 + x1) / 2, 0, (y0 + y1) / 2);
+        const newExtent = Math.max(x1 - x0, y1 - y0, 20);
+        if (grid) { scene.remove(grid); grid.geometry.dispose(); grid.material.dispose(); }
+        const size = Math.ceil(newExtent * 1.6 / 10) * 10;
+        grid = new THREE.GridHelper(size, size / 10, 0x7fb2ff, 0x2a4c80);
+        grid.material.transparent = true; grid.material.opacity = 0.4; grid.position.y = -0.05;
+        scene.add(grid);
+        if (!userMoved || Math.abs(newExtent - extent) / extent > 0.2) { extent = newExtent; userMoved = false; frame(); }
+        dirty = true;
+      }
+      function advance(dt){
+        const pts = cur.m.parts, r1 = pts[0].b.r, w = 30 / r1;              // 30 mm/s on the pitch circle
+        const rack = pts.find(x => x.kind === 'rack');
+        if (rack) {                                                         // rack slides back and forth
+          const A = Math.max(0.15, (rack.length / 2 - 1.5 * rack.rack.pitch) / r1);
+          tau += dt * w / A; phase = A * Math.sin(tau);
+        } else phase += dt * w;
+        pose();
+      }
+      $('ggSpin').addEventListener('click', () => {
+        spinning = !spinning;
+        $('ggSpin').classList.toggle('on', spinning);
+        $('ggSpin').setAttribute('aria-pressed', String(spinning));
+        $('ggSpin').innerHTML = spinning ? '&#10074;&#10074; PAUSE' : '&#9654; SPIN';
+      });
+      $('ggCam').addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        $('ggCam').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        camMode = b.dataset.v; userMoved = false; frame();
+      });
+      function resize(){
+        const w = vp.clientWidth || 800, h = vp.clientHeight || 500;
+        renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+        if (!userMoved) frame();
+        dirty = true;
+      }
+      new ResizeObserver(resize).observe(vp); resize();
+      $('ggStatus').textContent = 'DRAG TO ORBIT · SCROLL TO ZOOM';
+      let last = performance.now();
+      // Draw only while this tab is open, and only when something moves or changes.
+      (function loop(now){
+        requestAnimationFrame(loop);
+        const dt = Math.min(0.05, ((now || performance.now()) - last) / 1000); last = now || performance.now();
+        if (!page.classList.contains('active')) { dirty = true; return; }
+        if (spinning && cur) advance(dt);
+        if (controls.update() || dirty) { dirty = false; renderer.render(scene, camera); }
+      })();
+      return { update, colours };
+    }
+
+    update();
+  }
 })();
 
 // ═══════════════════════════════════════════════════════════════
