@@ -1964,7 +1964,7 @@
           </div>
           <div class="gg-grid">
             <label>Size by
-              <select id="ggPitchMode"><option value="module">Module (mm)</option><option value="dp">Diametral pitch</option><option value="cp">Circular pitch (mm)</option></select>
+              <select id="ggPitchMode" title="Size the teeth by module, diametral pitch, circular pitch, or gear 1's outside diameter"><option value="module">Module</option><option value="dp">Diametral pitch</option><option value="cp">Circular pitch</option><option value="od">Outside &Oslash;</option></select>
             </label>
             <label><span id="ggPitchLabel">Module</span><input id="ggPitch" type="number" min="0.1" step="0.1" value="2"></label>
             <label>Pressure angle
@@ -2038,6 +2038,7 @@
       <div class="gg-card">
         <h3>SIZING</h3>
         <p><b>Module</b> sets the tooth size: pitch diameter = module &times; teeth. Gears only mesh with the same module and pressure angle. Diametral pitch is the inch version (25.4 &divide; module).</p>
+        <p>Or size by <b>outside &Oslash;</b>: type the tip-to-tip size of gear 1 and the module is worked out. Changing the tooth count then keeps that size.</p>
         <p>Small gears get <b>profile shift</b> automatically so their teeth aren't undercut. The centre distance adjusts to match.</p>
       </div>
       <div class="gg-card">
@@ -5622,11 +5623,12 @@ try {
     const toModule = (mode, v) => (mode === 'dp' ? 25.4 / v : mode === 'cp' ? v / Math.PI : v);
     const fromModule = (mode, m) => (mode === 'dp' ? 25.4 / m : mode === 'cp' ? m * Math.PI : m);
     $('ggPitchMode').addEventListener('change', () => {
-      const m = toModule(pitchMode, parseFloat($('ggPitch').value));
+      const p = readParams();                                        // module from the old mode
       pitchMode = $('ggPitchMode').value;
-      if (isFinite(m) && m > 0) $('ggPitch').value = +fromModule(pitchMode, m).toFixed(3);
-      $('ggPitchLabel').textContent = { module: 'Module', dp: 'Diametral pitch', cp: 'Circular pitch (mm)' }[pitchMode];
-      $('ggPitch').step = pitchMode === 'dp' ? '1' : '0.1';
+      if (isFinite(p.module) && p.module > 0)
+        $('ggPitch').value = +(pitchMode === 'od' ? G.outsideDiameter(p) : fromModule(pitchMode, p.module)).toFixed(pitchMode === 'od' ? 2 : 4);
+      $('ggPitchLabel').textContent = { module: 'Module', dp: 'Diametral pitch', cp: 'Circular pitch (mm)', od: 'Outside \u00d8 of gear 1 (mm)' }[pitchMode];
+      $('ggPitch').step = pitchMode === 'dp' ? '1' : pitchMode === 'od' ? '0.5' : '0.1';
       schedule();
     });
     const seg = (id, after) => $(id).addEventListener('click', e => {
@@ -5642,17 +5644,24 @@ try {
 
     function readParams(){
       const n = id => parseFloat($(id).value);
-      return {
+      const p = {
         type: $('ggType').querySelector('.on').dataset.v,
         module: toModule(pitchMode, n('ggPitch')), pressureAngle: n('ggPA'), helixAngle: n('ggHelix'),
         faceWidth: n('ggWidth'), backlash: n('ggBacklash'),
         g1: g1.read(), second: $('ggSecond').querySelector('.on').dataset.v, g2: g2.read(),
         rack: { teeth: Math.round(n('ggRackTeeth')), back: n('ggRackBack'), holes: { count: Math.round(n('ggRackHoles')) || 0, d: n('ggRackHoleD') } },
       };
+      if (pitchMode === 'od') {                                        // size by gear 1's outside diameter
+        const od = n('ggPitch'), ok = od > 0 && p.g1.teeth >= 6 && p.g1.teeth <= 300 && p.pressureAngle > 0 && (p.type === 'spur' || p.helixAngle >= 0);
+        p.module = ok ? G.moduleForOutside(od, p) : NaN;
+      }
+      return p;
     }
     function validate(p){
       const e = [];
-      if (!(p.module >= 0.2 && p.module <= 20)) e.push('Tooth size must be module 0.2–20 mm (diametral pitch 1.3–127).');
+      if (!(p.module >= 0.2 && p.module <= 20)) e.push(pitchMode === 'od' && p.module > 0
+        ? `That outside diameter gives module ${p.module.toFixed(2)}; it must be 0.2–20. Change the diameter or the number of teeth.`
+        : 'Tooth size must be module 0.2–20 mm (diametral pitch 1.3–127).');
       if (!(p.faceWidth >= 1 && p.faceWidth <= 200)) e.push('Face width must be 1–200 mm.');
       if (!(p.backlash >= 0 && p.backlash <= 1)) e.push('Backlash must be 0–1 mm.');
       if (p.type !== 'spur' && !(p.helixAngle >= 5 && p.helixAngle <= 45)) e.push('Helix angle must be 5–45°.');
@@ -5708,7 +5717,7 @@ try {
       row('Height', p => fmt(p.height, 1) + ' mm');
       row('Solid PLA weight', p => (p.volume ? fmt(p.volume * 1.24 / 1000, 1) + ' g' : null));
       row('Cut-outs save', p => (p.kind === 'gear' && p.cutSaving > 0.005 ? Math.round(p.cutSaving * 100) + '%' : null));
-      const info = model.info, b1 = parts[0].b, pair = [`Circular pitch <b>${fmt(Math.PI * b1.mt)} mm</b>`];
+      const info = model.info, b1 = parts[0].b, pair = [`Module <b>${fmt(params.module, 3)}</b>`, `Circular pitch <b>${fmt(Math.PI * b1.mt)} mm</b>`];
       if (info.ratio) pair.push(`Ratio <b>${fmt(info.ratio, 3)} : 1</b>`, `Centre distance <b>${fmt(info.centre, 3)} mm</b>`);
       if (info.travel) pair.push(`Rack travel per turn <b>${fmt(info.travel)} mm</b>`);
       if (info.contact) pair.push(`Contact ratio <b>${fmt(info.contact)}</b>`);

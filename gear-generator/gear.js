@@ -425,17 +425,39 @@ function buildSolid({ outerAt, zs, holes, bore, hub }, triangulate) {
 // p: { type, module, pressureAngle, helixAngle, backlash, faceWidth,
 //      g1: { teeth, shift, autoShift, bore, hub, cut },
 //      second: 'none' | 'gear' | 'rack', g2: {...}, rack: { teeth, back, holes: { count, d } } }
+// Profile shift a gear part ends up with (auto = just enough to avoid undercut).
+const shiftOf = (part, g) => (part.autoShift ? Math.max(0, +minShift(part.teeth, g).toFixed(3)) : (part.shift || 0));
+
+// Outside (tip) diameter of gear 1 for the given parameters.
+export function outsideDiameter(p) {
+  const g = normalize(p);
+  return 2 * basics(p.g1.teeth, shiftOf(p.g1, g), g).ra;
+}
+
+// Module that gives gear 1 the requested outside diameter. Everything scales with
+// the module except backlash and tip trimming, so a few proportional steps converge.
+export function moduleForOutside(od, p) {
+  const g0 = normalize({ ...p, module: 1 });
+  let m = od / (p.g1.teeth / Math.cos(g0.beta) + 2 + 2 * shiftOf(p.g1, g0));
+  for (let i = 0; i < 12; i++) {
+    const got = outsideDiameter({ ...p, module: m });
+    if (!(got > 0)) break;
+    m *= od / got;
+    if (Math.abs(got - od) < 1e-6) break;
+  }
+  return m;
+}
+
 export function makeModel(p, triangulate) {
   const g = normalize(p), notes = { err: [], warn: [] };
-  const shiftOf = part => (part.autoShift ? Math.max(0, +minShift(part.teeth, g).toFixed(3)) : (part.shift || 0));
-  const g1 = makeGearPart(g, { ...p.g1, shift: shiftOf(p.g1) }, 'Gear 1', 1, triangulate, notes);
+  const g1 = makeGearPart(g, { ...p.g1, shift: shiftOf(p.g1, g) }, 'Gear 1', 1, triangulate, notes);
   const parts = [g1];
   const info = { g };
   // placement for the preview: rotation about z (rad) and position; motion as a function of gear-1 angle
   g1.place = { x: 0, y: 0, rot: p.second === 'gear' ? -Math.PI / 2 : 0 };
   g1.ratio = 1;
   if (p.second === 'gear') {
-    const g2 = makeGearPart(g, { ...p.g2, shift: shiftOf(p.g2) }, 'Gear 2', -1, triangulate, notes);
+    const g2 = makeGearPart(g, { ...p.g2, shift: shiftOf(p.g2, g) }, 'Gear 2', -1, triangulate, notes);
     const z1 = g1.b.z, z2 = g2.b.z, at = g1.b.at;
     const invAw = inv(at) + 2 * Math.tan(g.alpha) * (g1.b.x + g2.b.x) / (z1 + z2);
     const aw = invInverse(invAw);
