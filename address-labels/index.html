@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OL805 Address Labels</title>
+<meta name="description" content="Paste addresses or a Shopify order CSV and print them on OnlineLabels OL805 3x3 label sheets, two per label to cut in half.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a workbench. Paste box, parsed list and settings on the left rail; the true-proportion 8.5x11 OL805 sheet is the stage on the right. Stacks to paste, sheet, settings on phones. */
+:root {
+  --bench: #E1E4E9;
+  --panel: #F5F6F8;
+  --sheet: #FFFFFF;
+  --sheet-ink: #5E6672;
+  --print-ink: #111317;
+  --slot-line: #B4BBC6;
+  --hatch: #D3D8DF;
+  --ink: #12151A;
+  --ink-2: #4A515C;
+  --ink-3: #78808B;
+  --rule: #C8CED7;
+  --accent: #2646C2;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCE3FA;
+  --warn: #8F4C00;
+  --warn-soft: #FAE8CF;
+  --ok: #1A6B43;
+  --ok-soft: #D6EEDF;
+  --shadow: 0 1px 2px rgba(18, 21, 26, .08), 0 8px 28px rgba(18, 21, 26, .10);
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bench: #121419; --panel: #1A1D23; --sheet: #E6E9ED; --sheet-ink: #59616C; --print-ink: #111317; --slot-line: #A3AAB5; --hatch: #C4CAD2;
+    --ink: #E7EAEF; --ink-2: #A5ACB7; --ink-3: #7D8590; --rule: #2E333C;
+    --accent: #8FA3FF; --accent-ink: #0D1022; --accent-soft: #242D52;
+    --warn: #F1B562; --warn-soft: #3A2B14; --ok: #7CD3A3; --ok-soft: #173327;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bench: #121419; --panel: #1A1D23; --sheet: #E6E9ED; --sheet-ink: #59616C; --print-ink: #111317; --slot-line: #A3AAB5; --hatch: #C4CAD2;
+  --ink: #E7EAEF; --ink-2: #A5ACB7; --ink-3: #7D8590; --rule: #2E333C;
+  --accent: #8FA3FF; --accent-ink: #0D1022; --accent-soft: #242D52;
+  --warn: #F1B562; --warn-soft: #3A2B14; --ok: #7CD3A3; --ok-soft: #173327;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+html { background: var(--bench); }
+body {
+  background: var(--bench);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+.back { display: inline-block; margin-bottom: 8px; font-family: var(--f-mono); font-size: 12.5px; color: var(--ink-2); text-decoration: none; }
+.back:hover { color: var(--accent); text-decoration: underline; }
+.top h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-stretch: 116%; font-size: clamp(26px, 4.2vw, 40px); line-height: 1; letter-spacing: -0.015em; text-wrap: balance; }
+.spec { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.spec b { color: var(--ink); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); grid-template-areas: "paste stage" "setup stage"; grid-template-rows: auto 1fr; gap: 26px 32px; align-items: start; }
+.b-paste { grid-area: paste; }
+.b-setup { grid-area: setup; }
+.stage { grid-area: stage; }
+@media (max-width: 880px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "paste" "stage" "setup"; grid-template-rows: auto; }
+}
+
+.block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+h2.eyebrow { margin: 0; font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+h3.sub { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink); }
+.count { font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* Paste box */
+.paste { width: 100%; min-height: 220px; resize: vertical; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--panel); font-family: var(--f-mono); font-size: 13px; line-height: 1.5; }
+.paste:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.paste::placeholder { color: var(--ink-3); }
+.row-btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hint { margin: 0; font-size: 13px; color: var(--ink-2); }
+
+/* Parsed list */
+.parsed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; max-height: 300px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+.parsed li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 10px; border-top: 1px solid var(--rule); }
+.parsed li:first-child { border-top: 0; }
+.p-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.p-name { font-weight: 600; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.p-rest { font-size: 12.5px; color: var(--ink-2); line-height: 1.35; overflow-wrap: anywhere; }
+.p-warn { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: 11.5px; line-height: 1; padding: 4px 6px; border-radius: 4px; background: var(--bench); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip.num { background: var(--ink); color: var(--panel); font-weight: 600; min-width: 28px; justify-content: center; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); white-space: normal; }
+.empty { margin: 0; padding: 10px 12px; color: var(--ink-3); font-size: 13.5px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: border-color .12s, background-color .12s; }
+.btn:hover:not(:disabled) { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--accent); }
+.btn.big { min-height: 44px; padding: 0 20px; font-size: 15px; }
+.btn.sm { min-height: 30px; padding: 0 9px; font-size: 13px; }
+.btn.icon { width: 30px; min-height: 30px; padding: 0; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Settings */
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.group:first-of-type { border-top: 0; padding-top: 0; }
+.ctl { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ctl > label, .ctl > .lbl-txt { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg label { position: relative; display: grid; place-items: center; min-height: 34px; padding: 0 6px; font-size: 13px; text-align: center; line-height: 1.2; cursor: pointer; border-left: 1px solid var(--rule); }
+.seg label:first-child { border-left: 0; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -3px; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.unit { position: relative; }
+.unit input { width: 100%; min-height: 36px; padding: 0 30px 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.unit::after { content: attr(data-unit); position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); pointer-events: none; }
+.checks { display: flex; flex-direction: column; gap: 8px; }
+.check { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+.check input { margin: 2px 0 0; width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+.check small { display: block; color: var(--ink-2); font-size: 12.5px; }
+.tips { border-top: 1px solid var(--rule); padding-top: 10px; }
+.tips summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.tips ol { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink-2); max-width: 62ch; }
+.tips b { color: var(--ink); }
+
+/* Stage */
+.stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (min-width: 881px) { .stage { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); } }
+.stage-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.stage-head h2 { margin: 0; font-family: var(--f-display); font-stretch: 110%; font-size: 22px; font-weight: 750; line-height: 1.1; }
+.stage-head p { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.pager { display: flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.sheet-wrap { display: flex; justify-content: center; padding: 18px; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; }
+.sheet {
+  --ppi: 60px;
+  position: relative;
+  width: clamp(min(100%, 280px), calc((100vh - 310px) * 0.7727), 100%);
+  width: clamp(min(100%, 280px), calc((100dvh - 310px) * 0.7727), 100%);
+  max-width: 100%;
+  aspect-ratio: 8.5 / 11;
+  background: var(--sheet);
+  border-radius: 2px;
+  box-shadow: var(--shadow);
+}
+.lab { position: absolute; border: 1px solid var(--slot-line); }
+.lab.cut-ticks::before, .lab.cut-ticks::after { content: ""; position: absolute; top: 50%; width: 4%; border-top: 1px solid var(--sheet-ink); }
+.lab.cut-ticks::before { left: 0; }
+.lab.cut-ticks::after { right: 0; }
+.lab.cut-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed var(--slot-line); }
+.lab.guide::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dotted var(--slot-line); }
+.spot { position: absolute; left: 0; width: 100%; padding: 0; margin: 0; border: 0; background: transparent; color: var(--sheet-ink); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.spot.half-top { top: 0; height: 50%; }
+.spot.half-bot { top: 50%; height: 50%; }
+.spot.full { top: 0; height: 100%; }
+.spot.left { justify-content: flex-start; }
+.spot.used { background: repeating-linear-gradient(135deg, var(--hatch) 0 5px, transparent 5px 11px); }
+.spot:disabled { cursor: default; }
+.spot:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--accent); }
+.spot:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.spot-word { font-family: var(--f-mono); font-size: clamp(9px, 1.4vw, 11px); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: var(--sheet); }
+.addr { white-space: pre; line-height: 1.2; text-align: left; color: var(--print-ink); font-kerning: none; }
+.addr b { font-weight: 700; }
+.spot.example .addr { opacity: .5; }
+.spot .flag { position: absolute; top: 6%; right: 3%; width: 8px; height: 8px; border-radius: 50%; background: #C77700; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.summary { margin: 0; font-size: 14px; color: var(--ink-2); min-width: 0; }
+.summary b { color: var(--ink); }
+.act-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.status { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--ink-2); }
+.status[data-tone="warn"] { color: var(--warn); }
+.status[data-tone="ok"] { color: var(--ok); }
+.after { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; background: var(--ok-soft); border-radius: 8px; }
+.after p { margin: 0; flex: 1 1 240px; font-size: 14px; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div><a class="back" href="../">&larr; Rob's Toolkit</a>
+    <h1>OL805 Address Labels</h1></div>
+    <p class="spec"><span><b>3.00 × 3.00 in</b> labels</span><span><b>2 × 3</b> per sheet</span><span><b>8.5 × 11</b> letter</span><span>square corners</span></p>
+  </header>
+
+  <main class="grid">
+    <section class="block b-paste" aria-labelledby="hPaste">
+      <div class="block-head">
+        <h2 class="eyebrow" id="hPaste">Addresses</h2>
+        <span class="count" id="addrCount"></span>
+      </div>
+      <textarea class="paste" id="paste" spellcheck="false" autocomplete="off" aria-describedby="pasteHint"
+        placeholder="Paste addresses here, with a blank line between each one:
+
+Jane Smith
+123 Main St Apt 4
+Augusta, GA 30901
+
+One-line addresses and spreadsheet or Shopify CSV rows work too."></textarea>
+      <div class="row-btns">
+        <span class="btn sm file-btn"><input type="file" id="csvIn" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Load a CSV file"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Load CSV</span>
+        <button class="btn sm" id="clearBtn" type="button">Clear</button>
+      </div>
+      <p class="hint" id="pasteHint">Each address becomes one label spot. Edit the text above to fix anything; the list below shows how it was read.</p>
+      <ol class="parsed" id="parsed" aria-label="Addresses as read"></ol>
+    </section>
+
+    <section class="stage" aria-labelledby="sheetTitle">
+      <div class="stage-head">
+        <div>
+          <h2 id="sheetTitle">Sheet 1</h2>
+          <p id="sheetHint">Tap a spot to mark it as already used. Addresses fill the open spots in order.</p>
+        </div>
+        <div class="pager" id="pager" hidden>
+          <button class="btn icon" id="prevSheet" type="button" aria-label="Previous sheet"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <span id="pageLbl">1 / 1</span>
+          <button class="btn icon" id="nextSheet" type="button" aria-label="Next sheet"><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+      <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
+      <div class="actions">
+        <p class="summary" id="summary"></p>
+        <div class="act-btns">
+          <button class="btn" id="resetSheet" type="button">Fresh sheet</button>
+          <button class="btn" id="openBtn" type="button" hidden>Open PDF</button>
+          <button class="btn primary big" id="saveBtn" type="button">Save PDF</button>
+        </div>
+      </div>
+      <div class="after" id="afterBar" hidden>
+        <p>Printed it? Mark those spots as used so the next batch starts on the spots that are still open.</p>
+        <div class="act-btns">
+          <button class="btn sm" id="afterDismiss" type="button">Not yet</button>
+          <button class="btn sm primary" id="markBtn" type="button">Mark used and clear</button>
+        </div>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="block b-setup" aria-labelledby="hSetup">
+      <h2 class="eyebrow" id="hSetup">Layout</h2>
+
+      <div class="group">
+        <div class="ctl">
+          <span class="lbl-txt" id="modeLbl">Addresses per label</span>
+          <div class="seg" role="radiogroup" aria-labelledby="modeLbl">
+            <label><input type="radio" name="mode" value="half" id="modeHalf">2 · cut in half</label>
+            <label><input type="radio" name="mode" value="full" id="modeFull">1 · whole label</label>
+          </div>
+        </div>
+        <div class="ctl" id="cutCtl">
+          <span class="lbl-txt" id="cutLbl">Cut marks</span>
+          <div class="seg" role="radiogroup" aria-labelledby="cutLbl">
+            <label><input type="radio" name="cut" value="ticks" id="cutTicks">Edge ticks</label>
+            <label><input type="radio" name="cut" value="line" id="cutLine">Dashed line</label>
+            <label><input type="radio" name="cut" value="none" id="cutNone">None</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3 class="sub">Text</h3>
+        <div class="ctl">
+          <span class="lbl-txt" id="fontLbl">Font</span>
+          <div class="seg" role="radiogroup" aria-labelledby="fontLbl">
+            <label><input type="radio" name="font" value="helv" id="fontHelv">Helvetica</label>
+            <label><input type="radio" name="font" value="times" id="fontTimes">Times</label>
+            <label><input type="radio" name="font" value="courier" id="fontCourier">Courier</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="lbl-txt" id="alignLbl">Placement</span>
+          <div class="seg" role="radiogroup" aria-labelledby="alignLbl">
+            <label><input type="radio" name="align" value="center" id="alignCenter">Centered block</label>
+            <label><input type="radio" name="align" value="left" id="alignLeft">Left</label>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="ctl"><label for="maxPt">Text size</label><div class="unit" data-unit="pt"><input id="maxPt" type="number" inputmode="decimal" step="0.5" min="6" max="24"></div></div>
+          <div class="ctl"><label for="copies">Copies</label><div class="unit" data-unit="each"><input id="copies" type="number" inputmode="numeric" step="1" min="1" max="50"></div></div>
+          <div class="ctl"><label for="pad">Edge gap</label><div class="unit" data-unit="in"><input id="pad" type="number" inputmode="decimal" step="0.01" min="0.05" max="0.5"></div></div>
+        </div>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="optBold"><span>Bold name line</span></label>
+          <label class="check"><input type="checkbox" id="optCaps"><span>ALL CAPS</span></label>
+          <label class="check"><input type="checkbox" id="optClean"><span>Clean up pasted text<small>Drops phone numbers, emails, “United States” and “Shipping address” headings.</small></span></label>
+        </div>
+        <p class="hint">Text size is the largest size used. Long addresses shrink to fit their spot.</p>
+      </div>
+
+      <div class="group">
+        <h3 class="sub">Printer</h3>
+        <div class="fields">
+          <div class="ctl"><label for="nudgeX">Shift right</label><div class="unit" data-unit="in"><input id="nudgeX" type="number" inputmode="decimal" step="0.01" min="-0.5" max="0.5"></div></div>
+          <div class="ctl"><label for="nudgeY">Shift down</label><div class="unit" data-unit="in"><input id="nudgeY" type="number" inputmode="decimal" step="0.01" min="-0.5" max="0.5"></div></div>
+        </div>
+        <p class="hint">Shifts correct for your printer. Use negative numbers to move left or up. Settings stay in this browser.</p>
+        <div class="row-btns"><button class="btn" id="testBtn" type="button">Save alignment test</button></div>
+        <details class="tips">
+          <summary>How to print</summary>
+          <ol>
+            <li>Open the PDF and print at <b>Actual size</b> or <b>100%</b>. “Fit to page” shrinks the page and the addresses will drift off the labels.</li>
+            <li>Paper size <b>Letter</b>, one-sided. Print the alignment test on plain paper first, lay it on a label sheet, and hold both up to a window.</li>
+            <li>Cut each label along the middle, between the edge ticks. A paper trimmer gives the straightest cut.</li>
+            <li>Reusing a partial sheet: feed it the same way as a fresh one. On a laser printer, use the manual or rear slot if you have one; gaps where labels were peeled can catch in the fuser.</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Sheet geometry: OnlineLabels OL805 (3" x 3" square, 2 x 3 on letter) ---------- */
+  const SHEET_W = 8.5, SHEET_H = 11, LAB = 3;
+  const LEFT = 1.1875, TOP = 0.875, PITCH = 3.125;
+  const LABELS = Array.from({ length: 6 }, (_, i) => ({ x: LEFT + (i % 2) * PITCH, y: TOP + Math.floor(i / 2) * PITCH }));
+  const LABEL_NAMES = ['Top left', 'Top right', 'Middle left', 'Middle right', 'Bottom left', 'Bottom right'];
+  const LH = 1.2;
+  const FONTS = {
+    helv: { std: ['Helvetica', 'HelveticaBold'], css: 'Helvetica, Arial, "Liberation Sans", "Nimbus Sans", sans-serif', base: 0.9465 },
+    times: { std: ['TimesRoman', 'TimesRomanBold'], css: '"Times New Roman", Times, "Liberation Serif", "Nimbus Roman", serif', base: 0.9375 },
+    courier: { std: ['Courier', 'CourierBold'], css: '"Courier New", Courier, "Liberation Mono", "Nimbus Mono PS", monospace', base: 0.8665 }
+  };
+  const STORE = 'ol805-address-labels-v1';
+  const EXAMPLES = [
+    ['Sample Recipient', '200 Placeholder Ave', 'Anytown, ST 00000'],
+    ['Example Person', 'Example Company LLC', '45 Sample Rd Suite 100', 'Springfield, ST 00000'],
+    ['Test Name', '7 Demo Ln', 'Anytown, ST 00000']
+  ];
+
+  const $ = (s) => document.querySelector(s);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const plural = (n, w, p) => `${n} ${n === 1 ? w : (p || w + 's')}`;
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  /* ---------- State ---------- */
+  const S = {
+    text: '', mode: 'half', cut: 'ticks', font: 'helv', align: 'center', maxPt: 11, copies: 1, pad: 0.15,
+    bold: true, caps: false, clean: true, nudgeX: 0, nudgeY: 0,
+    used: Array(12).fill(false), view: 0, busy: false
+  };
+  const KEYS = ['mode', 'cut', 'font', 'align', 'maxPt', 'copies', 'pad', 'bold', 'caps', 'clean', 'nudgeX', 'nudgeY'];
+  function loadState() {
+    try {
+      const o = JSON.parse(localStorage.getItem(STORE) || 'null');
+      if (!o) return;
+      for (const k of KEYS) if (k in o && typeof o[k] === typeof S[k]) S[k] = o[k];
+      if (Array.isArray(o.used) && o.used.length === 12) S.used = o.used.map(Boolean);
+      if (typeof o.text === 'string') S.text = o.text;
+    } catch (e) { /* storage unavailable */ }
+  }
+  function saveState() {
+    try {
+      const o = { used: S.used, text: S.text };
+      for (const k of KEYS) o[k] = S[k];
+      localStorage.setItem(STORE, JSON.stringify(o));
+    } catch (e) { /* ignore */ }
+  }
+
+  const statusEl = $('#status');
+  function status(msg, tone = '') { statusEl.textContent = msg || ''; statusEl.dataset.tone = tone; }
+
+  /* ---------- Parsing ---------- */
+  const COUNTRY_US = /^(united states( of america)?|u\.?\s?s\.?(\s?a\.?)?)$/i;
+  const CSZ = /(,\s*[A-Za-z][A-Za-z .]*\s+\d{5}(-\d{4})?\s*$)|(\b[A-Z]{2}\s+\d{5}(-\d{4})?\s*$)/;
+  const HEAD_ONLY = /^(ship(ping)?\s*(to|address)|deliver(y)?\s*(to|address)|billing address|recipient|address|view map|copy|edit|customer)\s*:?$/i;
+
+  function cleanLines(lines) {
+    const out = [];
+    for (const raw of lines) {
+      let l = String(raw).replace(/[\t ]+/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!l) continue;
+      if (S.clean) {
+        if (HEAD_ONLY.test(l)) continue;
+        l = l.replace(/^(ship(ping)?\s*(to|address)|deliver(y)?\s*(to|address)|recipient)\s*:\s*/i, '');
+        if (!l) continue;
+        const digits = (l.match(/\d/g) || []).length;
+        if (digits >= 7 && /^(phone|tel|ph|mobile|cell)?\s*[:.]?\s*\+?[\d\s().-]+$/i.test(l) && !/^\d{5}(-\d{4})?$/.test(l)) continue;
+        if (/^\S+@\S+\.\S+$/.test(l)) continue;
+        if (COUNTRY_US.test(l)) continue;
+      }
+      out.push(l);
+    }
+    return out;
+  }
+  function splitOneLine(line) {
+    const parts = line.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length < 3) return [line];
+    if (COUNTRY_US.test(parts[parts.length - 1])) parts.pop();
+    const last = parts[parts.length - 1];
+    const m = last.match(/^([A-Za-z][A-Za-z .]*?)\s+(\d{5}(?:-\d{4})?)$/);
+    if (m && parts.length >= 2) return [...parts.slice(0, -2), `${parts[parts.length - 2]}, ${m[1]} ${m[2]}`];
+    if (/^\d{5}(-\d{4})?$/.test(last) && parts.length >= 3) return [...parts.slice(0, -3), `${parts[parts.length - 3]}, ${parts[parts.length - 2]} ${last}`];
+    return parts;
+  }
+  // A long block with no blank lines between addresses: split after each "City, ST ZIP" (keeping a following country line).
+  function splitRunOn(lines) {
+    const hits = lines.filter((l) => CSZ.test(l)).length;
+    if (lines.length <= 5 || hits < 2) return [lines];
+    const out = []; let cur = [];
+    for (let i = 0; i < lines.length; i++) {
+      cur.push(lines[i]);
+      if (CSZ.test(lines[i])) {
+        const nx = lines[i + 1];
+        if (nx && /^[A-Za-z .]+$/.test(nx) && nx.split(' ').length <= 4 && (COUNTRY_US.test(nx) || nx === nx.toUpperCase())) { cur.push(nx); i++; }
+        out.push(cur); cur = [];
+      }
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  function parseBlocks(text) {
+    const out = [];
+    for (const b of text.split(/\n\s*\n/)) {
+      const lines = b.split('\n').map((s) => s.trim()).filter(Boolean);
+      if (!lines.length) continue;
+      if (lines.every((l) => (l.match(/,/g) || []).length >= 2)) lines.forEach((l) => out.push(cleanLines(splitOneLine(l))));
+      else splitRunOn(lines).forEach((g) => out.push(cleanLines(g)));
+    }
+    return out;
+  }
+  function parseDelimited(text, delim) {
+    const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+        else f += c;
+      } else if (c === '"' && f === '') q = true;
+      else if (c === delim) { row.push(f); f = ''; }
+      else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+      else f += c;
+    }
+    row.push(f); rows.push(row);
+    return rows;
+  }
+  const FIELDS = {
+    name: ['shippingname', 'shiptoname', 'recipientname', 'fullname', 'recipient', 'customername', 'name'],
+    first: ['shippingfirstname', 'firstname', 'first'],
+    last: ['shippinglastname', 'lastname', 'last', 'surname'],
+    company: ['shippingcompany', 'company', 'companyname', 'organization', 'business'],
+    a1: ['shippingaddress1', 'shippingaddressline1', 'shippingstreet', 'address1', 'addressline1', 'streetaddress', 'street1', 'street', 'address', 'addr1'],
+    a2: ['shippingaddress2', 'shippingaddressline2', 'address2', 'addressline2', 'street2', 'apt', 'suite', 'unit', 'apartment', 'addr2'],
+    city: ['shippingcity', 'city', 'town', 'locality'],
+    state: ['shippingprovince', 'shippingprovincecode', 'shippingstate', 'state', 'province', 'region', 'stateprovince', 'st'],
+    zip: ['shippingzip', 'shippingpostalcode', 'zip', 'zipcode', 'postalcode', 'postcode', 'postal', 'zippostalcode'],
+    country: ['shippingcountry', 'shippingcountrycode', 'country', 'countrycode']
+  };
+  const norm = (h) => String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Shopify exports give two-letter country codes; international mail wants the full name.
+  function countryName(c) {
+    if (!/^[A-Za-z]{2}$/.test(c)) return c;
+    try {
+      const n = new Intl.DisplayNames(['en'], { type: 'region' }).of(c.toUpperCase());
+      if (n && n.toUpperCase() !== c.toUpperCase()) return n.toUpperCase();
+    } catch (e) { /* leave the code as is */ }
+    return c;
+  }
+  function headerMap(cells) {
+    const h = cells.map(norm);
+    const idx = {};
+    let hits = 0;
+    for (const [k, cands] of Object.entries(FIELDS)) {
+      idx[k] = -1;
+      for (const c of cands) { const i = h.indexOf(c); if (i >= 0) { idx[k] = i; hits++; break; } }
+    }
+    const ok = hits >= 2 && (idx.a1 >= 0 || idx.city >= 0 || idx.zip >= 0);
+    return ok ? idx : null;
+  }
+  function parseTable(text, delim) {
+    const rows = parseDelimited(text, delim).filter((r) => r.some((c) => c.trim()));
+    if (!rows.length) return [];
+    const idx = headerMap(rows[0]);
+    const out = [];
+    if (idx) {
+      for (const r of rows.slice(1)) {
+        const g = (k) => (idx[k] >= 0 ? String(r[idx[k]] || '').trim().replace(/^'/, '') : '');
+        const name = g('name') || [g('first'), g('last')].filter(Boolean).join(' ');
+        if (!name && !g('a1')) continue;
+        let a2 = g('a2');
+        if (idx.a1 >= 0 && /street$/.test(norm(rows[0][idx.a1])) && a2 && g('a1').includes(a2)) a2 = '';
+        const stz = [g('state'), g('zip')].filter(Boolean).join(' ');
+        const csz = [g('city'), stz].filter(Boolean).join(', ');
+        const country = g('country');
+        const lines = [name, g('company'), g('a1'), a2, csz];
+        if (country && !(S.clean && (COUNTRY_US.test(country) || /^us$/i.test(country)))) lines.push(countryName(country));
+        out.push(cleanLines(lines));
+      }
+      return out;
+    }
+    // No header row: if every row is one cell, read it like pasted text.
+    if (rows.every((r) => r.filter((c) => c.trim()).length <= 1)) return parseBlocks(rows.map((r) => r.join('')).join('\n'));
+    for (const r of rows) {
+      const cells = r.map((c) => c.trim()).filter(Boolean);
+      if (!cells.length) continue;
+      const n = cells.length, last = cells[n - 1].replace(/^'/, '');
+      let lines;
+      if (n >= 3 && /^\d{5}(-\d{4})?$/.test(last)) lines = [...cells.slice(0, n - 3), `${cells[n - 3]}, ${cells[n - 2]} ${last}`];
+      else if (n >= 2 && /^[A-Za-z][A-Za-z .]*\s+\d{5}(-\d{4})?$/.test(last)) lines = [...cells.slice(0, n - 2), `${cells[n - 2]}, ${last}`];
+      else lines = cells.flatMap((c) => c.split('\n'));
+      out.push(cleanLines(lines));
+    }
+    return out;
+  }
+  function parseAll(text) {
+    const t = text.replace(/\r\n?/g, '\n').replace(/^﻿/, '').trim();
+    if (!t) return [];
+    const first = t.split('\n')[0];
+    let res;
+    if (first.includes('\t')) res = parseTable(t, '\t');
+    else if (first.includes(',') && headerMap(parseDelimited(first, ',')[0])) res = parseTable(t, ',');
+    else res = parseBlocks(t);
+    return res.filter((a) => a.length);
+  }
+
+  /* ---------- Printable text ---------- */
+  const WINANSI_EXTRA = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+  const encodable = (ch) => { const c = ch.codePointAt(0); return (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WINANSI_EXTRA.includes(ch); };
+  function printable(s, bad) {
+    let out = '';
+    for (const ch of s.normalize('NFC')) {
+      if (encodable(ch)) { out += ch; continue; }
+      const base = ch.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (base && [...base].every(encodable)) out += base;
+      else { out += '?'; bad.add(ch); }
+    }
+    return out;
+  }
+
+  /* ---------- Fonts and fitting ---------- */
+  let M = null; // measuring fonts: { helv: [regular, bold], ... }
+  async function loadMetrics() {
+    if (!window.PDFLib) return false;
+    const { PDFDocument, StandardFonts } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    M = {};
+    for (const [k, f] of Object.entries(FONTS)) M[k] = [await doc.embedFont(StandardFonts[f.std[0]]), await doc.embedFont(StandardFonts[f.std[1]])];
+    return true;
+  }
+  function spotSize() { return S.mode === 'half' ? { w: LAB, h: LAB / 2 } : { w: LAB, h: LAB }; }
+  function layoutAddr(item) {
+    const { w, h } = spotSize();
+    const W = (w - 2 * S.pad) * 72, H = (h - 2 * S.pad) * 72;
+    const [reg, bold] = M[S.font];
+    const fontFor = (i) => (i === 0 && S.bold ? bold : reg);
+    const widthsAt = (size) => item.lines.map((l, i) => fontFor(i).widthOfTextAtSize(l, size));
+    let size = S.maxPt, widths = widthsAt(size);
+    while (size > 6 && (Math.max(...widths) > W || item.lines.length * size * LH > H)) { size = Math.max(6, size - 0.25); widths = widthsAt(size); }
+    const fits = Math.max(...widths) <= W && item.lines.length * size * LH <= H;
+    return { size, bw: Math.max(...widths), bh: item.lines.length * size * LH, fits, shrunk: size < S.maxPt };
+  }
+  function buildItems(parsed, example = false) {
+    return parsed.map((lines, i) => {
+      const bad = new Set();
+      const shown = lines.map((l) => printable(S.caps ? l.toUpperCase() : l, bad));
+      const item = { n: i + 1, lines: shown, bad: [...bad], example };
+      const all = lines.join('\n');
+      item.noZip = !example && !/\d{5}/.test(all) && /,\s*[A-Za-z]{2}\s*$/.test(lines[lines.length - 1] || '');
+      item.fit = M ? layoutAddr(item) : null;
+      return item;
+    });
+  }
+
+  /* ---------- Spots and sheets ---------- */
+  function spotsPerSheet() { return S.mode === 'half' ? 12 : 6; }
+  function spotUsed(i) { return S.mode === 'half' ? S.used[i] : (S.used[2 * i] || S.used[2 * i + 1]); }
+  function spotRect(i) {
+    if (S.mode === 'half') { const L = LABELS[i >> 1]; return { x: L.x, y: L.y + (i & 1) * LAB / 2, w: LAB, h: LAB / 2, label: i >> 1 }; }
+    const L = LABELS[i]; return { x: L.x, y: L.y, w: LAB, h: LAB, label: i };
+  }
+  function layoutSheets(items) {
+    const N = spotsPerSheet(), sheets = [];
+    let idx = 0, first = true;
+    do {
+      const used = Array.from({ length: N }, (_, i) => (first ? spotUsed(i) : false));
+      const slots = Array(N).fill(null);
+      for (let i = 0; i < N && idx < items.length; i++) if (!used[i]) slots[i] = items[idx++];
+      sheets.push({ used, slots });
+      first = false;
+    } while (idx < items.length);
+    return sheets;
+  }
+
+  let parsed = [], items = [], showing = [];
+  function recompute() {
+    parsed = parseAll(S.text);
+    items = buildItems(parsed);
+    const copies = clamp(Math.round(S.copies) || 1, 1, 50);
+    const expanded = [];
+    for (const it of items) for (let c = 0; c < copies; c++) expanded.push(it);
+    showing = expanded.length ? expanded : buildItems(EXAMPLES, true);
+  }
+
+  /* ---------- Rendering ---------- */
+  function renderParsed() {
+    const ol = $('#parsed');
+    ol.textContent = '';
+    $('#addrCount').textContent = items.length ? plural(items.length, 'address', 'addresses') : '';
+    if (!items.length) { ol.append(el('p', 'empty', S.text.trim() ? 'No addresses found in that text yet.' : 'Nothing pasted yet. The sheet shows example addresses.')); return; }
+    for (const it of items) {
+      const li = el('li');
+      li.append(el('span', 'chip num', String(it.n)));
+      const main = el('div', 'p-main');
+      main.append(el('div', 'p-name', it.lines[0] || ''), el('div', 'p-rest', it.lines.slice(1).join(' · ')));
+      const warns = [];
+      if (it.fit && !it.fit.fits) warns.push('Too long to fit. Shorten a line.');
+      else if (it.fit && it.fit.shrunk) warns.push(`Shrunk to ${it.fit.size.toFixed(it.fit.size % 1 ? 1 : 0)} pt to fit`);
+      if (it.bad.length) warns.push(`Can’t print ${it.bad.join(' ')} (shown as ?)`);
+      if (it.noZip) warns.push('No ZIP code?');
+      if (it.lines.length === 1) warns.push('Only one line. Missing a blank line or street?');
+      if (warns.length) { const w = el('div', 'p-warn'); warns.forEach((t) => w.append(el('span', 'chip warn', t))); main.append(w); }
+      li.append(main);
+      ol.append(li);
+    }
+  }
+  function addrNode(it) {
+    const d = el('div', 'addr');
+    const f = it.fit;
+    d.style.fontFamily = FONTS[S.font].css;
+    d.style.fontSize = `calc(var(--ppi) * ${(f.size / 72).toFixed(5)})`;
+    it.lines.forEach((l, i) => {
+      if (i) d.append('\n');
+      if (i === 0 && S.bold) d.append(el('b', null, l)); else d.append(l);
+    });
+    return d;
+  }
+  function renderSheet() {
+    const sheets = layoutSheets(showing);
+    S.view = clamp(S.view, 0, sheets.length - 1);
+    const sh = sheets[S.view];
+    const sheetEl = $('#sheet');
+    sheetEl.textContent = '';
+    const labEls = LABELS.map((L, li) => {
+      const d = el('div', 'lab');
+      Object.assign(d.style, { left: (L.x / SHEET_W * 100) + '%', top: (L.y / SHEET_H * 100) + '%', width: (LAB / SHEET_W * 100) + '%', height: (LAB / SHEET_H * 100) + '%' });
+      sheetEl.append(d);
+      return d;
+    });
+    const N = spotsPerSheet();
+    const printedLabels = new Set();
+    for (let i = 0; i < N; i++) {
+      const r = spotRect(i);
+      const b = el('button', 'spot ' + (S.mode === 'half' ? (i & 1 ? 'half-bot' : 'half-top') : 'full'));
+      b.type = 'button';
+      if (S.align === 'left') { b.classList.add('left'); b.style.paddingLeft = `calc(var(--ppi) * ${S.pad})`; }
+      const it = sh.slots[i], used = sh.used[i];
+      const where = S.mode === 'half' ? `${LABEL_NAMES[r.label]}, ${i & 1 ? 'bottom' : 'top'} half` : LABEL_NAMES[r.label];
+      let state;
+      if (it) {
+        b.classList.add('filled');
+        if (it.example) b.classList.add('example'); else printedLabels.add(r.label);
+        b.append(addrNode(it));
+        if (!it.example && (it.bad.length || it.noZip || (it.fit && !it.fit.fits))) b.append(el('span', 'flag'));
+        state = `${it.example ? 'example ' : ''}address ${it.n}, ${it.lines[0] || ''}`;
+      } else if (used) { b.classList.add('used'); b.append(el('span', 'spot-word', 'Used')); state = 'already used'; }
+      else { b.append(el('span', 'spot-word', 'Open')); state = 'open'; }
+      if (S.view === 0) {
+        b.setAttribute('aria-label', `${where}: ${state}. Activate to mark it ${used ? 'open' : 'already used'}.`);
+        b.addEventListener('click', () => toggleUsed(i));
+      } else {
+        b.disabled = true;
+        b.setAttribute('aria-label', `${where}: ${state}.`);
+      }
+      labEls[r.label].append(b);
+    }
+    if (S.mode === 'half') labEls.forEach((d, li) => {
+      if (printedLabels.has(li) && S.cut !== 'none') d.classList.add(S.cut === 'ticks' ? 'cut-ticks' : 'cut-line');
+      else d.classList.add('guide');
+    });
+    $('#sheetTitle').textContent = sheets.length > 1 ? `Sheet ${S.view + 1} of ${sheets.length}` : 'Sheet 1';
+    $('#sheetHint').textContent = S.view === 0
+      ? 'Tap a spot to mark it as already used. Addresses fill the open spots in order.'
+      : 'Extra sheets start fresh, with every spot open.';
+    $('#pager').hidden = sheets.length < 2;
+    $('#pageLbl').textContent = `${S.view + 1} / ${sheets.length}`;
+    $('#prevSheet').disabled = S.view === 0;
+    $('#nextSheet').disabled = S.view === sheets.length - 1;
+  }
+  function renderSummary() {
+    const s = $('#summary');
+    s.textContent = '';
+    const N = spotsPerSheet();
+    const open = Array.from({ length: N }, (_, i) => !spotUsed(i)).filter(Boolean).length;
+    const total = items.length * clamp(Math.round(S.copies) || 1, 1, 50);
+    if (!items.length) s.append('Paste addresses to replace the examples.');
+    else {
+      const out = layoutSheets(showing).filter((sh) => sh.slots.some(Boolean)).length;
+      s.append(el('b', null, `${plural(total, 'label spot')} on ${plural(out, 'sheet')}`));
+      if (open < N) s.append(` · first sheet has ${open} open`);
+    }
+    $('#saveBtn').disabled = S.busy || !items.length;
+    $('#openBtn').disabled = S.busy || !items.length;
+  }
+  function render() {
+    if (!M) return;
+    recompute();
+    renderParsed();
+    renderSheet();
+    renderSummary();
+  }
+  function toggleUsed(i) {
+    if (S.mode === 'half') S.used[i] = !S.used[i];
+    else { const v = !(S.used[2 * i] || S.used[2 * i + 1]); S.used[2 * i] = v; S.used[2 * i + 1] = v; }
+    saveState();
+    render();
+  }
+
+  /* ---------- PDF ---------- */
+  async function buildPdf(sheets) {
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    doc.setTitle('Address labels on OL805 3 x 3 sheets');
+    doc.setCreator('OL805 Address Labels');
+    const f = FONTS[S.font];
+    const reg = await doc.embedFont(StandardFonts[f.std[0]]), bold = await doc.embedFont(StandardFonts[f.std[1]]);
+    const black = rgb(0, 0, 0), gray = rgb(0.45, 0.47, 0.5);
+    for (const sh of sheets) {
+      const page = doc.addPage([SHEET_W * 72, SHEET_H * 72]);
+      const printed = new Set();
+      sh.slots.forEach((it, i) => {
+        if (!it) return;
+        const r = spotRect(i);
+        printed.add(r.label);
+        const { size, bw, bh } = it.fit;
+        const x0 = (S.align === 'left' ? (r.x + S.pad) * 72 : r.x * 72 + (r.w * 72 - bw) / 2) + S.nudgeX * 72;
+        const top = r.y * 72 + (r.h * 72 - bh) / 2 + S.nudgeY * 72;
+        it.lines.forEach((line, k) => {
+          const baseline = top + k * size * LH + size * f.base;
+          page.drawText(line, { x: x0, y: SHEET_H * 72 - baseline, size, font: k === 0 && S.bold ? bold : reg, color: black });
+        });
+      });
+      if (S.mode === 'half' && S.cut !== 'none') {
+        for (const li of printed) {
+          const L = LABELS[li];
+          const x = (L.x + S.nudgeX) * 72, y = SHEET_H * 72 - (L.y + LAB / 2 + S.nudgeY) * 72, w = LAB * 72;
+          if (S.cut === 'ticks') {
+            page.drawLine({ start: { x, y }, end: { x: x + 9, y }, thickness: 0.6, color: gray });
+            page.drawLine({ start: { x: x + w - 9, y }, end: { x: x + w, y }, thickness: 0.6, color: gray });
+          } else {
+            page.drawLine({ start: { x: x + 4, y }, end: { x: x + w - 4, y }, thickness: 0.4, color: gray, dashArray: [3, 3] });
+          }
+        }
+      }
+    }
+    return doc.save();
+  }
+  async function buildTestPdf() {
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    doc.setTitle('OL805 alignment test');
+    const page = doc.addPage([SHEET_W * 72, SHEET_H * 72]);
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const ink = rgb(0.07, 0.08, 0.1), soft = rgb(0.55, 0.58, 0.63), blue = rgb(0.15, 0.27, 0.76);
+    const P = (v) => v * 72;
+    const sx = (S.nudgeX >= 0 ? '+' : '') + S.nudgeX.toFixed(2), sy = (S.nudgeY >= 0 ? '+' : '') + S.nudgeY.toFixed(2);
+    LABELS.forEach((L, i) => {
+      const x = P(L.x + S.nudgeX), yTop = P(SHEET_H - L.y - S.nudgeY), w = P(LAB);
+      page.drawRectangle({ x, y: yTop - w, width: w, height: w, borderColor: ink, borderWidth: 0.8 });
+      page.drawLine({ start: { x: x + 4, y: yTop - w / 2 }, end: { x: x + w - 4, y: yTop - w / 2 }, thickness: 0.5, color: soft, dashArray: [3, 3] });
+      const cx = x + w / 2, cy = yTop - w * 0.25;
+      page.drawLine({ start: { x: cx - 14, y: cy }, end: { x: cx + 14, y: cy }, thickness: 0.8, color: blue });
+      page.drawLine({ start: { x: cx, y: cy - 14 }, end: { x: cx, y: cy + 14 }, thickness: 0.8, color: blue });
+      page.drawText(LABEL_NAMES[i].toUpperCase(), { x: x + 12, y: yTop - 22, size: 11, font: bold, color: ink });
+      const bx = x + P(0.5), by = yTop - w * 0.75;
+      page.drawLine({ start: { x: bx, y: by }, end: { x: bx + P(2), y: by }, thickness: 1, color: ink });
+      for (let t = 0; t <= 4; t++) page.drawLine({ start: { x: bx + P(t / 2), y: by }, end: { x: bx + P(t / 2), y: by + (t % 2 ? 4 : 8) }, thickness: 0.8, color: ink });
+      page.drawText('2 in - measure to confirm 100% scale', { x: bx, y: by - 12, size: 7.5, font, color: soft });
+    });
+    const lines = [
+      'Alignment test. Print at Actual size (100%) on plain paper, lay it on a label sheet and hold both up to a window.',
+      `Squares should sit on the die cuts. If not, change Shift right / Shift down. Current shift: right ${sx} in, down ${sy} in.`
+    ];
+    lines.forEach((t, k) => page.drawText(t, { x: P(0.6), y: P(SHEET_H) - P(0.4) - k * 11, size: 8, font, color: k ? blue : ink }));
+    return doc.save();
+  }
+
+  /* ---------- Saving ---------- */
+  const inViewer = !!(window.claude && typeof window.claude.use === 'function');
+  const dlP = inViewer ? Promise.resolve(window.claude.use('downloads')).catch(() => null) : Promise.resolve(null);
+  async function offerFile(bytes, filename) {
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    if (inViewer) {
+      const dl = await dlP;
+      if (!dl) { status('Saving isn’t available in this view. Open this page in Claude to save the PDF.', 'warn'); return false; }
+      try { await dl.save({ filename, data: blob }); return true; }
+      catch (e) {
+        const code = e && e.code;
+        if (code === 'declined') status('Save cancelled.');
+        else if (code === 'rate_limited') status('A save prompt is already open. Finish that one first.', 'warn');
+        else status(`The PDF couldn’t be saved here (${code || 'unknown error'}).`, 'warn');
+        return false;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  }
+  function stamp() {
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  }
+  function setBusy(b) {
+    S.busy = b;
+    ['#testBtn', '#markBtn', '#resetSheet'].forEach((s) => { $(s).disabled = b; });
+    renderSummary();
+  }
+  async function pdfBytes() {
+    const sheets = layoutSheets(showing).filter((sh) => sh.slots.some((x) => x && !x.example));
+    return sheets.length ? buildPdf(sheets) : null;
+  }
+  async function onSave(open) {
+    if (S.busy || !items.length) return;
+    if (!window.PDFLib) { status('The PDF writer didn’t load. Check your connection and reload the page.', 'warn'); return; }
+    setBusy(true);
+    try {
+      const bytes = await pdfBytes();
+      if (!bytes) return;
+      const tooLong = items.filter((it) => it.fit && !it.fit.fits).length;
+      if (open) {
+        window.open(URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), '_blank');
+        status('Opened the PDF in a new tab. Print it at Actual size (100%).', 'ok');
+        $('#afterBar').hidden = false;
+      } else {
+        const name = `addresses-OL805-${stamp()}.pdf`;
+        status('PDF ready. Confirm the save to download it.');
+        if (await offerFile(bytes, name)) {
+          status(`Saved ${name}. Print it at Actual size (100%).` + (tooLong ? ` ${plural(tooLong, 'address')} may run past the edge.` : ''), tooLong ? 'warn' : 'ok');
+          $('#afterBar').hidden = false;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      status(`The PDF couldn’t be built: ${e && e.message ? e.message : e}`, 'warn');
+    } finally { setBusy(false); }
+  }
+  async function onTest() {
+    if (S.busy) return;
+    if (!window.PDFLib) { status('The PDF writer didn’t load. Check your connection and reload the page.', 'warn'); return; }
+    setBusy(true);
+    try {
+      const bytes = await buildTestPdf();
+      if (await offerFile(bytes, 'OL805-alignment-test.pdf')) status('Saved the alignment test. Print it on plain paper at Actual size.', 'ok');
+    } catch (e) { console.error(e); status(`The test page couldn’t be built: ${e && e.message ? e.message : e}`, 'warn'); }
+    finally { setBusy(false); }
+  }
+  function markPrinted() {
+    const out = layoutSheets(showing).filter((sh) => sh.slots.some(Boolean));
+    if (!out.length) return;
+    const last = out[out.length - 1];
+    const N = spotsPerSheet();
+    const nowUsed = Array.from({ length: N }, (_, i) => last.used[i] || !!last.slots[i]);
+    if (S.mode === 'half') S.used = nowUsed;
+    else S.used = nowUsed.flatMap((u) => [u, u]);
+    const full = S.used.every(Boolean);
+    if (full) S.used = Array(12).fill(false);
+    S.text = '';
+    $('#paste').value = '';
+    S.view = 0;
+    saveState();
+    $('#afterBar').hidden = true;
+    render();
+    const left = S.used.filter((u) => !u).length;
+    status(full ? 'That sheet is full. The next batch starts on a fresh sheet.' : `Sheet updated and addresses cleared. ${plural(S.mode === 'half' ? left : left / 2, 'spot')} left on it.`, 'ok');
+  }
+
+  /* ---------- Wiring ---------- */
+  const paste = $('#paste');
+  let t = 0;
+  paste.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { S.text = paste.value; S.view = 0; $('#afterBar').hidden = true; saveState(); render(); }, 150);
+  });
+  $('#clearBtn').addEventListener('click', () => { paste.value = ''; S.text = ''; S.view = 0; saveState(); render(); status('Cleared the addresses.'); paste.focus(); });
+  $('#csvIn').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      paste.value = txt; S.text = txt; S.view = 0; saveState(); render();
+      status(items.length ? `Loaded ${plural(items.length, 'address', 'addresses')} from ${f.name}.` : `No addresses found in ${f.name}. It needs name and address columns.`, items.length ? '' : 'warn');
+    } catch (err) { status(`${f.name} couldn’t be read.`, 'warn'); }
+  });
+
+  function bindRadio(name, key, after) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((inp) => {
+      inp.checked = String(S[key]) === inp.value;
+      inp.addEventListener('change', () => { if (!inp.checked) return; S[key] = inp.value; saveState(); if (after) after(); render(); });
+    });
+  }
+  function bindCheck(id, key) {
+    const inp = $('#' + id);
+    inp.checked = !!S[key];
+    inp.addEventListener('change', () => { S[key] = inp.checked; saveState(); render(); });
+  }
+  function bindNum(id, key, min, max, digits) {
+    const inp = $('#' + id);
+    inp.value = Number(S[key]).toFixed(digits);
+    inp.addEventListener('change', () => {
+      const v = parseFloat(inp.value);
+      S[key] = Number.isFinite(v) ? clamp(v, min, max) : S[key];
+      if (key === 'copies') S[key] = Math.round(S[key]);
+      inp.value = Number(S[key]).toFixed(digits);
+      saveState(); render();
+    });
+  }
+  function syncCut() { $('#cutCtl').hidden = S.mode !== 'half'; }
+
+  const sheetEl = $('#sheet');
+  const ro = new ResizeObserver(() => { sheetEl.style.setProperty('--ppi', (sheetEl.clientWidth / SHEET_W) + 'px'); });
+  ro.observe(sheetEl);
+
+  $('#saveBtn').addEventListener('click', () => onSave(false));
+  $('#openBtn').addEventListener('click', () => onSave(true));
+  $('#testBtn').addEventListener('click', onTest);
+  $('#markBtn').addEventListener('click', markPrinted);
+  $('#afterDismiss').addEventListener('click', () => { $('#afterBar').hidden = true; });
+  $('#resetSheet').addEventListener('click', () => { S.used = Array(12).fill(false); S.view = 0; saveState(); render(); status('Sheet reset. Every spot is open.'); });
+  $('#prevSheet').addEventListener('click', () => { S.view--; renderSheet(); });
+  $('#nextSheet').addEventListener('click', () => { S.view++; renderSheet(); });
+  if (!inViewer) $('#openBtn').hidden = false;
+
+  loadState();
+  paste.value = S.text;
+  bindRadio('mode', 'mode', syncCut);
+  bindRadio('cut', 'cut');
+  bindRadio('font', 'font');
+  bindRadio('align', 'align');
+  bindCheck('optBold', 'bold');
+  bindCheck('optCaps', 'caps');
+  bindCheck('optClean', 'clean');
+  bindNum('maxPt', 'maxPt', 6, 24, 1);
+  bindNum('copies', 'copies', 1, 50, 0);
+  bindNum('pad', 'pad', 0.05, 0.5, 2);
+  bindNum('nudgeX', 'nudgeX', -0.5, 0.5, 2);
+  bindNum('nudgeY', 'nudgeY', -0.5, 0.5, 2);
+  syncCut();
+
+  loadMetrics().then((ok) => {
+    if (!ok) { status('The PDF writer didn’t load. Check your connection and reload the page.', 'warn'); return; }
+    render();
+  }).catch((e) => { console.error(e); status('The label fonts didn’t load. Reload the page to try again.', 'warn'); });
+})();
+</script>
+
+</body>
+</html>

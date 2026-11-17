@@ -111,6 +111,8 @@
   #page-home .home-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
   #page-home .home-card { background:#c0c0c0; border-top:2px solid #fff; border-left:2px solid #fff; border-right:2px solid #404040; border-bottom:2px solid #404040; padding:10px; cursor:pointer; display:flex; gap:10px; align-items:flex-start; }
   #page-home .home-card:hover { background:#d4d4d4; }
+  #page-home a.home-card { text-decoration:none; color:inherit; }
+  .toolkit-nav a.tab-btn { text-decoration:none; }
   #page-home .home-card:active { border-top:2px solid #404040; border-left:2px solid #404040; border-right:2px solid #fff; border-bottom:2px solid #fff; }
   #page-home .home-card .hc-icon { width:46px; height:46px; flex-shrink:0; background:#0a0a2e; border-top:2px solid #808080; border-left:2px solid #808080; border-right:2px solid #fff; border-bottom:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:24px; }
   #page-home .home-card .hc-name { font-family:'VT323',monospace; font-size:19px; color:#000080; letter-spacing:1px; }
@@ -1005,6 +1007,7 @@
   <button class="tab-btn" data-page="chess">&#9822; Chess Set</button>
   <button class="tab-btn" data-page="scaler">&#9878; Chess Scaler</button>
   <button class="tab-btn" data-page="gears">&#9881; Gear Generator</button>
+  <a class="tab-btn" href="address-labels/">&#127991;&#65039; Address Labels</a>
 </nav>
 
 <!-- ═══════════════════════════════════ PAGE 1: PDF COMBINER ═══════════════════════════════════ -->
@@ -1105,10 +1108,18 @@
             <span class="hc-open">[ OPEN &#9658; ]</span>
           </div>
         </div>
+        <a class="home-card" href="address-labels/">
+          <div class="hc-icon">&#127991;&#65039;</div>
+          <div>
+            <div class="hc-name">ADDRESS LABELS</div>
+            <div class="hc-desc">Paste addresses, spreadsheet rows or a Shopify order CSV and get a print-ready PDF for OL805 3&times;3 label sheets, two addresses per label to cut in half. Skips spots you've already peeled.</div>
+            <span class="hc-open">[ OPEN &#9658; ]</span>
+          </div>
+        </a>
       </div>
     </div>
     <div class="home-status-bar">
-      <span class="home-status-cell">10 PROGRAMS LOADED</span>
+      <span class="home-status-cell">11 PROGRAMS LOADED</span>
       <span class="home-status-cell">100% CLIENT-SIDE</span>
     </div>
   </div><!-- .home-app -->
@@ -2055,7 +2066,7 @@
 // ═══════════════════════════════════════════════════════════════
 // TAB NAVIGATION
 // ═══════════════════════════════════════════════════════════════
-const tabBtns = document.querySelectorAll('.tab-btn');
+const tabBtns = document.querySelectorAll('.tab-btn[data-page]'); // links to standalone pages (no data-page) navigate normally
 const pages = document.querySelectorAll('.tool-page');
 let activePage = 'home';
 
