@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rob's Toolkit</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"./lib/three/three.module.min.js","three/addons/":"./lib/three/addons/"}}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/utif/3.1.0/UTIF.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/utif@3.1.0/UTIF.js';document.head.appendChild(s);"></script>
@@ -5546,7 +5546,8 @@ try {
       init(G, L, THREE);
     } catch (e) {
       console.error('gear generator', e);
-      $('ggStatus').textContent = 'COULD NOT LOAD THE GENERATOR — RELOAD TO TRY AGAIN'; $('ggStatus').classList.add('err');
+      const file = String(e && e.message || '').match(/[\w.-]+\.js/);   // name the file that failed, if any
+      $('ggStatus').textContent = 'COULD NOT LOAD THE GENERATOR' + (file ? ' (' + file[0] + ')' : '') + ' — RELOAD TO TRY AGAIN'; $('ggStatus').classList.add('err');
     }
   }
   // load lazily, the first time the tab is shown
