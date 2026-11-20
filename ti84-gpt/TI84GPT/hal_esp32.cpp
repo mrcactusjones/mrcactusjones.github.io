@@ -40,6 +40,7 @@ bool lineHigh(int pin) { return gpio_get_level((gpio_num_t)pin) != 0; }
 uint32_t micros() { return (uint32_t)::micros(); }
 uint32_t millis() { return (uint32_t)::millis(); }
 void sleepMs(uint32_t ms) { ::delay(ms); }
+void relax() { vTaskDelay(1); }
 
 void lock() {
   if (gStateMutex) xSemaphoreTake(gStateMutex, portMAX_DELAY);

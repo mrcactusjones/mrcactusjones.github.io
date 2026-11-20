@@ -45,7 +45,8 @@ jobs:
           arduino-cli core install esp32:esp32@${{ matrix.core }}
       - name: Compile for the ESP32-C3 SuperMini
         run: |
-          arduino-cli compile --fqbn esp32:esp32:nologo_esp32c3_super_mini \
+          arduino-cli compile \
+            --fqbn esp32:esp32:nologo_esp32c3_super_mini:PartitionScheme=huge_app \
             --warnings default --output-dir build ti84-gpt/TI84GPT
           ls -l build
       - uses: actions/upload-artifact@v4

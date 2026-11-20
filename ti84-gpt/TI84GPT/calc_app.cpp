@@ -291,7 +291,7 @@ int CalcApp::sendProgramOnce(const char *name, const uint8_t *tokens, size_t len
     hal::logf("send program: no ACK for the request (%s, command 0x%02X)", ti::linkResultName(rc), pkt.command);
     return SEND_NO_ANSWER;
   }
-  rc = link_->receive(pkt, rx_, sizeof(rx_), 10000000);
+  rc = link_->receive(pkt, rx_, sizeof(rx_), 4000000);
   if (rc != ti::LINK_OK) {
     hal::logf("send program: no go-ahead (%s)", ti::linkResultName(rc));
     return SEND_FAILED;

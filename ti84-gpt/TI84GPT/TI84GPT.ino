@@ -3,6 +3,8 @@
 //
 // Board:  "Nologo ESP32C3 Super Mini"  (or "ESP32C3 Dev Module" with
 //         Tools > USB CDC On Boot > Enabled)
+// Also:   Tools > Partition Scheme > "Huge APP (3MB No OTA/1MB SPIFFS)"
+//         (otherwise the IDE reports "Sketch too big")
 // Needs:  the "esp32 by Espressif Systems" boards package, version 3.3 or
 //         newer. No extra libraries.
 //

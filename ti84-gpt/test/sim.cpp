@@ -120,6 +120,7 @@ bool lineHigh(int pin) { return sim::level(pin); }
 uint32_t micros() { return sim::nowUs(); }
 uint32_t millis() { return sim::nowUs() / 1000; }
 void sleepMs(uint32_t ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); }
+void relax() { std::this_thread::sleep_for(std::chrono::microseconds(200)); }
 void lock() { gStateMutex.lock(); }
 void unlock() { gStateMutex.unlock(); }
 

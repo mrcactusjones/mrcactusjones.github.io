@@ -27,6 +27,11 @@ static const uint32_t kTurnaroundUs = 1500;
 // receiving; the calculator is patiently holding that first bit for us.
 static const uint32_t kFinalReleaseUs = 20000;
 
+// A handshake step normally completes in microseconds. Once one has taken
+// this long the calculator is clearly busy with something else, so stop
+// spinning and let the other tasks run between looks at the wires.
+static const uint32_t kRelaxAfterUs = 2000;
+
 const char *linkResultName(int rc) {
   switch (rc) {
     case LINK_OK: return "ok";
@@ -115,10 +120,12 @@ int Link::recvByte(uint8_t &out, uint32_t firstTimeoutUs) {
         if (hal::lineHigh(tip_) == tipHigh && hal::lineHigh(ring_) == ringHigh) break;
         continue;
       }
-      if (hal::micros() - t0 > limit) {
+      const uint32_t waited = hal::micros() - t0;
+      if (waited > limit) {
         release();
         return tipHigh ? LINK_TIMEOUT : LINK_STUCK;
       }
+      if (waited > kRelaxAfterUs) hal::relax();
     }
 
     const bool one = !ringHigh;  // ring low = 1, tip low = 0
@@ -129,10 +136,12 @@ int Link::recvByte(uint8_t &out, uint32_t firstTimeoutUs) {
     hal::lineLow(ackLine);
     t0 = hal::micros();
     while (!hal::lineHigh(srcLine)) {
-      if (hal::micros() - t0 > kPhaseTimeoutUs) {
+      const uint32_t waited = hal::micros() - t0;
+      if (waited > kPhaseTimeoutUs) {
         release();
         return LINK_TIMEOUT;
       }
+      if (waited > kRelaxAfterUs) hal::relax();
     }
     hal::lineRelease(ackLine);
     settle(ackLine);
@@ -150,6 +159,7 @@ bool Link::waitIdle(uint32_t quietUs) {
     if (!hal::lineHigh(tip_) || !hal::lineHigh(ring_)) {
       quietSince = now;
       if (now - start > kPhaseTimeoutUs) return false;
+      if (now - start > kRelaxAfterUs) hal::relax();
     } else if (now - quietSince >= quietUs) {
       return true;
     }
@@ -160,10 +170,12 @@ int Link::sendByte(uint8_t value, bool lastOfPacket) {
   for (int bit = 0; bit < 8; bit++) {
     uint32_t t0 = hal::micros();
     while (!hal::lineHigh(tip_) || !hal::lineHigh(ring_)) {
-      if (hal::micros() - t0 > kPhaseTimeoutUs) {
+      const uint32_t waited = hal::micros() - t0;
+      if (waited > kPhaseTimeoutUs) {
         release();
         return LINK_TIMEOUT;
       }
+      if (waited > kRelaxAfterUs) hal::relax();
     }
 
     const bool one = (value & 1) != 0;
@@ -173,10 +185,12 @@ int Link::sendByte(uint8_t value, bool lastOfPacket) {
     hal::lineLow(line);
     t0 = hal::micros();
     while (hal::lineHigh(ackLine)) {
-      if (hal::micros() - t0 > kPhaseTimeoutUs) {
+      const uint32_t waited = hal::micros() - t0;
+      if (waited > kPhaseTimeoutUs) {
         release();
         return LINK_TIMEOUT;
       }
+      if (waited > kRelaxAfterUs) hal::relax();
     }
     hal::lineRelease(line);
     const bool finalBit = lastOfPacket && bit == 7;
@@ -188,6 +202,7 @@ int Link::sendByte(uint8_t value, bool lastOfPacket) {
         release();
         return LINK_TIMEOUT;
       }
+      if (waited > kRelaxAfterUs) hal::relax();
     }
     value >>= 1;
   }
@@ -195,6 +210,18 @@ int Link::sendByte(uint8_t value, bool lastOfPacket) {
 }
 
 int Link::receive(Packet &pkt, uint8_t *data, size_t maxData, uint32_t firstTimeoutUs) {
+  const bool swappedBefore = swapped_;
+  const int rc = receivePacket(pkt, data, maxData, firstTimeoutUs);
+  if (rc == LINK_OK) {
+    // A whole, intact packet from a calculator settles which wire is which.
+    if (plausibleMachineId(pkt.machine)) known_ = true;
+  } else if (swapped_ != swappedBefore) {
+    setSwapped(swappedBefore);  // don't let line noise flip the wires
+  }
+  return rc;
+}
+
+int Link::receivePacket(Packet &pkt, uint8_t *data, size_t maxData, uint32_t firstTimeoutUs) {
   uint8_t header[4];
   int rc = recvByte(header[0], firstTimeoutUs);
   if (rc != LINK_OK) return rc;
@@ -205,9 +232,7 @@ int Link::receive(Packet &pkt, uint8_t *data, size_t maxData, uint32_t firstTime
     // bit values come out inverted - so fix this byte and carry on.
     setSwapped(!swapped_);
     header[0] = (uint8_t)~header[0];
-    hal::logf("link: tip/ring were swapped, now tip=GPIO%d ring=GPIO%d", tip_, ring_);
   }
-  if (plausibleMachineId(header[0])) known_ = true;
 
   for (int i = 1; i < 4; i++) {
     rc = recvByte(header[i], kPhaseTimeoutUs);

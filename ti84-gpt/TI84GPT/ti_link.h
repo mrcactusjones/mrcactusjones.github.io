@@ -89,6 +89,7 @@ class Link {
   void release();
 
  private:
+  int receivePacket(Packet &pkt, uint8_t *data, size_t maxData, uint32_t firstTimeoutUs);
   int recvByte(uint8_t &out, uint32_t firstTimeoutUs);
   int sendByte(uint8_t value, bool lastOfPacket);
   bool waitIdle(uint32_t quietUs);
