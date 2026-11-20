@@ -1,0 +1,83 @@
+// prgmGPT - the calculator side of TI84GPT.
+//
+// This is the readable source. tools/build_launcher.py turns it into
+// TI84GPT/launcher_program.h (built into the firmware, which can send it to
+// the calculator by itself) and launcher/GPT.8xp (for TI Connect, if you
+// prefer a cable). Lines starting with // are comments.
+//
+// Variables:  C command   S status   N screens   P screen shown   Q previous P
+//             K key       Str1 what you typed    Str0 the screen from the ESP32
+//
+// Keys while reading:  ENTER / right / down = next screen
+//                      left / up = previous screen
+//                      +  = reply (follow-up question)
+//                      CLEAR = back to the menu
+ClrHome
+Lbl M
+Menu("  TI-84 GPT","ASK CHATGPT",A,"FOLLOW-UP",F,"SOLVE MATH",B,"STATUS",T,"WIFI SETUP",W,"UPDATE",U,"QUIT",Q)
+// --- commands that need typed text -----------------------------------------
+Lbl A
+1->C
+Goto I
+Lbl F
+2->C
+Goto I
+Lbl B
+3->C
+Lbl I
+ClrHome
+Disp "TYPE IT, THEN","PRESS ENTER:"
+Input Str1
+Send(Str1)
+Goto G
+// --- commands without text --------------------------------------------------
+Lbl T
+4->C
+Goto G
+Lbl W
+6->C
+// --- send the command and wait for the ESP32 ---------------------------------
+Lbl G
+Send(C)
+ClrHome
+Output(4,3,"THINKING...")
+Output(8,1,"CLEAR=CANCEL")
+0->S
+0->K
+Repeat S or K=45
+Get(S)
+getKey->K
+End
+If K=45
+Goto M
+Get(N)
+1->P
+// --- show screen P of N ------------------------------------------------------
+Lbl V
+Send(P)
+Get(Str0)
+ClrHome
+Output(1,1,Str0)
+Lbl K
+Repeat K
+getKey->K
+End
+If K=45
+Goto M
+If K=95
+Goto F
+P->Q
+P-(K=24 or K=25)+(K=26 or K=34 or K=105)->P
+max(1,min(N,P))->P
+If P=Q
+Goto K
+Goto V
+// --- replace this program with the copy stored in the ESP32 -----------------
+Lbl U
+5->C
+Send(C)
+ClrHome
+Disp "UPDATING...","WAIT 5 SECONDS","THEN RUN","prgmGPT AGAIN"
+Stop
+Lbl Q
+ClrHome

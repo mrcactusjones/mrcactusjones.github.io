@@ -1,0 +1,55 @@
+# Builds the TI84GPT firmware (ti84-gpt/) and runs its desktop tests whenever
+# that folder changes. The compiled firmware is attached to each run under
+# "Artifacts". Nothing here touches the website.
+name: TI84GPT firmware
+
+on:
+  push:
+    paths:
+      - 'ti84-gpt/**'
+      - '.github/workflows/ti84-gpt.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Desktop tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Calculator program is up to date with launcher/GPT.txt
+        run: |
+          python3 ti84-gpt/tools/build_launcher.py
+          git diff --exit-code -- ti84-gpt/TI84GPT/launcher_program.h ti84-gpt/launcher/GPT.8xp
+      - name: Run the tests
+        run: make -C ti84-gpt/test
+
+  firmware:
+    name: Compile (esp32 core ${{ matrix.core }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        core: ['4.0.0', '3.3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install the esp32 boards package
+        run: |
+          arduino-cli config init
+          arduino-cli config set network.connection_timeout 600s
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@${{ matrix.core }}
+      - name: Compile for the ESP32-C3 SuperMini
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:nologo_esp32c3_super_mini \
+            --warnings default --output-dir build ti84-gpt/TI84GPT
+          ls -l build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TI84GPT-firmware-esp32-core-${{ matrix.core }}
+          path: build/*.bin
+          if-no-files-found: error
