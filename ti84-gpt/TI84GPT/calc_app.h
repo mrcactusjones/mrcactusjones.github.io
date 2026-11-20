@@ -74,6 +74,9 @@ class CalcApp {
  public:
   void begin(ti::Link *link, Handler *handler, bool lowercase);
   void setLowercase(bool lowercase);
+  // Log every packet from the calculator (for bring-up on the bench).
+  void setDebug(bool on) { debug_ = on; }
+  bool debug() const { return debug_; }
 
   // Service the link. Call as often as possible; returns true if a packet was
   // handled (so the caller knows not to sleep yet).
@@ -110,6 +113,7 @@ class CalcApp {
   bool wiringReported_ = false;
   bool reportedSwapped_ = false;
   bool backingOff_ = false;
+  bool debug_ = false;
   uint32_t backoffStartMs_ = 0;
 
   // --- shared with other tasks, protected by hal::lock() ---

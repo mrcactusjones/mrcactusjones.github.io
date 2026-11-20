@@ -59,6 +59,7 @@ bool CalcApp::poll() {
   if (rc != ti::LINK_OK) {
     backingOff_ = true;
     backoffStartMs_ = hal::millis();
+    if (debug_) hal::logf("link: receive failed (%s)", ti::linkResultName(rc));
     hal::Guard guard;
     stats_.errors++;
     stats_.lastError = rc;
@@ -68,6 +69,17 @@ bool CalcApp::poll() {
     hal::Guard guard;
     stats_.packets++;
     stats_.lastPacketMs = hal::millis();
+  }
+  if (debug_) {
+    // Printing takes a moment; the calculator simply waits a little longer
+    // for its answer.
+    if (pkt.dataLen >= 4 && (pkt.command == ti::CMD_RTS || pkt.command == ti::CMD_REQ)) {
+      hal::logf("link: 0x%02X %s: variable type 0x%02X name %02X %02X, %u bytes", pkt.machine,
+                pkt.command == ti::CMD_RTS ? "sends" : "asks for", rx_[2], rx_[3],
+                pkt.dataLen > 4 ? rx_[4] : 0, (unsigned)(rx_[0] | (rx_[1] << 8)));
+    } else {
+      hal::logf("link: 0x%02X command 0x%02X, %u data bytes", pkt.machine, pkt.command, (unsigned)pkt.dataLen);
+    }
   }
 
   if (link_->orientationKnown() && (!wiringReported_ || reportedSwapped_ != link_->swapped())) {
@@ -160,7 +172,10 @@ void CalcApp::onVariableReceived(uint16_t dataLen) {
     return;
   }
 
-  if (type != ti::VAR_REAL || dataLen < ti::kRealSize) return;
+  if (type != ti::VAR_REAL || dataLen < ti::kRealSize) {
+    if (debug_) hal::logf("link: ignoring variable of type 0x%02X (%u bytes)", type, (unsigned)dataLen);
+    return;
+  }
   const long value = lround(ti::realToDouble(rx_));
 
   if (name0 == 'P') {

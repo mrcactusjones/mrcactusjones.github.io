@@ -30,8 +30,8 @@ Settings live in [`TI84GPT/config.h`](TI84GPT/config.h). The defaults match this
 | `5` | link jack, bottom contact | link data wire |
 | `7` | link jack, right-side contact | link data wire |
 | `6` | C21 | **read only** — never driven, no pull-up |
-| `G` | calculator ground | must be connected |
-| `5V` (or `3.3`) | calculator power | however your build powers the board |
+| `G` | calculator ground | required: the link cannot work without a shared ground |
+| `5V` (or `3.3`) | calculator power | required to run without USB |
 
 - **You do not need to know which link wire is tip and which is ring.** The
   first time the calculator talks, the firmware works it out from the data and
@@ -116,7 +116,8 @@ work too — `X²`, `√(`, `π`, `sin(` and so on arrive at ChatGPT as `X^2`,
 Do this with the SuperMini on USB and the Arduino **Serial Monitor** open at 115200 baud.
 
 1. **Boot.** You should see `TI84GPT 1.0 - link on GPIO5 and GPIO7`.
-   Type `s` + ENTER in the serial monitor at any time for the status report.
+   Type `s` + ENTER in the serial monitor at any time for the status report,
+   and `d` + ENTER to log every packet the calculator sends (`h` lists the commands).
 2. **Wires idle.** With the calculator on, the report should say `TIP=... high`
    and `RING=... high`. With the calculator off they will most likely read `LOW`.
    If one is stuck `LOW` with the calculator on, that wire is on the wrong pad or shorted.

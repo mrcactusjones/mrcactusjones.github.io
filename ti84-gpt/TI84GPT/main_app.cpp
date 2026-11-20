@@ -404,9 +404,14 @@ void serviceSerial() {
       case 'i': requestInstall(); Serial.println("sending prgmGPT in a moment..."); break;
       case 'p': postJob(JOB_PORTAL_START); break;
       case 'q': postJob(JOB_PORTAL_STOP); break;
+      case 'd':
+        gCalc.setDebug(!gCalc.debug());
+        Serial.println(gCalc.debug() ? "link debug ON: every packet is logged" : "link debug off");
+        break;
       case 'h':
       case '?':
-        Serial.println("s = status, i = send prgmGPT to the calculator, p = setup page on, q = setup page off");
+        Serial.println("s = status, d = log link packets, i = send prgmGPT to the calculator, "
+                       "p = setup page on, q = setup page off");
         break;
       default: break;
     }
