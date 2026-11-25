@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OL475 Label Printer</title>
+<meta name="description" content="Fit a carrier shipping label PDF or image onto OnlineLabels OL475 4x5 label sheets, four per page, and save a print-ready PDF.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a workbench. Label intake and printer setup on the left rail, the true-proportion 8.5x11 sheet as the stage on the right; stacks to intake, sheet, setup on phones. */
+:root {
+  --bench: #E1E4E9;
+  --panel: #F5F6F8;
+  --sheet: #FFFFFF;
+  --sheet-ink: #5E6672;
+  --slot-line: #B4BBC6;
+  --hatch: #D3D8DF;
+  --ink: #12151A;
+  --ink-2: #4A515C;
+  --ink-3: #78808B;
+  --rule: #C8CED7;
+  --accent: #2646C2;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCE3FA;
+  --warn: #8F4C00;
+  --warn-soft: #FAE8CF;
+  --ok: #1A6B43;
+  --ok-soft: #D6EEDF;
+  --shade: rgba(9, 11, 15, 0.52);
+  --scrim: rgba(12, 14, 20, 0.55);
+  --shadow: 0 1px 2px rgba(18, 21, 26, .08), 0 8px 28px rgba(18, 21, 26, .10);
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bench: #121419; --panel: #1A1D23; --sheet: #E6E9ED; --sheet-ink: #59616C; --slot-line: #A3AAB5; --hatch: #C4CAD2;
+    --ink: #E7EAEF; --ink-2: #A5ACB7; --ink-3: #7D8590; --rule: #2E333C;
+    --accent: #8FA3FF; --accent-ink: #0D1022; --accent-soft: #242D52;
+    --warn: #F1B562; --warn-soft: #3A2B14; --ok: #7CD3A3; --ok-soft: #173327;
+    --shade: rgba(0, 0, 0, 0.6); --scrim: rgba(0, 0, 0, 0.66);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bench: #121419; --panel: #1A1D23; --sheet: #E6E9ED; --sheet-ink: #59616C; --slot-line: #A3AAB5; --hatch: #C4CAD2;
+  --ink: #E7EAEF; --ink-2: #A5ACB7; --ink-3: #7D8590; --rule: #2E333C;
+  --accent: #8FA3FF; --accent-ink: #0D1022; --accent-soft: #242D52;
+  --warn: #F1B562; --warn-soft: #3A2B14; --ok: #7CD3A3; --ok-soft: #173327;
+  --shade: rgba(0, 0, 0, 0.6); --scrim: rgba(0, 0, 0, 0.66);
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+html { background: var(--bench); }
+body {
+  background: var(--bench);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.app { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+.back { display: inline-block; margin-bottom: 8px; font-family: var(--f-mono); font-size: 12.5px; color: var(--ink-2); text-decoration: none; }
+.back:hover { color: var(--accent); text-decoration: underline; }
+.top h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-stretch: 116%; font-size: clamp(26px, 4.2vw, 40px); line-height: 1; letter-spacing: -0.015em; text-wrap: balance; }
+.spec { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.spec b { color: var(--ink); font-weight: 600; }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); grid-template-areas: "labels stage" "setup stage"; grid-template-rows: auto 1fr; gap: 26px 32px; align-items: start; }
+.b-labels { grid-area: labels; }
+.b-setup { grid-area: setup; }
+.stage { grid-area: stage; }
+@media (max-width: 880px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "labels" "stage" "setup"; grid-template-rows: auto; }
+}
+
+.block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+h2.eyebrow { margin: 0; font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+.count { font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* Drop zone */
+.drop { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 16px; border: 1.5px dashed var(--ink-3); border-radius: 8px; background: var(--panel); cursor: pointer; transition: border-color .15s, background-color .15s; }
+.drop:hover, body.dragging .drop { border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drop strong { font-family: var(--f-display); font-stretch: 108%; font-size: 17px; font-weight: 700; }
+.drop span { color: var(--ink-2); font-size: 13.5px; }
+.drop input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+/* Queue */
+.queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; padding: 10px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; }
+.item .thumb { width: 48px; height: 60px; display: block; background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; }
+.item-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.item-name { font-weight: 600; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.item-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: 11.5px; line-height: 1; padding: 4px 6px; border-radius: 4px; background: var(--bench); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip.num { background: var(--ink); color: var(--panel); font-weight: 600; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+.item-note { margin: 0; font-size: 12.5px; color: var(--warn); }
+.item-acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.empty { margin: 0; padding: 4px 2px; color: var(--ink-3); font-size: 13.5px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: border-color .12s, background-color .12s; }
+.btn:hover:not(:disabled) { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--accent); }
+.btn.big { min-height: 44px; padding: 0 20px; font-size: 15px; }
+.btn.sm { min-height: 30px; padding: 0 8px; font-size: 13px; font-weight: 600; }
+.btn.icon { width: 30px; min-height: 30px; padding: 0; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Setup */
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.unit { position: relative; }
+.unit input { width: 100%; min-height: 36px; padding: 0 28px 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.unit::after { content: "in"; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); pointer-events: none; }
+.help { margin: 0; font-size: 13px; color: var(--ink-2); }
+.tips { border-top: 1px solid var(--rule); padding-top: 10px; }
+.tips summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.tips ol { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink-2); max-width: 62ch; }
+.tips b { color: var(--ink); }
+
+/* Stage */
+.stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (min-width: 881px) { .stage { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); } }
+.stage-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.stage-head h2 { margin: 0; font-family: var(--f-display); font-stretch: 110%; font-size: 22px; font-weight: 750; line-height: 1.1; }
+.stage-head p { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.pager { display: flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.sheet-wrap { display: flex; justify-content: center; padding: 18px; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; }
+.sheet {
+  position: relative;
+  width: clamp(min(100%, 280px), calc((100vh - 310px) * 0.7727), 100%);
+  width: clamp(min(100%, 280px), calc((100dvh - 310px) * 0.7727), 100%);
+  max-width: 100%;
+  aspect-ratio: 8.5 / 11;
+  background: var(--sheet);
+  border-radius: 2px;
+  box-shadow: var(--shadow);
+}
+.slot { position: absolute; padding: 0; margin: 0; border: 1px dashed var(--slot-line); border-radius: 3.125% / 2.5%; background: transparent; color: var(--sheet-ink); cursor: pointer; overflow: hidden; display: grid; place-items: center; }
+.slot canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; mix-blend-mode: multiply; }
+.slot.filled { border-style: solid; }
+.slot.used { border-style: solid; background: repeating-linear-gradient(135deg, var(--hatch) 0 5px, transparent 5px 11px); }
+.slot:disabled { cursor: default; }
+.slot:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--accent); }
+.slot:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.slot-word { font-family: var(--f-mono); font-size: clamp(10px, 1.6vw, 12px); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; background: var(--sheet); }
+.slot-tag { position: absolute; top: 2.5%; left: 2.5%; z-index: 1; font-family: var(--f-mono); font-size: 10px; font-weight: 600; line-height: 1; padding: 3px 4px; border-radius: 3px; background: #12151A; color: #FFFFFF; font-variant-numeric: tabular-nums; transition: opacity .15s; }
+.slot:hover .slot-tag { opacity: .2; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.summary { margin: 0; font-size: 14px; color: var(--ink-2); min-width: 0; }
+.summary b { color: var(--ink); }
+.act-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.status { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--ink-2); }
+.status[data-tone="warn"] { color: var(--warn); }
+.status[data-tone="ok"] { color: var(--ok); }
+
+.after { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; background: var(--ok-soft); border-radius: 8px; }
+.after p { margin: 0; flex: 1 1 240px; font-size: 14px; color: var(--ink); }
+
+/* Crop editor */
+.editor { position: fixed; inset: 0; z-index: 50; background: var(--scrim); display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.ed-card { width: min(940px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.ed-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 16px 18px 12px; border-bottom: 1px solid var(--rule); }
+.ed-head h2 { margin: 0; font-family: var(--f-display); font-stretch: 110%; font-size: 20px; font-weight: 750; }
+.ed-head span { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.ed-body { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 18px; padding: 16px 18px; }
+@media (max-width: 700px) { .ed-body { grid-template-columns: minmax(0, 1fr); } }
+.ed-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 12px; background: var(--bench); border-radius: 8px; }
+.ed-wrap { position: relative; display: inline-block; line-height: 0; max-width: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.ed-wrap canvas { display: block; max-width: 100%; max-height: min(60vh, 620px); width: auto; height: auto; }
+.crop { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px var(--shade); cursor: move; }
+.crop:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.hd { position: absolute; width: 14px; height: 14px; background: var(--accent); border: 2px solid var(--sheet); border-radius: 3px; }
+.hd::after { content: ""; position: absolute; inset: -10px; }
+.hd[data-h="nw"] { left: -8px; top: -8px; cursor: nwse-resize; }
+.hd[data-h="ne"] { right: -8px; top: -8px; cursor: nesw-resize; }
+.hd[data-h="sw"] { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.hd[data-h="se"] { right: -8px; bottom: -8px; cursor: nwse-resize; }
+.hd[data-h="n"] { left: calc(50% - 7px); top: -8px; cursor: ns-resize; }
+.hd[data-h="s"] { left: calc(50% - 7px); bottom: -8px; cursor: ns-resize; }
+.hd[data-h="w"] { top: calc(50% - 7px); left: -8px; cursor: ew-resize; }
+.hd[data-h="e"] { top: calc(50% - 7px); right: -8px; cursor: ew-resize; }
+.ed-hint { margin: 0; font-size: 12.5px; color: var(--ink-2); text-align: center; line-height: 1.4; }
+.ed-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ed-side fieldset { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px; }
+.ed-side legend { padding: 0; margin-bottom: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.seg { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg label { position: relative; display: grid; place-items: center; min-height: 34px; font-family: var(--f-mono); font-size: 12px; cursor: pointer; border-left: 1px solid var(--rule); }
+.seg label:first-child { border-left: 0; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -3px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-prev { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ed-prev canvas { width: 100%; max-width: 180px; aspect-ratio: 4 / 5; height: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; }
+.ed-info { margin: 0; font-size: 13px; color: var(--ink-2); text-align: center; font-variant-numeric: tabular-nums; }
+.ed-info.warn { color: var(--warn); }
+.ed-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--rule); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div><a class="back" href="../">&larr; Rob's Toolkit</a>
+    <h1>OL475 Label Printer</h1></div>
+    <p class="spec"><span><b>4.00 × 5.00 in</b> labels</span><span><b>2 × 2</b> per sheet</span><span><b>8.5 × 11</b> letter</span><span>r 0.125 in corners</span></p>
+  </header>
+
+  <main class="grid">
+    <section class="block b-labels" aria-labelledby="hLabels">
+      <div class="block-head">
+        <h2 class="eyebrow" id="hLabels">Shipping labels</h2>
+        <span class="count" id="labelCount"></span>
+      </div>
+      <label class="drop" id="drop">
+        <input type="file" id="fileIn" accept="application/pdf,.pdf,image/png,image/jpeg,image/gif,image/webp" multiple>
+        <strong>Add shipping labels</strong>
+        <span>Drop, browse, or paste a PDF, PNG or JPG. Each PDF page becomes one label.</span>
+      </label>
+      <ol class="queue" id="queue"></ol>
+    </section>
+
+    <section class="stage" aria-labelledby="sheetTitle">
+      <div class="stage-head">
+        <div>
+          <h2 id="sheetTitle">Sheet 1</h2>
+          <p id="sheetHint">Tap a spot to mark it as already used. Labels fill the open spots in order.</p>
+        </div>
+        <div class="pager" id="pager" hidden>
+          <button class="btn icon" id="prevSheet" type="button" aria-label="Previous sheet"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <span id="pageLbl">1 / 1</span>
+          <button class="btn icon" id="nextSheet" type="button" aria-label="Next sheet"><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+      <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
+      <div class="actions">
+        <p class="summary" id="summary"></p>
+        <div class="act-btns">
+          <button class="btn" id="resetSheet" type="button">Fresh sheet</button>
+          <button class="btn" id="openBtn" type="button" hidden>Open PDF</button>
+          <button class="btn primary big" id="saveBtn" type="button">Save PDF</button>
+        </div>
+      </div>
+      <div class="after" id="afterBar" hidden>
+        <p>Printed it? Update the sheet so your next labels go on the spots that are still open.</p>
+        <div class="act-btns">
+          <button class="btn sm" id="afterDismiss" type="button">Not yet</button>
+          <button class="btn sm primary" id="markBtn" type="button">Mark spots used</button>
+        </div>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="block b-setup" aria-labelledby="hSetup">
+      <h2 class="eyebrow" id="hSetup">Printer setup</h2>
+      <div class="fields">
+        <div class="field">
+          <label for="inset">Edge gap</label>
+          <div class="unit"><input id="inset" type="number" inputmode="decimal" step="0.01" min="0" max="0.5"></div>
+        </div>
+        <div class="field">
+          <label for="nudgeX">Shift right</label>
+          <div class="unit"><input id="nudgeX" type="number" inputmode="decimal" step="0.01" min="-0.5" max="0.5"></div>
+        </div>
+        <div class="field">
+          <label for="nudgeY">Shift down</label>
+          <div class="unit"><input id="nudgeY" type="number" inputmode="decimal" step="0.01" min="-0.5" max="0.5"></div>
+        </div>
+      </div>
+      <p class="help">Edge gap keeps the label off the die cut. Shifts correct for your printer; use negative numbers to move left or up. Settings stay in this browser.</p>
+      <div class="row-btns"><button class="btn" id="testBtn" type="button">Save alignment test</button></div>
+      <details class="tips">
+        <summary>How to print</summary>
+        <ol>
+          <li>Open the PDF and print at <b>Actual size</b> or <b>100%</b>. “Fit to page” shrinks everything and the labels will miss the cuts.</li>
+          <li>Paper size <b>Letter</b>, one-sided. Print the alignment test on plain paper first, lay it on a label sheet, and hold both up to a window.</li>
+          <li>Mark the top edge of a plain sheet before your first test so you learn which side and direction your tray prints.</li>
+          <li>Reusing a partial sheet: feed it the same way as a fresh one. On a laser printer, use the manual or rear slot if you have one; gaps where labels were peeled can catch in the fuser.</li>
+          <li>The label is scaled to fit 4 × 5. If the size reads under 80%, scan the barcode with your phone before you ship.</li>
+        </ol>
+      </details>
+    </section>
+  </main>
+</div>
+
+<div class="editor" id="editor" hidden role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="ed-card">
+    <div class="ed-head">
+      <h2 id="edTitle">Crop label</h2>
+      <span id="edSrc"></span>
+    </div>
+    <div class="ed-body">
+      <div class="ed-stage">
+        <div class="ed-wrap" id="edWrap">
+          <canvas id="edCanvas"></canvas>
+          <div class="crop" id="crop" tabindex="0" aria-label="Crop area. Arrow keys move it, Shift plus arrow keys resize it.">
+            <span class="hd" data-h="nw"></span><span class="hd" data-h="n"></span><span class="hd" data-h="ne"></span>
+            <span class="hd" data-h="w"></span><span class="hd" data-h="e"></span>
+            <span class="hd" data-h="sw"></span><span class="hd" data-h="s"></span><span class="hd" data-h="se"></span>
+          </div>
+        </div>
+        <p class="ed-hint">Drag the box or its handles. Drag outside the box to draw a new one.</p>
+      </div>
+      <div class="ed-side">
+        <fieldset>
+          <legend>Rotation</legend>
+          <div class="seg" id="rotSeg">
+            <label><input type="radio" name="rot" value="auto" id="rotAuto">Auto</label>
+            <label><input type="radio" name="rot" value="0" id="rot0">0°</label>
+            <label><input type="radio" name="rot" value="90" id="rot90">90°</label>
+            <label><input type="radio" name="rot" value="180" id="rot180">180°</label>
+            <label><input type="radio" name="rot" value="270" id="rot270">270°</label>
+          </div>
+        </fieldset>
+        <div class="row-btns">
+          <button class="btn sm" id="edAuto" type="button">Auto-detect</button>
+          <button class="btn sm" id="edFull" type="button">Whole page</button>
+        </div>
+        <div class="ed-prev">
+          <canvas id="edPrev" width="256" height="320" aria-label="Preview of the 4 by 5 inch label"></canvas>
+          <p class="ed-info" id="edInfo"></p>
+        </div>
+      </div>
+    </div>
+    <div class="ed-foot">
+      <button class="btn" id="edCancel" type="button">Cancel</button>
+      <button class="btn primary" id="edDone" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Sheet geometry: OnlineLabels OL475 (4" x 5", 2 x 2 on letter) ---------- */
+  const LABEL_W = 4, LABEL_H = 5, SHEET_W = 8.5, SHEET_H = 11, RADIUS = 0.125;
+  const SLOTS = [
+    { x: 0.15625, y: 0.5 }, { x: 4.34375, y: 0.5 },
+    { x: 0.15625, y: 5.5 }, { x: 4.34375, y: 5.5 }
+  ];
+  const SLOT_NAMES = ['Top left', 'Top right', 'Bottom left', 'Bottom right'];
+  const PREV_LONG = 1000;   // preview raster, long side in px
+  const CARD_DPI = 110;     // on-screen label preview
+  const PRINT_DPI = 600;    // output raster
+  const STORE = 'ol475-label-printer-v1';
+
+  const $ = (s) => document.querySelector(s);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const clamp01 = (v) => clamp(v, 0, 1);
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  const ICONS = {
+    crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/>',
+    up: '<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>',
+    down: '<path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/>',
+    x: '<path d="M18 6L6 18"/><path d="M6 6l12 12"/>'
+  };
+  function iconBtn(icon, label, onClick, extra = '') {
+    const b = el('button', 'btn ' + (extra || 'icon'));
+    b.type = 'button';
+    b.innerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>` + (extra ? `<span>${label}</span>` : '');
+    if (!extra) b.setAttribute('aria-label', label);
+    b.title = label;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  /* ---------- State ---------- */
+  const S = { labels: [], used: [false, false, false, false], inset: 0.06, nudgeX: 0, nudgeY: 0, view: 0, busy: false };
+  let uid = 0;
+
+  function loadSettings() {
+    try {
+      const o = JSON.parse(localStorage.getItem(STORE) || 'null');
+      if (!o) return;
+      if (Array.isArray(o.used) && o.used.length === 4) S.used = o.used.map(Boolean);
+      for (const k of ['inset', 'nudgeX', 'nudgeY']) if (Number.isFinite(o[k])) S[k] = o[k];
+    } catch (e) { /* storage unavailable */ }
+  }
+  function saveSettings() {
+    try { localStorage.setItem(STORE, JSON.stringify({ used: S.used, inset: S.inset, nudgeX: S.nudgeX, nudgeY: S.nudgeY })); } catch (e) { /* ignore */ }
+  }
+
+  const statusEl = $('#status');
+  function status(msg, tone = '') { statusEl.textContent = msg || ''; statusEl.dataset.tone = tone; }
+
+  /* ---------- Saving files ---------- */
+  const inViewer = !!(window.claude && typeof window.claude.use === 'function');
+  const dlP = inViewer ? Promise.resolve(window.claude.use('downloads')).catch(() => null) : Promise.resolve(null);
+
+  async function offerFile(bytes, filename) {
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    if (inViewer) {
+      const dl = await dlP;
+      if (!dl) { status('Saving isn’t available in this view. Open this page in Claude to save the PDF.', 'warn'); return false; }
+      try { await dl.save({ filename, data: blob }); return true; }
+      catch (e) {
+        const code = e && e.code;
+        if (code === 'declined') status('Save cancelled.');
+        else if (code === 'rate_limited') status('A save prompt is already open. Finish that one first.', 'warn');
+        else status(`The PDF couldn’t be saved here (${code || 'unknown error'}).`, 'warn');
+        return false;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  }
+  function stamp() {
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  }
+
+  /* ---------- Fit math ---------- */
+  // Source units: PDF points (72/in) for PDFs, pixels for images. s = output inches per source unit.
+  function fit(lab) {
+    const cw = lab.crop.w * lab.w, ch = lab.crop.h * lab.h;
+    const aw = LABEL_W - 2 * S.inset, ah = LABEL_H - 2 * S.inset;
+    const sFor = (r) => (r % 180) ? Math.min(aw / ch, ah / cw) : Math.min(aw / cw, ah / ch);
+    // When turning is needed, undo a PDF page's own sideways rotation so the text reads upright.
+    const turn = lab.pageRot === 90 ? 270 : 90;
+    const rot = lab.rot === 'auto' ? (sFor(90) > sFor(0) * 1.02 ? turn : 0) : lab.rot;
+    const s = sFor(rot);
+    const side = rot % 180 !== 0;
+    return { rot, s, cx: lab.crop.x * lab.w, cy: lab.crop.y * lab.h, cw, ch, wIn: (side ? ch : cw) * s, hIn: (side ? cw : ch) * s };
+  }
+  function quality(lab) {
+    const f = fit(lab);
+    if (lab.kind === 'pdf') {
+      const pct = Math.round(f.s * 72 * 100);
+      return { f, text: `${pct}% size`, warn: pct < 80, note: pct < 80 ? 'Printed small. Scan-test the barcode before shipping.' : '' };
+    }
+    const dpi = Math.round(1 / f.s);
+    return { f, text: `${dpi} dpi`, warn: dpi < 150, note: dpi < 150 ? 'Low resolution. Use the carrier’s PDF if you can.' : '' };
+  }
+
+  /* ---------- Auto crop ---------- */
+  function inkMap(cv) {
+    const W = cv.width, H = cv.height;
+    const d = cv.getContext('2d').getImageData(0, 0, W, H).data;
+    const ink = new Uint8Array(W * H);
+    for (let i = 0, j = 0; i < W * H; i++, j += 4) {
+      if (d[j + 3] < 32) continue;
+      if (((d[j] * 77 + d[j + 1] * 150 + d[j + 2] * 29) >> 8) < 200) ink[i] = 1;
+    }
+    return ink;
+  }
+  function bbox(ink, W, X0, Y0, X1, Y1) {
+    let x0 = X1, y0 = Y1, x1 = -1, y1 = -1;
+    for (let y = Y0; y < Y1; y++) {
+      const row = y * W;
+      for (let x = X0; x < X1; x++) if (ink[row + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; y1 = y; }
+    }
+    return x1 < 0 ? null : { x0, y0, x1: x1 + 1, y1: y1 + 1 };
+  }
+  function runs(profile, gap) {
+    const out = []; let start = -1, last = -1;
+    for (let i = 0; i < profile.length; i++) {
+      if (!profile[i]) continue;
+      if (start < 0) start = i;
+      else if (i - last - 1 >= gap) { out.push([start, last + 1]); start = i; }
+      last = i;
+    }
+    if (start >= 0) out.push([start, last + 1]);
+    return out;
+  }
+  // On letter-size pages (label + receipt/instructions), keep the biggest block of content.
+  function biggestBlock(ink, W, H, box) {
+    const rowP = new Uint32Array(H);
+    for (let y = box.y0; y < box.y1; y++) { let n = 0; const r = y * W; for (let x = box.x0; x < box.x1; x++) n += ink[r + x]; rowP[y] = n; }
+    let best = null, bestA = 0;
+    for (const [a, b] of runs(rowP, Math.round(H * 0.025))) {
+      const colP = new Uint32Array(W);
+      for (let y = a; y < b; y++) { const r = y * W; for (let x = box.x0; x < box.x1; x++) colP[x] += ink[r + x]; }
+      for (const [c, e] of runs(colP, Math.round(W * 0.03))) {
+        const bb = bbox(ink, W, c, a, e, b);
+        if (!bb) continue;
+        const A = (bb.x1 - bb.x0) * (bb.y1 - bb.y0);
+        if (A > bestA) { bestA = A; best = bb; }
+      }
+    }
+    return best || box;
+  }
+  function detectCrop(lab) {
+    const cv = lab.prev, W = cv.width, H = cv.height;
+    const ink = inkMap(cv);
+    let box = bbox(ink, W, 0, 0, W, H);
+    if (!box) return { x: 0, y: 0, w: 1, h: 1 };
+    let big;
+    if (lab.inches) big = Math.max(lab.inches[0], lab.inches[1]) > 7.2 || Math.min(lab.inches[0], lab.inches[1]) > 4.6;
+    else { const r = Math.max(W, H) / Math.min(W, H); big = r < 1.42; }
+    if (big) box = biggestBlock(ink, W, H, box);
+    const pad = Math.round(Math.min(W, H) * 0.012);
+    const x0 = Math.max(0, box.x0 - pad), y0 = Math.max(0, box.y0 - pad), x1 = Math.min(W, box.x1 + pad), y1 = Math.min(H, box.y1 + pad);
+    return { x: x0 / W, y: y0 / H, w: (x1 - x0) / W, h: (y1 - y0) / H };
+  }
+
+  /* ---------- Loading labels ---------- */
+  async function addPdf(file) {
+    if (!window.pdfjsLib) throw new Error('The PDF reader didn’t load. Check your connection and reload the page.');
+    if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const data = new Uint8Array(await file.arrayBuffer());
+    const doc = await window.pdfjsLib.getDocument({ data, isEvalSupported: false }).promise;
+    const out = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      status(doc.numPages > 1 ? `Reading ${file.name}, page ${p} of ${doc.numPages}…` : `Reading ${file.name}…`);
+      const page = await doc.getPage(p);
+      const vp1 = page.getViewport({ scale: 1 });
+      const k = PREV_LONG / Math.max(vp1.width, vp1.height);
+      const cv = mkCanvas(vp1.width * k, vp1.height * k);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: page.getViewport({ scale: k }) }).promise;
+      const lab = {
+        id: ++uid, kind: 'pdf', page, pageRot: ((page.rotate % 360) + 360) % 360, w: vp1.width, h: vp1.height, inches: [vp1.width / 72, vp1.height / 72],
+        name: doc.numPages > 1 ? `${file.name} · page ${p}` : file.name, prev: cv, pk: cv.width / vp1.width, rot: 'auto'
+      };
+      lab.crop = detectCrop(lab);
+      makeCard(lab);
+      out.push(lab);
+      await nextFrame();
+    }
+    return out;
+  }
+  function fromBitmap(bmp, name, sample = false) {
+    const w = bmp.width, h = bmp.height;
+    const k = Math.min(1, PREV_LONG / Math.max(w, h));
+    const cv = mkCanvas(w * k, h * k);
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    const lab = { id: ++uid, kind: 'image', bmp, w, h, inches: null, name, prev: cv, pk: cv.width / w, rot: 'auto', sample };
+    lab.crop = detectCrop(lab);
+    makeCard(lab);
+    return lab;
+  }
+  async function addImage(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file); }
+    catch (e) { throw new Error(`${file.name} couldn’t be read as an image`); }
+    return [fromBitmap(bmp, file.name)];
+  }
+  const isPdf = (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  const isImg = (f) => /^image\/(png|jpe?g|gif|webp|bmp)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name);
+
+  async function addFiles(list) {
+    const files = Array.from(list || []);
+    if (!files.length || S.busy) return;
+    setBusy(true);
+    const added = [], errors = [];
+    for (const f of files) {
+      try {
+        if (isPdf(f)) added.push(...await addPdf(f));
+        else if (isImg(f)) added.push(...await addImage(f));
+        else errors.push(`${f.name} isn’t a PDF or image`);
+      } catch (e) {
+        if (e && e.name === 'PasswordException') errors.push(`${f.name} is password-protected`);
+        else errors.push(e && e.message && !/^Invalid PDF/i.test(e.message) ? e.message : `${f.name} couldn’t be opened`);
+      }
+    }
+    if (added.length) {
+      S.labels = S.labels.filter((l) => !l.sample).concat(added);
+      $('#afterBar').hidden = true;
+      const firstNew = layout().findIndex((sh) => sh.slots.includes(added[0]));
+      if (firstNew >= 0) S.view = firstNew;
+    }
+    setBusy(false);
+    render();
+    if (errors.length) status(errors.join('. ') + '.', 'warn');
+    else if (added.length) status(`Added ${plural(added.length, 'label')}. Check each crop before you save.`);
+    else status('');
+  }
+
+  /* ---------- Rendering a label ---------- */
+  function drawPlaced(ctx, src, pk, f, dpi) {
+    const dw = f.cw * f.s * dpi, dh = f.ch * f.s * dpi;
+    ctx.save();
+    ctx.translate(LABEL_W * dpi / 2, LABEL_H * dpi / 2);
+    ctx.rotate(f.rot * Math.PI / 180);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, f.cx * pk, f.cy * pk, f.cw * pk, f.ch * pk, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  }
+  function makeCard(lab) {
+    const cv = lab.card || mkCanvas(LABEL_W * CARD_DPI, LABEL_H * CARD_DPI);
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    drawPlaced(ctx, lab.prev, lab.pk, fit(lab), CARD_DPI);
+    lab.card = cv;
+  }
+  async function renderPrint(lab, dpi) {
+    const f = fit(lab);
+    const uw = Math.max(1, Math.round(f.cw * f.s * dpi)), uh = Math.max(1, Math.round(f.ch * f.s * dpi));
+    const tmp = mkCanvas(uw, uh);
+    const t = tmp.getContext('2d');
+    t.fillStyle = '#fff'; t.fillRect(0, 0, uw, uh);
+    const k = uw / f.cw;
+    if (lab.kind === 'pdf') {
+      const vp = lab.page.getViewport({ scale: k, offsetX: -f.cx * k, offsetY: -f.cy * k });
+      await lab.page.render({ canvasContext: t, viewport: vp }).promise;
+    } else {
+      t.imageSmoothingEnabled = k < 1;
+      if (k < 1) t.imageSmoothingQuality = 'high';
+      t.drawImage(lab.bmp, f.cx, f.cy, f.cw, f.ch, 0, 0, uw, uh);
+    }
+    if (!f.rot) return { cv: tmp, f };
+    const side = f.rot % 180 !== 0;
+    const out = mkCanvas(side ? uh : uw, side ? uw : uh);
+    const o = out.getContext('2d');
+    o.imageSmoothingEnabled = false;
+    o.translate(out.width / 2, out.height / 2);
+    o.rotate(f.rot * Math.PI / 180);
+    o.drawImage(tmp, -uw / 2, -uh / 2);
+    tmp.width = tmp.height = 0;
+    return { cv: out, f };
+  }
+  // Embed a canvas as a Flate-compressed image (grayscale unless the label has real color).
+  function embedRaster(doc, cv) {
+    const w = cv.width, h = cv.height, n = w * h;
+    const d = cv.getContext('2d').getImageData(0, 0, w, h).data;
+    const gray = new Uint8Array(n);
+    let colorful = 0;
+    for (let i = 0, j = 0; i < n; i++, j += 4) {
+      let r = d[j], g = d[j + 1], b = d[j + 2]; const a = d[j + 3];
+      if (a < 255) { const t = 255 - a; r = r + ((t * (255 - r)) / 255 | 0); g = g + ((t * (255 - g)) / 255 | 0); b = b + ((t * (255 - b)) / 255 | 0); }
+      const mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      if (mx - mn > 48) colorful++;
+      gray[i] = (r * 77 + g * 150 + b * 29) >> 8;
+    }
+    let bytes = gray, cs = 'DeviceGray';
+    if (colorful > n * 0.0005) {
+      bytes = new Uint8Array(n * 3);
+      for (let i = 0, j = 0, k = 0; i < n; i++, j += 4, k += 3) {
+        const a = d[j + 3], t = 255 - a;
+        bytes[k] = d[j] + ((t * (255 - d[j])) / 255 | 0);
+        bytes[k + 1] = d[j + 1] + ((t * (255 - d[j + 1])) / 255 | 0);
+        bytes[k + 2] = d[j + 2] + ((t * (255 - d[j + 2])) / 255 | 0);
+      }
+      cs = 'DeviceRGB';
+    }
+    const stream = doc.context.flateStream(bytes, { Type: 'XObject', Subtype: 'Image', Width: w, Height: h, ColorSpace: cs, BitsPerComponent: 8 });
+    return doc.context.register(stream);
+  }
+
+  async function buildLabelsPdf(sheets) {
+    const { PDFDocument, pushGraphicsState, popGraphicsState, concatTransformationMatrix, drawObject } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    doc.setTitle('Shipping labels on OL475 4 x 5 sheets');
+    doc.setCreator('OL475 Label Printer');
+    const total = sheets.reduce((n, sh) => n + sh.slots.filter(Boolean).length, 0);
+    let done = 0;
+    for (const sh of sheets) {
+      const page = doc.addPage([SHEET_W * 72, SHEET_H * 72]);
+      for (let i = 0; i < 4; i++) {
+        const lab = sh.slots[i];
+        if (!lab) continue;
+        status(`Rendering label ${++done} of ${total} at ${PRINT_DPI} dpi…`);
+        await nextFrame();
+        const { cv, f } = await renderPrint(lab, PRINT_DPI);
+        const ref = embedRaster(doc, cv);
+        cv.width = cv.height = 0;
+        const name = page.node.newXObject('Label', ref);
+        const xIn = SLOTS[i].x + (LABEL_W - f.wIn) / 2 + S.nudgeX;
+        const yIn = SLOTS[i].y + (LABEL_H - f.hIn) / 2 + S.nudgeY;
+        page.pushOperators(
+          pushGraphicsState(),
+          concatTransformationMatrix(f.wIn * 72, 0, 0, f.hIn * 72, xIn * 72, (SHEET_H - yIn - f.hIn) * 72),
+          drawObject(name),
+          popGraphicsState()
+        );
+      }
+    }
+    status('Compressing PDF…');
+    await nextFrame();
+    return doc.save();
+  }
+
+  async function buildTestPdf() {
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    doc.setTitle('OL475 alignment test');
+    const page = doc.addPage([SHEET_W * 72, SHEET_H * 72]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const ink = rgb(0.07, 0.08, 0.1), soft = rgb(0.55, 0.58, 0.63), blue = rgb(0.15, 0.27, 0.76);
+    const P = (v) => v * 72;
+    const W = P(LABEL_W), H = P(LABEL_H), r = P(RADIUS);
+    const rr = `M ${r} 0 H ${W - r} A ${r} ${r} 0 0 1 ${W} ${r} V ${H - r} A ${r} ${r} 0 0 1 ${W - r} ${H} H ${r} A ${r} ${r} 0 0 1 0 ${H - r} V ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+    const sx = (S.nudgeX >= 0 ? '+' : '') + S.nudgeX.toFixed(2), sy = (S.nudgeY >= 0 ? '+' : '') + S.nudgeY.toFixed(2);
+    SLOTS.forEach((s, i) => {
+      const x = s.x + S.nudgeX, y = s.y + S.nudgeY;
+      const left = P(x), top = P(SHEET_H - y);
+      page.drawSvgPath(rr, { x: left, y: top, borderColor: ink, borderWidth: 0.8 });
+      if (S.inset > 0) page.drawRectangle({ x: P(x + S.inset), y: P(SHEET_H - y - LABEL_H + S.inset), width: P(LABEL_W - 2 * S.inset), height: P(LABEL_H - 2 * S.inset), borderColor: soft, borderWidth: 0.5, borderDashArray: [3, 3] });
+      const cx = P(x + LABEL_W / 2), cy = P(SHEET_H - y - LABEL_H / 2);
+      page.drawLine({ start: { x: cx - 20, y: cy }, end: { x: cx + 20, y: cy }, thickness: 0.8, color: blue });
+      page.drawLine({ start: { x: cx, y: cy - 20 }, end: { x: cx, y: cy + 20 }, thickness: 0.8, color: blue });
+      page.drawText(SLOT_NAMES[i].toUpperCase(), { x: left + P(0.3), y: top - P(0.55), size: 15, font: bold, color: ink });
+      // 2-inch scale bar
+      const bx = cx - P(1), by = cy - P(1);
+      page.drawLine({ start: { x: bx, y: by }, end: { x: bx + P(2), y: by }, thickness: 1, color: ink });
+      for (let t = 0; t <= 4; t++) page.drawLine({ start: { x: bx + P(t / 2), y: by }, end: { x: bx + P(t / 2), y: by + (t % 2 ? 4 : 8) }, thickness: 0.8, color: ink });
+      page.drawText('2 in - measure this to confirm 100% scale', { x: bx - 6, y: by - 14, size: 8, font, color: soft });
+      if (i === 0) {
+        const lines = [
+          'Print at Actual size (100%) on plain paper.',
+          'Lay it on a label sheet and hold both up to a window.',
+          'Outlines should sit on the die cuts. If not, change',
+          'Shift right / Shift down and print this again.',
+          `Current shift: right ${sx} in, down ${sy} in`
+        ];
+        lines.forEach((t, k) => page.drawText(t, { x: left + P(0.3), y: top - P(0.95) - k * 13, size: 9.5, font, color: k === 4 ? blue : ink }));
+      }
+    });
+    return doc.save();
+  }
+
+  /* ---------- Layout across sheets ---------- */
+  function layout() {
+    const sheets = [];
+    let idx = 0, first = true;
+    do {
+      const used = first ? S.used.slice() : [false, false, false, false];
+      const slots = [null, null, null, null];
+      for (let i = 0; i < 4 && idx < S.labels.length; i++) if (!used[i]) slots[i] = S.labels[idx++];
+      sheets.push({ used, slots });
+      first = false;
+    } while (idx < S.labels.length);
+    return sheets;
+  }
+
+  /* ---------- UI ---------- */
+  function setBusy(b) {
+    S.busy = b;
+    ['#saveBtn', '#testBtn', '#openBtn', '#markBtn', '#resetSheet'].forEach((s) => { const e = $(s); if (e) e.disabled = b || (s === '#saveBtn' || s === '#openBtn' ? !S.labels.some((l) => !l.sample) : false); });
+    $('#fileIn').disabled = b;
+  }
+
+  function renderQueue() {
+    const q = $('#queue');
+    q.textContent = '';
+    const real = S.labels.filter((l) => !l.sample).length;
+    $('#labelCount').textContent = real ? plural(real, 'label') : '';
+    if (!S.labels.length) { q.append(el('p', 'empty', 'No labels yet.')); return; }
+    S.labels.forEach((lab, i) => {
+      const li = el('li', 'item');
+      const th = mkCanvas(96, 120);
+      th.className = 'thumb';
+      th.getContext('2d').drawImage(lab.card, 0, 0, 96, 120);
+      const body = el('div', 'item-body');
+      body.append(el('div', 'item-name', lab.name));
+      const qd = quality(lab);
+      const meta = el('div', 'item-meta');
+      meta.append(el('span', 'chip num', `#${i + 1}`));
+      if (lab.sample) meta.append(el('span', 'chip accent', 'Example'));
+      meta.append(el('span', 'chip' + (qd.warn ? ' warn' : ''), qd.text));
+      if (qd.f.rot) meta.append(el('span', 'chip', `rotated ${qd.f.rot}°`));
+      body.append(meta);
+      if (qd.note) body.append(el('p', 'item-note', qd.note));
+      const acts = el('div', 'item-acts');
+      acts.append(iconBtn('crop', 'Adjust crop', () => openEditor(lab), 'sm'));
+      const up = iconBtn('up', 'Move up', () => move(i, -1));
+      const dn = iconBtn('down', 'Move down', () => move(i, 1));
+      up.disabled = i === 0; dn.disabled = i === S.labels.length - 1;
+      acts.append(up, dn, iconBtn('x', 'Remove label', () => removeLabel(lab)));
+      body.append(acts);
+      li.append(th, body);
+      q.append(li);
+    });
+  }
+  function move(i, d) {
+    const j = i + d;
+    if (j < 0 || j >= S.labels.length) return;
+    [S.labels[i], S.labels[j]] = [S.labels[j], S.labels[i]];
+    render();
+  }
+  function removeLabel(lab) {
+    S.labels = S.labels.filter((l) => l !== lab);
+    render();
+    status(`Removed ${lab.name}.`);
+  }
+
+  function renderSheet() {
+    const sheets = layout();
+    S.view = clamp(S.view, 0, sheets.length - 1);
+    const sh = sheets[S.view];
+    const sheetEl = $('#sheet');
+    sheetEl.textContent = '';
+    for (let i = 0; i < 4; i++) {
+      const b = el('button', 'slot');
+      b.type = 'button';
+      Object.assign(b.style, {
+        left: (SLOTS[i].x / SHEET_W * 100) + '%', top: (SLOTS[i].y / SHEET_H * 100) + '%',
+        width: (LABEL_W / SHEET_W * 100) + '%', height: (LABEL_H / SHEET_H * 100) + '%'
+      });
+      const lab = sh.slots[i], used = sh.used[i];
+      let state;
+      if (lab) { b.classList.add('filled'); b.append(lab.card, el('span', 'slot-tag', `#${S.labels.indexOf(lab) + 1}`)); state = `label ${S.labels.indexOf(lab) + 1}, ${lab.name}`; }
+      else if (used) { b.classList.add('used'); b.append(el('span', 'slot-word', 'Used')); state = 'already used'; }
+      else { b.classList.add('open'); b.append(el('span', 'slot-word', 'Open')); state = 'open'; }
+      if (S.view === 0) {
+        b.setAttribute('aria-label', `${SLOT_NAMES[i]}: ${state}. Activate to mark it ${used ? 'open' : 'already used'}.`);
+        b.addEventListener('click', () => toggleUsed(i));
+      } else {
+        b.disabled = true;
+        b.setAttribute('aria-label', `${SLOT_NAMES[i]}: ${state}.`);
+      }
+      sheetEl.append(b);
+    }
+    $('#sheetTitle').textContent = sheets.length > 1 ? `Sheet ${S.view + 1} of ${sheets.length}` : 'Sheet 1';
+    $('#sheetHint').textContent = S.view === 0
+      ? 'Tap a spot to mark it as already used. Labels fill the open spots in order.'
+      : 'Extra sheets start fresh, with all four spots open.';
+    $('#pager').hidden = sheets.length < 2;
+    $('#pageLbl').textContent = `${S.view + 1} / ${sheets.length}`;
+    $('#prevSheet').disabled = S.view === 0;
+    $('#nextSheet').disabled = S.view === sheets.length - 1;
+  }
+  function toggleUsed(i) {
+    S.used[i] = !S.used[i];
+    saveSettings();
+    render();
+  }
+
+  function renderSummary() {
+    const real = S.labels.filter((l) => !l.sample);
+    const out = layout().filter((sh) => sh.slots.some(Boolean));
+    const open = S.used.filter((u) => !u).length;
+    const s = $('#summary');
+    s.textContent = '';
+    if (!S.labels.length) {
+      s.append(`Add a shipping label to fill the ${open === 4 ? 'sheet' : 'open spots'}.`);
+    } else if (!real.length) {
+      s.append('The example shows how a 4 × 6 label fits. Add your label to replace it.');
+    } else {
+      const b = el('b', null, `${plural(real.length, 'label')} on ${plural(out.length, 'sheet')}`);
+      s.append(b, open < 4 ? ` · first sheet has ${open} open ${open === 1 ? 'spot' : 'spots'}` : '');
+    }
+    const none = !real.length;
+    $('#saveBtn').disabled = S.busy || none;
+    $('#openBtn').disabled = S.busy || none;
+  }
+  function render() { renderQueue(); renderSheet(); renderSummary(); }
+
+  /* ---------- Save / print ---------- */
+  async function makePdfBytes() {
+    if (!window.PDFLib) { status('The PDF writer didn’t load. Check your connection and reload the page.', 'warn'); return null; }
+    const sheets = layout().filter((sh) => sh.slots.some(Boolean));
+    if (!sheets.length) return null;
+    return buildLabelsPdf(sheets);
+  }
+  async function onSave() {
+    if (S.busy) return;
+    setBusy(true);
+    try {
+      const bytes = await makePdfBytes();
+      if (!bytes) return;
+      const name = `labels-OL475-${stamp()}.pdf`;
+      status('PDF ready. Confirm the save to download it.');
+      const ok = await offerFile(bytes, name);
+      if (ok) { status(`Saved ${name}. Print it at Actual size (100%).`, 'ok'); $('#afterBar').hidden = false; }
+    } catch (e) {
+      console.error(e);
+      status(`The PDF couldn’t be built: ${e && e.message ? e.message : e}`, 'warn');
+    } finally { setBusy(false); renderSummary(); }
+  }
+  async function onOpen() {
+    if (S.busy) return;
+    setBusy(true);
+    try {
+      const bytes = await makePdfBytes();
+      if (!bytes) return;
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+      status('Opened the PDF in a new tab. Print it at Actual size (100%).', 'ok');
+      $('#afterBar').hidden = false;
+    } catch (e) {
+      console.error(e);
+      status(`The PDF couldn’t be built: ${e && e.message ? e.message : e}`, 'warn');
+    } finally { setBusy(false); renderSummary(); }
+  }
+  async function onTest() {
+    if (S.busy) return;
+    if (!window.PDFLib) { status('The PDF writer didn’t load. Check your connection and reload the page.', 'warn'); return; }
+    setBusy(true);
+    try {
+      const bytes = await buildTestPdf();
+      const ok = await offerFile(bytes, 'OL475-alignment-test.pdf');
+      if (ok) status('Saved the alignment test. Print it on plain paper at Actual size.', 'ok');
+    } catch (e) { console.error(e); status(`The test page couldn’t be built: ${e && e.message ? e.message : e}`, 'warn'); }
+    finally { setBusy(false); renderSummary(); }
+  }
+  function markPrinted() {
+    const out = layout().filter((sh) => sh.slots.some(Boolean));
+    if (!out.length) return;
+    const last = out[out.length - 1];
+    const next = last.used.map((u, i) => u || !!last.slots[i]);
+    const full = next.every(Boolean);
+    S.used = full ? [false, false, false, false] : next;
+    S.labels = [];
+    S.view = 0;
+    saveSettings();
+    $('#afterBar').hidden = true;
+    render();
+    status(full ? 'That sheet is full. The next print starts on a fresh sheet.' : `Sheet updated. ${plural(next.filter((u) => !u).length, 'spot')} left on it.`, 'ok');
+  }
+
+  /* ---------- Crop editor ---------- */
+  const editor = $('#editor'), edWrap = $('#edWrap'), cropEl = $('#crop'), edCanvas = $('#edCanvas'), edPrev = $('#edPrev');
+  let ed = null, drag = null, lastFocus = null, prevRaf = 0;
+
+  function openEditor(lab) {
+    lastFocus = document.activeElement;
+    ed = { lab, crop: { ...lab.crop }, rot: lab.rot };
+    edCanvas.width = lab.prev.width; edCanvas.height = lab.prev.height;
+    edCanvas.getContext('2d').drawImage(lab.prev, 0, 0);
+    $('#edSrc').textContent = lab.name;
+    const r = document.querySelector(`input[name="rot"][value="${lab.rot}"]`);
+    if (r) r.checked = true;
+    editor.hidden = false;
+    layoutCrop();
+    drawEdPreview();
+    $('#edDone').focus();
+  }
+  function closeEditor(apply) {
+    if (!ed) return;
+    if (apply) {
+      ed.lab.crop = ed.crop; ed.lab.rot = ed.rot;
+      makeCard(ed.lab);
+      render();
+    }
+    ed = null; drag = null;
+    editor.hidden = true;
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  }
+  function layoutCrop() {
+    const c = ed.crop;
+    Object.assign(cropEl.style, { left: c.x * 100 + '%', top: c.y * 100 + '%', width: c.w * 100 + '%', height: c.h * 100 + '%' });
+  }
+  function drawEdPreview() {
+    if (!ed) return;
+    const tmp = { ...ed.lab, crop: ed.crop, rot: ed.rot };
+    const ctx = edPrev.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, edPrev.width, edPrev.height);
+    const dpi = edPrev.width / LABEL_W;
+    drawPlaced(ctx, ed.lab.prev, ed.lab.pk, fit(tmp), dpi);
+    const qd = quality(tmp);
+    const info = $('#edInfo');
+    const rotTxt = ed.rot === 'auto' && qd.f.rot ? ` · auto-rotated ${qd.f.rot}°` : '';
+    info.textContent = (ed.lab.kind === 'pdf' ? `Prints at ${qd.text.replace(' size', '')} of original size` : `Prints at ${qd.text}`) + rotTxt;
+    info.className = 'ed-info' + (qd.warn ? ' warn' : '');
+  }
+  function schedulePreview() { cancelAnimationFrame(prevRaf); prevRaf = requestAnimationFrame(drawEdPreview); }
+
+  function ptFrom(e, r) { return { x: clamp01((e.clientX - r.left) / r.width), y: clamp01((e.clientY - r.top) / r.height) }; }
+  edWrap.addEventListener('pointerdown', (e) => {
+    if (!ed || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const r = edWrap.getBoundingClientRect();
+    const h = e.target.closest('[data-h]');
+    const mode = h ? h.dataset.h : (e.target.closest('#crop') ? 'move' : 'draw');
+    drag = { mode, p0: ptFrom(e, r), c0: { ...ed.crop }, r, id: e.pointerId };
+    try { edWrap.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    e.preventDefault();
+  });
+  edWrap.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const p = ptFrom(e, drag.r), c0 = drag.c0, MIN = 0.03;
+    const dx = p.x - drag.p0.x, dy = p.y - drag.p0.y;
+    let L = c0.x, T = c0.y, R = c0.x + c0.w, B = c0.y + c0.h;
+    if (drag.mode === 'move') {
+      L = clamp(c0.x + dx, 0, 1 - c0.w); T = clamp(c0.y + dy, 0, 1 - c0.h); R = L + c0.w; B = T + c0.h;
+    } else if (drag.mode === 'draw') {
+      L = Math.min(drag.p0.x, p.x); R = Math.max(drag.p0.x, p.x); T = Math.min(drag.p0.y, p.y); B = Math.max(drag.p0.y, p.y);
+      if (R - L < MIN || B - T < MIN) return;
+    } else {
+      const m = drag.mode;
+      if (m.includes('w')) L = clamp(c0.x + dx, 0, R - MIN);
+      if (m.includes('e')) R = clamp(c0.x + c0.w + dx, L + MIN, 1);
+      if (m.includes('n')) T = clamp(c0.y + dy, 0, B - MIN);
+      if (m.includes('s')) B = clamp(c0.y + c0.h + dy, T + MIN, 1);
+    }
+    ed.crop = { x: L, y: T, w: R - L, h: B - T };
+    layoutCrop();
+    schedulePreview();
+  });
+  const endDrag = (e) => { if (drag && e.pointerId === drag.id) { drag = null; drawEdPreview(); } };
+  edWrap.addEventListener('pointerup', endDrag);
+  edWrap.addEventListener('pointercancel', endDrag);
+  cropEl.addEventListener('keydown', (e) => {
+    if (!ed) return;
+    const step = e.altKey ? 0.002 : 0.01;
+    const k = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (!k) return;
+    e.preventDefault();
+    const c = { ...ed.crop };
+    if (e.shiftKey) { c.w = clamp(c.w + k[0], 0.03, 1 - c.x); c.h = clamp(c.h + k[1], 0.03, 1 - c.y); }
+    else { c.x = clamp(c.x + k[0], 0, 1 - c.w); c.y = clamp(c.y + k[1], 0, 1 - c.h); }
+    ed.crop = c; layoutCrop(); schedulePreview();
+  });
+  $('#rotSeg').addEventListener('change', (e) => {
+    if (!ed || !e.target.matches('input[name="rot"]')) return;
+    ed.rot = e.target.value === 'auto' ? 'auto' : Number(e.target.value);
+    drawEdPreview();
+  });
+  $('#edAuto').addEventListener('click', () => { if (!ed) return; ed.crop = detectCrop(ed.lab); layoutCrop(); drawEdPreview(); });
+  $('#edFull').addEventListener('click', () => { if (!ed) return; ed.crop = { x: 0, y: 0, w: 1, h: 1 }; layoutCrop(); drawEdPreview(); });
+  $('#edDone').addEventListener('click', () => closeEditor(true));
+  $('#edCancel').addEventListener('click', () => closeEditor(false));
+  editor.addEventListener('click', (e) => { if (e.target === editor) closeEditor(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ed) closeEditor(false); });
+
+  /* ---------- Example label (clearly fake) ---------- */
+  function exampleLabel() {
+    const W = 1200, H = 1800;
+    const c = mkCanvas(W, H), x = c.getContext('2d');
+    const F = 'Arial, Helvetica, "Liberation Sans", sans-serif';
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#000'; x.strokeStyle = '#000'; x.textBaseline = 'alphabetic';
+    x.lineWidth = 6; x.strokeRect(36, 36, W - 72, H - 72);
+    x.fillRect(36, 36, W - 72, 120);
+    x.fillStyle = '#fff'; x.font = `bold 54px ${F}`; x.fillText('EXAMPLE — NOT FOR SHIPPING', 70, 116);
+    x.fillStyle = '#000';
+    x.lineWidth = 8; x.strokeRect(70, 196, 190, 190);
+    x.font = `bold 150px ${F}`; x.fillText('X', 112, 345);
+    x.font = `bold 64px ${F}`; x.fillText('SAMPLE GROUND', 300, 270);
+    x.font = `38px ${F}`; x.fillText('Placeholder service · 1 lb 6 oz', 300, 335);
+    x.fillRect(36, 420, W - 72, 6);
+    x.font = `34px ${F}`;
+    ['SAMPLE SENDER', '100 EXAMPLE RD', 'ANYTOWN ST 00000'].forEach((t, i) => x.fillText(t, 70, 485 + i * 44));
+    x.font = `bold 40px ${F}`; x.fillText('SHIP TO:', 70, 700);
+    x.font = `bold 60px ${F}`;
+    ['SAMPLE RECIPIENT', '200 PLACEHOLDER AVE', 'ANYTOWN ST 00000'].forEach((t, i) => x.fillText(t, 110, 790 + i * 78));
+    x.fillRect(36, 1010, W - 72, 6);
+    x.font = `bold 38px ${F}`; x.fillText('TRACKING #', 70, 1075);
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let bx = 110; bx < W - 120;) { const w = 4 + Math.floor(rnd() * 4) * 4; if (rnd() > 0.45) x.fillRect(bx, 1105, w, 300); bx += w; }
+    x.font = `bold 42px ${F}`; x.textAlign = 'center'; x.fillText('0000 0000 0000 0000 0000 00', W / 2, 1465); x.textAlign = 'left';
+    x.fillRect(36, 1510, W - 72, 6);
+    for (let gy = 0; gy < 21; gy++) for (let gx = 0; gx < 21; gx++) if (rnd() > 0.5 || (gx < 7 && gy < 7 && (gx % 6 === 0 || gy % 6 === 0 || (gx > 1 && gx < 5 && gy > 1 && gy < 5)))) x.fillRect(80 + gx * 10, 1550 + gy * 10, 10, 10);
+    x.font = `32px ${F}`;
+    ['Add your own label to replace', 'this example. Nothing here is real.'].forEach((t, i) => x.fillText(t, 340, 1630 + i * 46));
+    return c;
+  }
+
+  /* ---------- Wiring ---------- */
+  function syncInputs() {
+    $('#inset').value = S.inset.toFixed(2);
+    $('#nudgeX').value = S.nudgeX.toFixed(2);
+    $('#nudgeY').value = S.nudgeY.toFixed(2);
+  }
+  function onSetting(id, key, min, max) {
+    const input = $('#' + id);
+    input.addEventListener('change', () => {
+      const v = parseFloat(input.value);
+      S[key] = Number.isFinite(v) ? clamp(Math.round(v * 1000) / 1000, min, max) : S[key];
+      input.value = S[key].toFixed(2);
+      saveSettings();
+      if (key === 'inset') { S.labels.forEach(makeCard); render(); }
+    });
+  }
+  onSetting('inset', 'inset', 0, 0.5);
+  onSetting('nudgeX', 'nudgeX', -0.5, 0.5);
+  onSetting('nudgeY', 'nudgeY', -0.5, 0.5);
+
+  $('#fileIn').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+  let dragDepth = 0;
+  window.addEventListener('dragenter', (e) => { if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) { dragDepth++; document.body.classList.add('dragging'); } });
+  window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove('dragging'); });
+  window.addEventListener('dragover', (e) => { if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault(); });
+  window.addEventListener('drop', (e) => {
+    dragDepth = 0; document.body.classList.remove('dragging');
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    addFiles(e.dataTransfer.files);
+  });
+  document.addEventListener('paste', (e) => {
+    const files = e.clipboardData ? Array.from(e.clipboardData.files || []) : [];
+    if (files.length) { e.preventDefault(); addFiles(files); }
+  });
+
+  $('#saveBtn').addEventListener('click', onSave);
+  $('#openBtn').addEventListener('click', onOpen);
+  $('#testBtn').addEventListener('click', onTest);
+  $('#markBtn').addEventListener('click', markPrinted);
+  $('#afterDismiss').addEventListener('click', () => { $('#afterBar').hidden = true; });
+  $('#resetSheet').addEventListener('click', () => { S.used = [false, false, false, false]; S.view = 0; saveSettings(); render(); status('Sheet reset. All four spots are open.'); });
+  $('#prevSheet').addEventListener('click', () => { S.view--; renderSheet(); });
+  $('#nextSheet').addEventListener('click', () => { S.view++; renderSheet(); });
+
+  if (!inViewer) $('#openBtn').hidden = false;
+
+  loadSettings();
+  syncInputs();
+  S.labels = [fromBitmap(exampleLabel(), 'Example 4 × 6 label', true)];
+  render();
+  if (!window.pdfjsLib || !window.PDFLib) status('The PDF tools didn’t load. Check your connection and reload the page.', 'warn');
+})();
+</script>
+
+</body>
+</html>
